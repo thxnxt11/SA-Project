@@ -4,7 +4,7 @@ import { Card, message } from 'antd'
 import './App.css'
 import 'antd/dist/reset.css'
 import SignUp from './auth/signin'
-import SignIn from './auth/login'
+import SignIn from './auth/register'
 import { signUp, signIn } from './api/auth'
 
 const App: React.FC = () => {
