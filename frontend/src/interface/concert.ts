@@ -6,5 +6,5 @@ export interface ConcertInterface {
     show_date?: string; // "YYYY-MM-DD"
     onsale_date?: string; // "YYYY-MM-DD"
     offsale_date?: string; // "YYYY-MM-DD"
-    refchart? : string;
+    chart_image? : string;
 }
