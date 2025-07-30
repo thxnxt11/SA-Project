@@ -1,11 +1,11 @@
-// src/App.tsx
+
 import React, { useState } from 'react'
 import { Card, message } from 'antd'
-import './App.css'
 import 'antd/dist/reset.css'
 import SignUp from './auth/signin'
 import SignIn from './auth/login'
 import { signUp, signIn } from './api/auth'
+import Navbar from './components/navbar'
 
 const App: React.FC = () => {
   const [isSignup, setIsSignup] = useState(true)
@@ -26,9 +26,10 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="container">
+    <> 
+      <Navbar />
       {contextHolder}
-      <Card className="card">
+      <Card className="card" style={{ width: 400, margin: 'auto', marginTop: 50 }}>
         <h2 className="title">{isSignup ? 'Sign Up' : 'Sign In'}</h2>
 
         {isSignup ? <SignUp onFinish={onFinish} /> : <SignIn onFinish={onFinish} />}
@@ -45,8 +46,8 @@ const App: React.FC = () => {
           </a>
         </div>
       </Card>
-    </div>
-  )
+    </>
+    )
 }
 
 export default App

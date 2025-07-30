@@ -12,22 +12,25 @@ const SignUpForm: React.FC<{ onFinish: (values: any) => void }> = ({ onFinish })
       initialValues={{ age: 18, gender_id: 1 }}
       requiredMark={false}
     >
-      <Form.Item
-        label="First Name"
-        name="first_name"
-        rules={[{ required: true, message: 'Please enter your first name' }]}
-      >
-        <Input placeholder="First Name" />
-      </Form.Item>
+      <div style={{ display: 'flex', gap: 16 }}>
+        <Form.Item
+          label="First Name"
+          name="first_name"
+          rules={[{ required: true, message: 'Please enter your first name' }]}
+          style={{ flex: 1 }}
+        >
+          <Input placeholder="First Name" />
+        </Form.Item>
 
-      <Form.Item
-        label="Last Name"
-        name="last_name"
-        rules={[{ required: true, message: 'Please enter your last name' }]}
-      >
-        <Input placeholder="Last Name" />
-      </Form.Item>
-
+        <Form.Item
+          label="Last Name"
+          name="last_name"
+          rules={[{ required: true, message: 'Please enter your last name' }]}
+          style={{ flex: 1 }}
+        >
+          <Input placeholder="Last Name" />
+        </Form.Item>
+      </div>
       <Form.Item
         label="Email"
         name="email"
@@ -39,36 +42,38 @@ const SignUpForm: React.FC<{ onFinish: (values: any) => void }> = ({ onFinish })
       >
         <Input />
       </Form.Item>
+      <div style={{ display: 'flex', gap: 16 }}>
+        <Form.Item
+          label="Password"
+          name="password"
+          hasFeedback
+          rules={[{ required: true, message: 'Please enter your password' }]}
+          style={{ flex: 1 }}
+        >
+          <Input.Password />
+        </Form.Item>
 
-      <Form.Item
-        label="Password"
-        name="password"
-        hasFeedback
-        rules={[{ required: true, message: 'Please enter your password' }]}
-      >
-        <Input.Password />
-      </Form.Item>
-
-      <Form.Item
-        label="Confirm Password"
-        name="confirmPassword"
-        dependencies={['password']}
-        hasFeedback
-        rules={[
-          { required: true, message: 'Please confirm your password' },
-          ({ getFieldValue }) => ({
-            validator(_, value) {
-              if (!value || getFieldValue('password') === value) {
-                return Promise.resolve()
-              }
-              return Promise.reject(new Error('Passwords do not match'))
-            },
-          }),
-        ]}
-      >
-        <Input.Password />
-      </Form.Item>
-
+        <Form.Item
+          label="Confirm Password"
+          name="confirmPassword"
+          dependencies={['password']}
+          style={{ flex: 1 }}
+          hasFeedback
+          rules={[
+            { required: true, message: 'Please confirm your password' },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || getFieldValue('password') === value) {
+                  return Promise.resolve()
+                }
+                return Promise.reject(new Error('Passwords do not match'))
+              },
+            }),
+          ]}
+        >
+          <Input.Password />
+        </Form.Item>
+      </div>
       <Form.Item
         label="Birthday"
         name="birthday"

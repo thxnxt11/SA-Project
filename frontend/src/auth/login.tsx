@@ -13,6 +13,7 @@ const SignInForm: React.FC<{ onFinish: (values: any) => void }> = ({ onFinish })
           { pattern: /.+@.+\.com$/, message: 'Must end with .com' },
           { required: true, message: 'Please enter your email' },
         ]}
+        style={{  }}
       >
         <Input />
       </Form.Item>
