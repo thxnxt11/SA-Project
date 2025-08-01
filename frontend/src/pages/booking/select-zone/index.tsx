@@ -3,7 +3,7 @@ import type { RadioChangeEvent } from "antd";
 import Navbar from "../../../component/navbar";
 import { Card, Col, Row } from "antd";
 import { Radio } from "antd";
-import chart from "../../assets/chart.svg";
+import chart from "../../../assets/chart.svg";
 import { mockShowDates } from "../../../mock/selectzone";
 import { useNavigate } from "react-router-dom";
 // Mock data for show dates and zones
@@ -24,8 +24,8 @@ const SelectZone: React.FC = () => {
   const zonesForSelectedDate = selectedShowDate ? selectedShowDate.zones : [];
 
   const handleZoneCardClick = (zone: (typeof zonesForSelectedDate)[0]) => {
-    if (selectedShowDate) {
-      navigate("/select-seat", {
+    if (selectedShowDate && zone.availableSeats > 0) {
+      navigate("/selectseat", {
         state: {
           showDateId: selectedShowDate.id,
           showDate: selectedShowDate.date,
@@ -41,20 +41,23 @@ const SelectZone: React.FC = () => {
   return (
     <>
       <Navbar />
+
       <Card
         style={{
           position: "absolute",
           left: 100,
           marginTop: 30,
           width: 600,
-          height: 650,
+          height: 600,
           borderColor: "#d3d3d3ff",
           backgroundColor: "#F6F6F8",
           borderRadius: 15,
         }}
       >
-        <h2>Concert Chart</h2>
-        <img src={chart} alt="chart" style={{ width: "100%" }}></img>
+        <h2 style={{ marginTop: -8 }}>Concert Chart</h2>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <img src={chart} alt="chart" style={{ width: "90%" }} />
+        </div>
       </Card>
       <Col
         style={{
@@ -72,7 +75,7 @@ const SelectZone: React.FC = () => {
             borderRadius: 15,
           }}
         >
-          <h2>Select Date</h2>
+          <h2 style={{ marginTop: -8 }}>Select Date</h2>
           <Radio.Group
             onChange={onChange}
             value={selectedShowDateId}
@@ -88,6 +91,7 @@ const SelectZone: React.FC = () => {
                 key={date.id}
                 value={date.id}
                 className="text-lg cursor-pointer"
+                style={{ fontSize: "18px" }}
               >
                 Show Date: {date.date} {date.time}
               </Radio>
@@ -119,17 +123,24 @@ const SelectZone: React.FC = () => {
                     zonesForSelectedDate.map((zone) => (
                       <React.Fragment key={zone.id}>
                         <Card
-                          onClick={() => handleZoneCardClick(zone)}
                           key={zone.id}
                           style={{
                             height: 70,
                             display: "flex",
                             alignItems: "center",
                             margin: 5,
+                            cursor:
+                              zone.availableSeats === 0
+                                ? "not-allowed"
+                                : "pointer",
                           }}
+                          onClick={() => handleZoneCardClick(zone)}
                         >
                           <Row
-                            style={{ display: "flex", alignItems: "center" }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                            }}
                           >
                             <div>
                               <h3>
@@ -137,17 +148,31 @@ const SelectZone: React.FC = () => {
                                 {zone.type} - ฿{zone.price.toLocaleString()}
                               </h3>
                             </div>
-                            <h4
+                            <div
                               style={{
-                                position: "absolute",
-                                right: 20,
-                                fontSize: 18,
-                                color:
-                                  zone.availableSeats === 0 ? "red" : "green",
+                                width: 100,
+                                height: 40,
+                                borderRadius: 8,
+                                backgroundColor:
+                                  zone.availableSeats === 0
+                                    ? "#ef4444"
+                                    : "#22c55e", // Red for 0, Green for >0
+                                display: "flex",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                marginLeft: 256, // Space between zone card and available seats box
                               }}
                             >
-                              {zone.availableSeats} ที่นั่ง
-                            </h4>
+                              <span
+                                style={{
+                                  fontSize: 18,
+                                  fontWeight: "bold",
+                                  color: "white",
+                                }}
+                              >
+                                {zone.availableSeats}
+                              </span>
+                            </div>
                           </Row>
                         </Card>
                       </React.Fragment>

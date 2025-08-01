@@ -7,6 +7,7 @@ import EditPromotionModal from "./pages/promotion/edit";
 import SelectZone from "./pages/booking/select-zone";
 import Dashboard from "./pages/dashboard";
 import SelectSeat from "./pages/booking/select-seat";
+import BookingDetail from "./pages/booking/BookingDetail";
 // import { Card, message } from "antd";
 // import "./App.css";
 
@@ -68,10 +69,10 @@ const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/promotion" element={<Promotion />} />
-        <Route path="/promotion/add" element={<AddPromotion />} />
+        <Route path="/organizer/promotion" element={<Promotion />} />
+        <Route path="/organizer/promotion/add" element={<AddPromotion />} />
         <Route
-          path="/promotion/edit/:id"
+          path="/organizer/promotion/edit/:id"
           element={
             <EditPromotionModal
               visible={false}
@@ -85,9 +86,11 @@ const App: React.FC = () => {
             />
           }
         />
-        <Route path="/select-zone" element={<SelectZone />} />
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/select-seat" element={<SelectSeat />} />
+        <Route path="/organizer/dashboard" element={<Dashboard />} />
+        <Route path="/selectzone" element={<SelectZone />} />
+        
+        <Route path="/selectseat" element={<SelectSeat />} />
+        <Route path="/bookingdetail" element={<BookingDetail />} />
       </Routes>
     </Router>
   );

@@ -4,7 +4,7 @@ function Dashboard() {
   return (
     <>
       <SidebarLayout>
-        <div>test dashborad</div>
+        <div>test dashboard</div>
       </SidebarLayout>
     </>
   );

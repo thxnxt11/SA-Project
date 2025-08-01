@@ -9,7 +9,7 @@ import {
 import { LuTicketPercent } from "react-icons/lu";
 import { FaRegCalendarAlt, FaUserCircle } from "react-icons/fa";
 import logo from "../assets/logo.png";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 // import { useNavigate } from "react-router-dom";
 
 const { Header, Sider, Content } = Layout;
@@ -24,36 +24,38 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
   const navigate = useNavigate();
+  const location = useLocation();
+
   const menuItem = [
     {
-      key: "1",
+      key: "/organizer/dashboard",
       icon: <MdOutlineSpaceDashboard style={{ fontSize: "20px" }} />,
       label: "Dashboard",
-      onClick: () => navigate("/"),
+      onClick: () => navigate("/organizer/dashboard"),
     },
     {
-      key: "2",
+      key: "/organizer/concert",
       icon: <MdOutlineLibraryMusic style={{ fontSize: "20px" }} />,
       label: "จัดการคอนเสิร์ต",
-      onClick: () => navigate("/concert"),
+      onClick: () => navigate("/organizer/concert"),
     },
     {
-      key: "3",
+      key: "/organizer/chart",
       icon: <MdEventSeat style={{ fontSize: "20px" }} />,
       label: "จัดการผังที่นั่ง",
-      onClick: () => navigate("/chart"),
+      onClick: () => navigate("/organizer/chart"),
     },
     {
-      key: "4",
+      key: "/organizer/promotion",
       icon: <LuTicketPercent style={{ fontSize: "20px" }} />,
       label: "จัดการโปรโมชั่น",
-      onClick: () => navigate("/promotion"),
+      onClick: () => navigate("/organizer/promotion"),
     },
     {
-      key: "5",
+      key: "/organizer/venue",
       icon: <FaRegCalendarAlt style={{ fontSize: "20px" }} />,
       label: "ปฏิทินสถานที่",
-      onClick: () => navigate("/venue"),
+      onClick: () => navigate("/organizer/venue"),
     },
   ];
 
@@ -82,7 +84,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         <Menu
           theme="dark"
           mode="inline"
-          // defaultSelectedKeys={["1"]}
+          selectedKeys={[location.pathname]}
           style={{
             fontSize: "17px", // ปรับขนาด label
             backgroundColor: "#00306E", // ปรับสีพื้นหลัง

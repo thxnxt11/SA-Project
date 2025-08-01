@@ -2,7 +2,7 @@
 export const mockShowDates = [
   {
     id: 1,
-    date: "16 August 2025",
+    date: "14 February 2026",
     time: "19:00",
     zones: [
       {
@@ -81,7 +81,7 @@ export const mockShowDates = [
   },
   {
     id: 2,
-    date: "17 August 2025",
+    date: "15 February 2026",
     time: "19:00",
     zones: [
       {
@@ -106,7 +106,7 @@ export const mockShowDates = [
         zname: "C",
         type: "ยืน",
         price: 6700,
-        availableSeats: 250,
+        availableSeats: 2500,
       },
       {
         id: 204,

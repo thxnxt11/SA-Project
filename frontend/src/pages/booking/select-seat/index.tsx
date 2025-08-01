@@ -34,6 +34,19 @@ const SelectSeat: React.FC = () => {
     }
   };
 
+  const handleBooking = () => {
+    navigate("/bookingdetail", {
+      state: {
+        showDate: showDate,
+        showTime: showTime,
+        zone: zoneName,
+        seatNo: displaySeatNo,
+        quantity: displayQuantity,
+        unitPrice: zonePrice,
+      },
+    });
+  };
+
   const handleCancel = () => {
     navigate(-1);
   };
@@ -42,18 +55,7 @@ const SelectSeat: React.FC = () => {
     zoneType === "ยืน" ? "Standing" : selectedSeats.join(", ");
   const totalPrice = (zonePrice || 0) * displayQuantity;
 
-  const rowStyle: React.CSSProperties = {
-    fontSize: "18px",
-    margin: "4px 0",
-    display: "flex",
-    justifyContent: "space-between",
-  };
-
-  const valueStyle: React.CSSProperties = {
-    flex: 1,
-    textAlign: "right",
-    paddingRight: "50%",
-  };
+  const textStyle = { fontSize: "18px" };
   const dividerStyle: React.CSSProperties = {
     borderColor: "#d3d3d3ff",
     margin: "10px 0",
@@ -315,63 +317,80 @@ const SelectSeat: React.FC = () => {
                     <TbTicket style={{ fontSize: "130%" }} />
                     Ticket Information
                   </h1>
-
                   {/* Divider under Title */}
                   <Divider
                     style={{
                       borderColor: "#d3d3d3ff",
                       marginTop: "40px",
-                      marginBottom: "6px",
+                      marginBottom: "10px",
                     }}
                   />
-                  <h2 style={rowStyle}>
-                    ShowDate: <strong style={valueStyle}>{showDate}</strong>
-                  </h2>
-                  <Divider style={dividerStyle} />
 
-                  <h2 style={rowStyle}>
-                    ShowTime: <strong style={valueStyle}>{showTime}</strong>
-                  </h2>
-                  <Divider style={dividerStyle} />
+                  {/* Row-Based Info like BookingDetail */}
+                  <Row
+                    gutter={[0, 3]}
+                    style={{ fontSize: "24px" }}
+                    align="middle"
+                  >
+                    <Col span={12} style={textStyle}>
+                      ShowDate:
+                    </Col>
+                    <Col span={12} style={{ ...textStyle }}>
+                      <strong>{showDate}</strong>
+                    </Col>
+                    <Divider style={dividerStyle} />
 
-                  <h2 style={rowStyle}>
-                    Zone: <strong style={valueStyle}>{zoneName}</strong>
-                  </h2>
-                  <Divider style={dividerStyle} />
+                    <Col span={12} style={textStyle}>
+                      ShowTime:
+                    </Col>
+                    <Col span={12} style={{ ...textStyle }}>
+                      <strong>{showTime}</strong>
+                    </Col>
+                    <Divider style={dividerStyle} />
 
-                  {/* Seat No */}
-                  <h2 style={rowStyle}>
-                    Seat No:
-                    <strong style={valueStyle}>{displaySeatNo}</strong>
-                  </h2>
-                  <Divider style={dividerStyle} />
+                    <Col span={12} style={textStyle}>
+                      Zone:
+                    </Col>
+                    <Col span={12} style={{ ...textStyle }}>
+                      <strong>{zoneName}</strong>
+                    </Col>
+                    <Divider style={dividerStyle} />
 
-                  {/* Quantity */}
-                  <h2 style={rowStyle}>
-                    Quantity:
-                    <strong style={valueStyle}>{displayQuantity}</strong>
-                  </h2>
-                  <Divider style={dividerStyle} />
+                    <Col span={12} style={textStyle}>
+                      Seat No:
+                    </Col>
+                    <Col span={12} style={{ ...textStyle }}>
+                      <strong>{displaySeatNo}</strong>
+                    </Col>
+                    <Divider style={dividerStyle} />
 
-                  {/* Unit Price */}
-                  <h2 style={rowStyle}>
-                    Unit Price (THB):
-                    <strong style={valueStyle}>
-                      ฿ {zonePrice?.toLocaleString() || "N/A"}
-                    </strong>
-                  </h2>
-                  <Divider style={dividerStyle} />
+                    <Col span={12} style={textStyle}>
+                      Quantity:
+                    </Col>
+                    <Col span={12} style={{ ...textStyle }}>
+                      <strong>{displayQuantity}</strong>
+                    </Col>
+                    <Divider style={dividerStyle} />
 
-                  {/* Total Price */}
-                  <h2 style={rowStyle}>
-                    Total Price (THB):
-                    <strong style={valueStyle}>
-                      ฿ {totalPrice.toLocaleString()}
-                    </strong>
-                  </h2>
-                  <Divider style={dividerStyle} />
+                    <Col span={12} style={textStyle}>
+                      Unit Price (THB):
+                    </Col>
+                    <Col span={12} style={{ ...textStyle }}>
+                      <strong>฿ {zonePrice?.toLocaleString() || "N/A"}</strong>
+                    </Col>
+                    <Divider style={dividerStyle} />
+
+                    <Col span={12} style={textStyle}>
+                      Total Price (THB):
+                    </Col>
+                    <Col span={12} style={{ ...textStyle }}>
+                      <strong>฿ {totalPrice.toLocaleString()}</strong>
+                    </Col>
+                    <Divider style={dividerStyle} />
+                  </Row>
                 </Card>
               </Col>
+
               <Row
                 style={{
                   display: "flex",
@@ -397,7 +416,7 @@ const SelectSeat: React.FC = () => {
 
                     <Button
                       type="primary"
-                      htmlType="submit"
+                      onClick={handleBooking}
                       size="large"
                       style={{
                         height: 48,

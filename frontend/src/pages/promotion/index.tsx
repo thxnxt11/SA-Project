@@ -145,7 +145,7 @@ const Promotion: React.FC= () => {
           }}
         >
           <h1>Promotion </h1>
-          <Link to={"/promotion/add"}>
+          <Link to={"/organizer/promotion/add"}>
             <Button
               style={{
                 position: "fixed",
