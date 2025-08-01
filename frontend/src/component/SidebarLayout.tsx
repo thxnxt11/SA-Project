@@ -9,6 +9,8 @@ import {
 import { LuTicketPercent } from "react-icons/lu";
 import { FaRegCalendarAlt, FaUserCircle } from "react-icons/fa";
 import logo from "../assets/logo.png";
+import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 
 const { Header, Sider, Content } = Layout;
 
@@ -21,6 +23,39 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+  const navigate = useNavigate();
+  const menuItem = [
+    {
+      key: "1",
+      icon: <MdOutlineSpaceDashboard style={{ fontSize: "20px" }} />,
+      label: "Dashboard",
+      onClick: () => navigate("/"),
+    },
+    {
+      key: "2",
+      icon: <MdOutlineLibraryMusic style={{ fontSize: "20px" }} />,
+      label: "จัดการคอนเสิร์ต",
+      onClick: () => navigate("/concert"),
+    },
+    {
+      key: "3",
+      icon: <MdEventSeat style={{ fontSize: "20px" }} />,
+      label: "จัดการผังที่นั่ง",
+      onClick: () => navigate("/chart"),
+    },
+    {
+      key: "4",
+      icon: <LuTicketPercent style={{ fontSize: "20px" }} />,
+      label: "จัดการโปรโมชั่น",
+      onClick: () => navigate("/promotion"),
+    },
+    {
+      key: "5",
+      icon: <FaRegCalendarAlt style={{ fontSize: "20px" }} />,
+      label: "ปฏิทินสถานที่",
+      onClick: () => navigate("/venue"),
+    },
+  ];
 
   return (
     <Layout>
@@ -47,46 +82,30 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         <Menu
           theme="dark"
           mode="inline"
-          defaultSelectedKeys={["1"]}
+          // defaultSelectedKeys={["1"]}
           style={{
             fontSize: "17px", // ปรับขนาด label
             backgroundColor: "#00306E", // ปรับสีพื้นหลัง
             color: "white", // ปรับสีตัวอักษร
           }}
-          items={[
-            {
-              key: "1",
-              icon: <MdOutlineSpaceDashboard style={{ fontSize: "20px" }} />,
-              label: "Dashboard",
-            },
-            {
-              key: "2",
-              icon: <MdOutlineLibraryMusic style={{ fontSize: "20px" }} />,
-              label: "จัดการคอนเสิร์ต",
-            },
-            {
-              key: "3",
-              icon: <MdEventSeat style={{ fontSize: "20px" }} />,
-              label: "จัดการผังที่นั่ง",
-            },
-            {
-              key: "4",
-              icon: <LuTicketPercent style={{ fontSize: "20px" }} />,
-              label: "จัดการโปรโมชั่น",
-            },
-            {
-              key: "5",
-              icon: <FaRegCalendarAlt style={{ fontSize: "20px" }} />,
-              label: "ปฏิทินสถานที่",
-            },
-          ]}
+          items={menuItem}
+          onClick={(item) => {
+            const selected = menuItem.find((i) => i.key === item.key);
+            selected?.onClick?.();
+          }}
         />
       </Sider>
       <Layout>
         <Header style={{ padding: 0, background: colorBgContainer }}>
           <Button
             type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            icon={
+              collapsed ? (
+                <MenuUnfoldOutlined style={{ fontSize: 20 }} />
+              ) : (
+                <MenuFoldOutlined style={{ fontSize: 20 }} />
+              )
+            }
             onClick={() => setCollapsed(!collapsed)}
             style={{
               fontSize: "16px",
@@ -113,7 +132,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
           </a>
           <Button
             style={{
-              position: "fixed",
+              position: "absolute",
               top: 10,
               right: 20,
               marginLeft: "auto",
@@ -122,6 +141,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
               backgroundColor: "#00306E",
               fontSize: 17,
               color: "white",
+              borderRadius: 15,
             }}
           >
             <FaUserCircle />

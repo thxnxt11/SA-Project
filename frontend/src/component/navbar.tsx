@@ -33,7 +33,9 @@ const Navbar: React.FC = () => {
         </a>
       </div>
 
-      <div style={{ display: "flex", gap: 50, position: "fixed", left: "15%" }}>
+      <div
+        style={{ display: "flex", gap: 50, position: "absolute", left: "15%" }}
+      >
         {navLinks.map((link) => (
           <a
             key={link.href}
@@ -62,11 +64,13 @@ const Navbar: React.FC = () => {
             gap: 8,
             padding: "0 16px",
             height: 50,
+            fontWeight: "bold",
+            borderRadius: 15,
           }}
           href="/login"
         >
           <FaUserCircle />
-          Sign In
+          Tan Thanat
         </Button>
       </div>
     </Header>

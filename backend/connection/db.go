@@ -40,7 +40,6 @@ func SetupDatabase() {
        &entity.PaymentStatus{},
        &entity.Payment{},
        &entity.Seat{},
-       &entity.SeatCode{},
        &entity.Zone{},
        &entity.ZoneType{},
    )

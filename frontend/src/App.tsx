@@ -1,8 +1,12 @@
 import React, { useState } from "react";
-// import { SelectZone } from "./pages/select-zone";
-import Sidebar from "./component/SidebarLayout";
 import "antd/dist/reset.css";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Promotion from "./pages/promotion";
+import AddPromotion from "./pages/promotion/add";
+import EditPromotionModal from "./pages/promotion/edit";
+import SelectZone from "./pages/booking/select-zone";
+import Dashboard from "./pages/dashboard";
+import SelectSeat from "./pages/booking/select-seat";
 // import { Card, message } from "antd";
 // import "./App.css";
 
@@ -62,9 +66,30 @@ import Promotion from "./pages/promotion";
 
 const App: React.FC = () => {
   return (
-    <>
-      <Promotion />
-    </>
+    <Router>
+      <Routes>
+        <Route path="/promotion" element={<Promotion />} />
+        <Route path="/promotion/add" element={<AddPromotion />} />
+        <Route
+          path="/promotion/edit/:id"
+          element={
+            <EditPromotionModal
+              visible={false}
+              onCancel={function (): void {
+                throw new Error("Function not implemented.");
+              }}
+              onSuccess={function (): void {
+                throw new Error("Function not implemented.");
+              }}
+              promotionId={null}
+            />
+          }
+        />
+        <Route path="/select-zone" element={<SelectZone />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/select-seat" element={<SelectSeat />} />
+      </Routes>
+    </Router>
   );
 };
 export default App;
