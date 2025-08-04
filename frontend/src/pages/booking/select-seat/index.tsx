@@ -1,12 +1,13 @@
 import type React from "react";
 import { useState } from "react";
-import Navbar from "../../../component/navbar";
+import Navbar from "../../../component/layout/navbar";
 import { Button, Card, Col, Divider, Form, Row, Space } from "antd";
 import { FaCircleCheck } from "react-icons/fa6"; // ✅ เลือก
 import { RxCrossCircled } from "react-icons/rx"; // ❌ จองแล้ว
 import { TbTicket } from "react-icons/tb";
 import { useLocation, useNavigate } from "react-router-dom";
 import { mockSeatMap } from "../../../mock/selectseat";
+import Loader from "../../../component/loader/loader";
 
 const SelectSeat: React.FC = () => {
   const navigate = useNavigate();
@@ -33,18 +34,31 @@ const SelectSeat: React.FC = () => {
       });
     }
   };
+  const [loadingBooking, setLoadingBooking] = useState(false);
+  const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
 
   const handleBooking = () => {
-    navigate("/bookingdetail", {
-      state: {
-        showDate: showDate,
-        showTime: showTime,
-        zone: zoneName,
-        seatNo: displaySeatNo,
-        quantity: displayQuantity,
-        unitPrice: zonePrice,
-      },
-    });
+    // Step 1: เริ่ม loading ที่ปุ่ม
+    setLoadingBooking(true);
+    // Step 2: รอสักครู่ให้แสดง loading บนปุ่ม
+    setTimeout(() => {
+      // ปิดปุ่ม loading แล้วเปิด loader เต็มจอ
+      setLoadingBooking(false);
+      setShowFullScreenLoader(true);
+      // Step 3: รออีกนิดให้ Loader ได้โชว์ (optional)
+      setTimeout(() => {
+        navigate("/bookingdetail", {
+          state: {
+            showDate,
+            showTime,
+            zone: zoneName,
+            seatNo: displaySeatNo,
+            quantity: displayQuantity,
+            unitPrice: zonePrice,
+          },
+        });
+      }, 1500);
+    }, 1500);
   };
 
   const handleCancel = () => {
@@ -81,6 +95,7 @@ const SelectSeat: React.FC = () => {
                   backgroundColor: "#F6F6F8",
                   borderRadius: 15,
                   padding: "20px",
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                 }}
               >
                 {zoneType !== "ยืน" ? (
@@ -300,6 +315,7 @@ const SelectSeat: React.FC = () => {
                     borderRadius: 15,
                     padding: "15px",
                     textAlign: "left",
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                   }}
                 >
                   {/* Title */}
@@ -409,6 +425,7 @@ const SelectSeat: React.FC = () => {
                         fontSize: 20,
                         padding: "0 24px",
                         borderRadius: 8,
+                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                       }}
                     >
                       Cancel
@@ -417,16 +434,19 @@ const SelectSeat: React.FC = () => {
                     <Button
                       type="primary"
                       onClick={handleBooking}
+                      loading={loadingBooking}
                       size="large"
                       style={{
                         height: 48,
                         fontSize: 20,
                         padding: "0 24px",
                         borderRadius: 8,
+                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                       }}
                     >
                       Booking
                     </Button>
+                    {showFullScreenLoader && <Loader />}
                   </Space>
                 </Form.Item>
               </Row>

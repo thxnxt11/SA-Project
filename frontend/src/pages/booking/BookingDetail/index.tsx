@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import Navbar from "../../../component/navbar";
+import React, { useState, useEffect, useRef } from "react";
+import Navbar from "../../../component/layout/navbar";
 import { Button, Card, Col, Divider, Input, Row } from "antd";
 import {
   CalendarDays,
@@ -22,7 +22,9 @@ const BookingDetail: React.FC = () => {
   const { showDate, showTime, zone, seatNo, quantity, unitPrice } =
     location.state || {};
 
-  console.log("Received state from SelectSeat:", location.state);
+  useEffect(() => {
+    console.log("Received state from SelectSeat:", location.state);
+  }, []);
 
   // Use mock data as fallback or for initial structure
   const concertInfo = mockBookingDetails.concert;
@@ -40,7 +42,7 @@ const BookingDetail: React.FC = () => {
     message: string;
     code: string;
   } | null>(null);
-  const [remainingTime, setRemainingTime] = useState(5 * 60); // 5 minutes
+  const [remainingTime, setRemainingTime] = useState(300); // 5 minutes
 
   // Initialize member form with mock data
   useEffect(() => {
@@ -54,7 +56,7 @@ const BookingDetail: React.FC = () => {
         if (prevTime <= 1) {
           clearInterval(timer);
           // Optionally navigate away or show expired message
-          navigate("/select-zone");
+          navigate("/selectzone");
           return 0;
         }
         return prevTime - 1;
@@ -107,15 +109,24 @@ const BookingDetail: React.FC = () => {
   const handleCancel = () => {
     navigate(-1); // Go back to the previous page
   };
-
+  const hasNavigated = useRef(false);
   const handleConfirm = () => {
-    // Handle confirmation logic here
-    console.log("Booking Confirmed!");
-    console.log("Member Info:", memberForm.getFieldsValue());
-    console.log("Discount Applied:", appliedDiscount);
-    console.log("Total Price:", totalAmount);
-    // Navigate to a success page or booking summary
-    // navigate("/booking-success");
+    if (hasNavigated.current) return;
+    hasNavigated.current = true;
+    const memberData = memberForm.getFieldsValue();
+
+    const bookingInfo = {
+      showDate,
+      showTime,
+      zone: zone,
+      seatNo: seatNo,
+      quantity: quantity,
+      unitPrice: unitPrice,
+      discount: appliedDiscount?.amount || 0,
+      member: memberData,
+    };
+
+    navigate("/payment", { state: bookingInfo });
   };
 
   return (
@@ -138,6 +149,7 @@ const BookingDetail: React.FC = () => {
                 borderRadius: 15,
                 padding: "20px",
                 height: "720px",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
               }}
               bodyStyle={{ padding: "24px" }}
             >
@@ -290,23 +302,7 @@ const BookingDetail: React.FC = () => {
               style={{ display: "flex", flexDirection: "column", gap: "30px" }}
             >
               {/* Timer */}
-              <div
-                style={{
-                  backgroundColor: "#ffedd5", // Light orange background
-                  color: "#ff5900ff", // Dark orange text
-                  border: "1px solid #ff5900ff",
-                  padding: "8px 16px",
-                  borderRadius: "8px",
-                  fontWeight: "bold",
-                  fontSize: "20px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  width: "fit-content",
-                  marginLeft: "45%", // Align to right
-                }}
-              >
+              <div className="timer-badge">
                 <Clock size={20} /> {formatTime(remainingTime)}
               </div>
 
@@ -317,6 +313,7 @@ const BookingDetail: React.FC = () => {
                   borderRadius: 15,
                   padding: "20px",
                   marginLeft: "70px",
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                 }}
                 bodyStyle={{ padding: "24px" }}
               >

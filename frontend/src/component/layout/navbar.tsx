@@ -1,7 +1,7 @@
 import React from "react";
 import { Layout, Button } from "antd";
 import { FaUserCircle, FaBell } from "react-icons/fa";
-import logo from "../assets/logo.png";
+import logo from "../../assets/logo.png";
 
 const { Header } = Layout;
 

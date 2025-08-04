@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import type { RadioChangeEvent } from "antd";
-import Navbar from "../../../component/navbar";
+import Navbar from "../../../component/layout/navbar";
 import { Card, Col, Row } from "antd";
 import { Radio } from "antd";
 import chart from "../../../assets/chart.svg";
@@ -14,7 +14,7 @@ const SelectZone: React.FC = () => {
   );
   const navigate = useNavigate(); // Initialize useNavigate
 
-  const onChange = (e: RadioChangeEvent) => {
+  const onShowDateChange = (e: RadioChangeEvent) => {
     setSelectedShowDateId(e.target.value);
   };
 
@@ -52,6 +52,7 @@ const SelectZone: React.FC = () => {
           borderColor: "#d3d3d3ff",
           backgroundColor: "#F6F6F8",
           borderRadius: 15,
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
         }}
       >
         <h2 style={{ marginTop: -8 }}>Concert Chart</h2>
@@ -73,11 +74,12 @@ const SelectZone: React.FC = () => {
             borderColor: "#d3d3d3ff",
             backgroundColor: "#F6F6F8",
             borderRadius: 15,
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
           }}
         >
           <h2 style={{ marginTop: -8 }}>Select Date</h2>
           <Radio.Group
-            onChange={onChange}
+            onChange={onShowDateChange}
             value={selectedShowDateId}
             style={{
               display: "flex",
@@ -111,6 +113,7 @@ const SelectZone: React.FC = () => {
               display: "flex",
               justifyContent: "center",
               overflow: "hidden",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
             }}
           >
             <h1 style={{ display: "flex", justifyContent: "center" }}>

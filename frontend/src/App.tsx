@@ -8,6 +8,8 @@ import SelectZone from "./pages/booking/select-zone";
 import Dashboard from "./pages/dashboard";
 import SelectSeat from "./pages/booking/select-seat";
 import BookingDetail from "./pages/booking/BookingDetail";
+import Payment from "./pages/payment";
+import ETickets from "./pages/payment/e-ticket";
 // import { Card, message } from "antd";
 // import "./App.css";
 
@@ -88,9 +90,10 @@ const App: React.FC = () => {
         />
         <Route path="/organizer/dashboard" element={<Dashboard />} />
         <Route path="/selectzone" element={<SelectZone />} />
-        
+
         <Route path="/selectseat" element={<SelectSeat />} />
         <Route path="/bookingdetail" element={<BookingDetail />} />
+        <Route path="/payment" element={<Payment />} />
       </Routes>
     </Router>
   );

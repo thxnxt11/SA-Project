@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import SidebarLayout from "../../../component/SidebarLayout";
+import SidebarLayout from "../../../component/layout/SidebarLayout";
 import {
   Card,
   Divider,
@@ -75,6 +75,7 @@ const AddPromotion: React.FC = () => {
               borderColor: "#d3d3d3ff",
               display: "flex",
               justifyContent: "center",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
             }}
           >
             <h2 style={{ display: "flex", justifyContent: "center" }}>

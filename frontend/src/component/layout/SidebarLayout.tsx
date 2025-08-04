@@ -8,7 +8,7 @@ import {
 } from "react-icons/md";
 import { LuTicketPercent } from "react-icons/lu";
 import { FaRegCalendarAlt, FaUserCircle } from "react-icons/fa";
-import logo from "../assets/logo.png";
+import logo from "../../assets/logo.png";
 import { useLocation, useNavigate } from "react-router-dom";
 // import { useNavigate } from "react-router-dom";
 

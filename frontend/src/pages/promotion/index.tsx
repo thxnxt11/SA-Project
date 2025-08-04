@@ -1,6 +1,6 @@
 "use client";
 
-import SidebarLayout from "../../component/SidebarLayout";
+import SidebarLayout from "../../component/layout/SidebarLayout";
 import type React from "react";
 import { useState } from "react";
 import { Button, Flex, Space, Table, Tag } from "antd";
@@ -12,7 +12,7 @@ import { RiDeleteBin6Line } from "react-icons/ri";
 import { Link } from "react-router-dom";
 import EditPromotionModal from "../promotion/edit";
 
-const Promotion: React.FC= () => {
+const Promotion: React.FC = () => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedPromotionId, setSelectedPromotionId] = useState<number | null>(
     null
@@ -169,6 +169,7 @@ const Promotion: React.FC= () => {
               height: 45,
               fontSize: 17,
               marginTop: 20,
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
             }}
           >
             Search
