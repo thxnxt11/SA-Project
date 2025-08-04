@@ -9,7 +9,6 @@ import Dashboard from "./pages/dashboard";
 import SelectSeat from "./pages/booking/select-seat";
 import BookingDetail from "./pages/booking/BookingDetail";
 import Payment from "./pages/payment";
-import ETickets from "./pages/payment/e-ticket";
 // import { Card, message } from "antd";
 // import "./App.css";
 

@@ -21,9 +21,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import "./payment.css";
 import QRPromptPay from "./promptpay_qr";
 import { Modal } from "antd";
-import UploadImage from "../../component/upload-img/upload";
 import { UploadModal } from "./upload";
-import { BiFontSize } from "react-icons/bi";
 import Loader from "../../component/loader/loader";
 
 const { Title, Text } = Typography;
@@ -164,7 +162,7 @@ const Payment: React.FC = () => {
           // ปิด modal
           setUploadModalOpen(false);
           setShowFullScreenLoader(true);
-          navigate("/bookingdetail", {
+          navigate("/e-ticket", {
             state: {
               showDate: showDate,
               showTime: showTime,
