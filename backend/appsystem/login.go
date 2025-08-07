@@ -9,7 +9,7 @@ import (
    "gorm.io/gorm"
    "github.com/yourname/went-back/connection"
    "github.com/yourname/went-back/entity"
-   "github.com/yourname/went-back/service"
+   "github.com/yourname/went-back/services"
 
 )
 
@@ -28,6 +28,7 @@ type (
        BirthDay  time.Time `json:"birthday"`
        Phonenum	 string	   `json:"phonenum"`
        GenderID  uint      `json:"gender_id"`
+       RoleID    uint      `json:"role_id"`
    }
 )
 
@@ -41,7 +42,7 @@ func SignUp(c *gin.Context) {
    }
 
    db := connection.DB()
-   var memberCheck entity.Members
+   var memberCheck entity.User
 
    // Check if the user with the provided email already exists
    result := db.Where("email = ?", payload.Email).First(&memberCheck)
@@ -61,7 +62,7 @@ func SignUp(c *gin.Context) {
    // Hash the user's password
    hashedPassword, _ := connection.HashPassword(payload.Password)
    // Create a new user
-   member := entity.Members{
+   member := entity.User{
        FirstName: payload.FirstName,
        LastName:  payload.LastName,
        Email:     payload.Email,
@@ -70,6 +71,7 @@ func SignUp(c *gin.Context) {
        BirthDay:  payload.BirthDay,
        Phonenum:  payload.Phonenum,
        GenderID:  payload.GenderID,
+       RoleID:    payload.RoleID,
    }
    // Save the user to the database
    if err := db.Create(&member).Error; err != nil {
@@ -81,13 +83,13 @@ func SignUp(c *gin.Context) {
 
 func SignIn(c *gin.Context) {
    var payload Authen
-   var member entity.Members
+   var member entity.User
    if err := c.ShouldBindJSON(&payload); err != nil {
        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
        return
    }
    // ค้นหา user ด้วย Username ที่ผู้ใช้กรอกเข้ามา
-   if err := connection.DB().Raw("SELECT * FROM Members WHERE email = ?", payload.Email).Scan(&member).Error; err != nil {
+   if err := connection.DB().Raw("SELECT * FROM User WHERE email = ?", payload.Email).Scan(&member).Error; err != nil {
        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
        return
    }

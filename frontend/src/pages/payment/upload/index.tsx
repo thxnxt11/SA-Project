@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Modal, Button, message } from "antd";
-import UploadImage from "../../../component/upload-img/upload";
-// import type { RcFile } from "antd/es/upload";
+import { Modal, Button, message, Form, Upload } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 
 type UploadModalProps = {
   visible: boolean;
@@ -17,18 +16,34 @@ export const UploadModal = ({
   loading,
 }: UploadModalProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
-  const handleFileSelect = (file: File) => {
-    setSelectedFile(file);
-  };
+  const [fileList, setFileList] = useState<any[]>([]);
 
   const handleUploadClick = () => {
-    
     if (!selectedFile) {
       message.warning("กรุณาเลือกไฟล์ก่อนกดอัปโหลด");
       return;
     }
     onUpload(selectedFile);
+  };
+
+  const handleFileChange = (info: any) => {
+    let newFileList = [...info.fileList];
+    newFileList = newFileList.slice(-1); // จำกัดให้มีแค่ไฟล์เดียวในรายการ
+
+    if (newFileList.length > 0) {
+      setSelectedFile(newFileList[0].originFileObj as File);
+    } else {
+      setSelectedFile(null);
+    }
+
+    setFileList(newFileList);
+  };
+
+  const normFile = (e: any) => {
+    if (Array.isArray(e)) {
+      return e;
+    }
+    return e?.fileList;
   };
 
   return (
@@ -43,7 +58,40 @@ export const UploadModal = ({
         <p style={{ marginBottom: 24, color: "#888" }}>
           กรุณาอัปโหลดภาพหลักฐานการชำระเงิน เช่น สลิปชำระเงิน
         </p>
-        <UploadImage onFileSelect={handleFileSelect} />
+        <Form.Item
+          name="upload"
+          valuePropName="fileList"
+          getValueFromEvent={normFile}
+          rules={[{ required: true, message: "กรุณาอัปโหลดรูปภาพ" }]}
+          style={{
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <Upload
+            action="/upload.do"
+            listType="picture-card"
+            fileList={fileList}
+            onChange={handleFileChange}
+            beforeUpload={() => false} // ป้องกันการอัปโหลดอัตโนมัติ
+            style={{ width: 200, height: 200 }}
+          >
+            {fileList.length >= 1 ? null : (
+              <button
+                style={{
+                  color: "inherit",
+                  cursor: "inherit",
+                  border: 0,
+                  background: "none",
+                }}
+                type="button"
+              >
+                <PlusOutlined />
+                <div style={{ marginTop: 8 }}>Upload</div>
+              </button>
+            )}
+          </Upload>
+        </Form.Item>
         <Button
           type="primary"
           size="large"

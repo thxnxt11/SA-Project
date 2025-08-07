@@ -5,7 +5,7 @@ import (
    "gorm.io/gorm"
 )
 
-type Members struct {
+type User struct {
    gorm.Model
    FirstName string    `json:"first_name"`
    LastName  string    `json:"last_name"`
@@ -16,6 +16,8 @@ type Members struct {
    Phonenum	 string	   `json:"phonenum"`
    GenderID  uint      `json:"gender_id"`
    Gender    *Genders  `gorm:"foreignKey: gender_id" json:"gender"`
+   RoleID    uint      `json:"role_id"`
+   Role      *Role     `gorm:"foreignKey: RoleID" json:"role"`
 }
 
 type Genders struct {

@@ -19,8 +19,9 @@ type Promotion struct {
 	Limit int `json:"limit"`
 	UsedCount int `json:"used_count"`
 	Status string `gorm:"type:text" json:"promotion_status"` //ENUM('active', 'inactive')
-	OrganizerID uint `json:"organizer_id"`
-	CreateBy *Organizer `gorm:"foreignKey:OrganizerID" json:"organizer"`
+	UserID uint `json:"user_id"`
+	CreateBy *User `gorm:"foreignKey:UserID" json:"user"`
 	ConcertID uint `json:"concert_id"`
 	Concert *Concert `gorm:"foreignKey:ConcertID" json:"concert"`
+	Poster string `json:"poster_url"`
 }

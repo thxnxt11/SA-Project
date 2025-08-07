@@ -1,5 +1,5 @@
-export interface MemberInterface {
-  member_id?: number;
+export interface UserInterface {
+  user_id?: number;
   first_name?: string;
   last_name?: string;
   email?: string;
@@ -7,4 +7,5 @@ export interface MemberInterface {
   birthday?: string; // "YYYY-MM-DD"
   gender_id?: number;
   phonnumber?: string;
+  role?: string;
 }

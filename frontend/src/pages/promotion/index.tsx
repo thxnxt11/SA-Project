@@ -1,22 +1,66 @@
-"use client";
-
 import SidebarLayout from "../../component/layout/SidebarLayout";
 import type React from "react";
-import { useState } from "react";
-import { Button, Flex, Space, Table, Tag } from "antd";
+import { useState, useEffect } from "react";
+import { Button, Flex, Space, Table, Tag, message, Modal } from "antd";
 import type { TableProps } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { SearchOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import type { PromotionInterface } from "../../interface/promotion";
 import { FaEdit } from "react-icons/fa";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { Link } from "react-router-dom";
 import EditPromotionModal from "../promotion/edit";
+import {
+  GetAllPromotion,
+  DeletePromotionByID,
+} from "../../services/promotions";
+
+const { confirm } = Modal;
+
+// Helper function สำหรับ format วันที่
+const formatDate = (dateString: string) => {
+  if (!dateString) return "-";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("th-TH", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Bangkok",
+  });
+};
 
 const Promotion: React.FC = () => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedPromotionId, setSelectedPromotionId] = useState<number | null>(
     null
   );
+  const [promotions, setPromotions] = useState<PromotionInterface[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const fetchPromotions = async () => {
+    setLoading(true);
+    try {
+      const res = await GetAllPromotion();
+      console.log("API Response:", res); // Debug log
+
+      if (res && res.status === 200) {
+        console.log("Promotions data:", res.data); // Debug log
+        setPromotions(res.data);
+      } else {
+        message.error("ดึงข้อมูลโปรโมชั่นไม่สำเร็จ");
+      }
+    } catch (error) {
+      console.error("Error fetching promotions:", error);
+      message.error("เกิดข้อผิดพลาดในการดึงข้อมูล");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPromotions();
+  }, []);
 
   const columns: TableProps<PromotionInterface>["columns"] = [
     {
@@ -28,42 +72,73 @@ const Promotion: React.FC = () => {
     {
       title: "Type",
       key: "promotion_type",
-      dataIndex: "promotion_type",
+      dataIndex: "promotion_type_id", // แก้ไข: ใช้ promotion_type_id
+      render: (_, record) => {
+        // Fallback: ใช้ mapping แบบเดิม
+        const typeMap: Record<number, string> = {
+          1: "Early Bird",
+          2: "Code",
+          3: "Concert",
+        };
+        const typeId = record.promotion_type_id;
+        return (
+          <Tag color="#0048ffc7">
+            {typeId ? typeMap[typeId] || "Unknown" : "-"}
+          </Tag>
+        );
+      },
     },
     {
-      title: "Discount(%)",
+      title: "Discount (%)",
       dataIndex: "discount",
       key: "discount",
+      render: (value) => `${value || 0}%`,
     },
     {
-      title: "StartDate",
+      title: "Start Date",
       key: "start_date",
       dataIndex: "start_date",
+      render: (date) => formatDate(date), // แก้ไข: format วันที่
     },
     {
-      title: "EndDate",
+      title: "End Date",
       key: "end_date",
       dataIndex: "end_date",
+      render: (date) => formatDate(date), // แก้ไข: format วันที่
     },
     {
-      title: "Usage_Limit",
+      title: "Limit",
       key: "limit",
       dataIndex: "limit",
+      render: (value) => value || "-",
     },
     {
-      title: "Used_Count",
+      title: "Used",
       dataIndex: "used_count",
       key: "used_count",
+      render: (value) => value || 0,
     },
     {
       title: "Status",
-      key: "promotion_status",
       dataIndex: "promotion_status",
-      render: (status: string | undefined) => {
-        if (!status) return <Tag color="default">UNKNOWN</Tag>;
-        const lower = status.toLowerCase();
-        const color = lower === "active" ? "#009f2dff" : "#ff0000ff";
-        return <Tag color={color}>{lower.toUpperCase()}</Tag>;
+      key: "promotion_status",
+      render: (status: string | undefined, record: PromotionInterface) => {
+        const actualStatus =
+          status ||
+          record.promotion_status ||
+          (record as any).Status ||
+          (record as any).promotion_status;
+
+        if (!actualStatus) return <Tag color="default">UNKNOWN</Tag>;
+
+        const lower = actualStatus.toLowerCase();
+        const color =
+          lower === "active"
+            ? "#10a400ff"
+            : lower === "inactive"
+            ? "#ff0000"
+            : "default";
+        return <Tag color={color}>{actualStatus.toUpperCase()}</Tag>;
       },
     },
     {
@@ -72,51 +147,19 @@ const Promotion: React.FC = () => {
       render: (record: PromotionInterface) => (
         <Space size="middle">
           <FaEdit
-            style={{ fontSize: 25, color: "#0048ffff", cursor: "pointer" }}
+            style={{ fontSize: 20, color: "#0048ffff", cursor: "pointer" }}
             onClick={() => record.ID !== undefined && handleEdit(record.ID)}
           />
           <RiDeleteBin6Line
-            style={{ fontSize: 25, color: "#ff0000ff", cursor: "pointer" }}
-            onClick={() => record.ID !== undefined && handleDelete(record.ID)}
+            style={{ fontSize: 20, color: "#ff0000ff", cursor: "pointer" }}
+            onClick={() =>
+              record.ID !== undefined &&
+              record.promotion_name &&
+              handleDelete(record.ID, record.promotion_name)
+            }
           />
         </Space>
       ),
-    },
-  ];
-
-  const data: PromotionInterface[] = [
-    {
-      ID: 1,
-      promotion_name: "Early Bird",
-      promotion_type: 1,
-      discount: 5,
-      start_date: "22/07/2025",
-      end_date: "28/07/2025",
-      limit: 1000,
-      used_count: 249,
-      promotion_status: "active",
-    },
-    {
-      ID: 2,
-      promotion_name: "VIP50",
-      promotion_type: 2,
-      discount: 10,
-      start_date: "22/07/2025",
-      end_date: "28/07/2025",
-      limit: 100,
-      used_count: 100,
-      promotion_status: "inactive",
-    },
-    {
-      ID: 3,
-      promotion_name: "Aespa",
-      promotion_type: 3,
-      discount: 7,
-      start_date: "22/07/2025",
-      end_date: "28/07/2025",
-      limit: 1500,
-      used_count: 799,
-      promotion_status: "active",
     },
   ];
 
@@ -125,26 +168,45 @@ const Promotion: React.FC = () => {
     setEditModalVisible(true);
   };
 
-  const handleDelete = (id: number) => {
-    console.log(`Delete promotion with ID: ${id}`);
+  const handleDelete = (id: number, promotion_name: string) => {
+    confirm({
+      title: `คุณต้องการลบโปรโมชั่น "${promotion_name}" ใช่หรือไม่?`,
+      icon: <ExclamationCircleOutlined />,
+      content: "การลบโปรโมชั่นนี้ไม่สามารถกู้คืนได้",
+      centered: true,
+      okText: "ลบ",
+      okType: "danger",
+      cancelText: "ยกเลิก",
+      async onOk() {
+        try {
+          setLoading(true);
+          const res = await DeletePromotionByID(id.toString());
+          if (res && res.status === 200) {
+            message.success("ลบโปรโมชั่นสำเร็จ");
+            fetchPromotions(); // รีโหลดข้อมูล
+          } else {
+            message.error("ลบโปรโมชั่นไม่สำเร็จ");
+          }
+        } catch (error) {
+          console.error("Delete error:", error);
+          message.error("เกิดข้อผิดพลาดในการลบ");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   };
 
   const handleEditSuccess = () => {
-    // Refresh data or update state
-    console.log("Promotion updated successfully");
-    // You can add logic to refresh the table data here
+    fetchPromotions(); // รีโหลดข้อมูลหลัง edit สำเร็จ
+    setEditModalVisible(false);
   };
 
   return (
     <>
       <SidebarLayout>
-        <div
-          style={{
-            display: "flex",
-            alignContent: "center",
-          }}
-        >
-          <h1>Promotion </h1>
+        <div style={{ display: "flex", alignContent: "center" }}>
+          <h1>Promotion Management</h1>
           <Link to={"/organizer/promotion/add"}>
             <Button
               style={{
@@ -160,6 +222,7 @@ const Promotion: React.FC = () => {
             </Button>
           </Link>
         </div>
+
         <Flex gap="small" vertical>
           <Button
             icon={<SearchOutlined />}
@@ -175,11 +238,20 @@ const Promotion: React.FC = () => {
             Search
           </Button>
         </Flex>
+
         <Table<PromotionInterface>
           columns={columns}
-          dataSource={data}
-          style={{ marginTop: 20 }}
+          dataSource={promotions}
+          loading={loading}
+          style={{ marginTop: 20, width: "auto" }}
           rowKey="ID"
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} ของ ${total} รายการ`,
+          }}
         />
       </SidebarLayout>
 

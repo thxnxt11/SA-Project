@@ -1,4 +1,4 @@
-export interface PromoTionTypeInterface {
+export interface PromotionTypeInterface {
   ID?: number;
-  Promotiontype?: string;
+  type_name?: string;
 }

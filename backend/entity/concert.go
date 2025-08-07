@@ -14,6 +14,6 @@ type Concert struct {
 	VenueID    uint `json:"venue_id"`
 	Venue       *Venue `gorm:"foreignKey:VenueID" json:"venue"`
 	ChartImage  string `json:"chart_image"`
-	OrganizerID uint `json:"organizer_id"`
-	Organizer *Organizer `gorm:"foreignKey:OrganizerID" json:"organizer"`
+	UserID uint `json:"user_id"`
+	User *User `gorm:"foreignKey:UserID" json:"user"`
 }

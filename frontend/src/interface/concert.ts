@@ -1,9 +1,8 @@
 export interface ConcertInterface {
-    concert_id?: string;
+    id?: number;
     concert_name?: string;
     artist? : string;
-    venue? : string;
-    show_date?: string; // "YYYY-MM-DD"
+    venue? : string; 
     onsale_date?: string; // "YYYY-MM-DD"
     offsale_date?: string; // "YYYY-MM-DD"
     chart_image? : string;

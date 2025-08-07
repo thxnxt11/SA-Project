@@ -10,7 +10,6 @@ import { LuTicketPercent } from "react-icons/lu";
 import { FaRegCalendarAlt, FaUserCircle } from "react-icons/fa";
 import logo from "../../assets/logo.png";
 import { useLocation, useNavigate } from "react-router-dom";
-// import { useNavigate } from "react-router-dom";
 
 const { Header, Sider, Content } = Layout;
 

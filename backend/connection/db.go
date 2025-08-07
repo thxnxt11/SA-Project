@@ -25,14 +25,16 @@ func ConnectionDB() {
 
 func SetupDatabase() {
    db.AutoMigrate(
-       &entity.Members{},
+       &entity.User{},
        &entity.Genders{},
-       &entity.Organizer{},
+       &entity.Role{},
        &entity.PromotionType{},
        &entity.Promotion{}, 
        &entity.Concert{},
        &entity.ShowDate{},  
        &entity.Venue{},
+       &entity.VenueType{},
+       &entity.VenueStatus{},
        &entity.Booking{},
        &entity.BookingStatus{},
        &entity.BookingSeat{},
@@ -42,6 +44,7 @@ func SetupDatabase() {
        &entity.Seat{},
        &entity.Zone{},
        &entity.ZoneType{},
+       
    )
    
    GenderMale := entity.Genders{Gender: "Male"}
@@ -52,17 +55,18 @@ func SetupDatabase() {
 
    hashedPassword, _ := HashPassword("123456")
    BirthDay, _ := time.Parse("2006-01-02", "1988-11-12")
-   Member := &entity.Members{
-       FirstName: "Software",
-       LastName:  "Analysis",
-       Email:     "sa@gmail.com",
-       Age:       80,
+   Member := &entity.User{
+       FirstName: "SM",
+       LastName:  "TRUE",
+       Email:     "SMTRUE@gmail.com",
+       Age:       50,
        Password:  hashedPassword,
        BirthDay:  BirthDay,
 	   Phonenum:  "xxx-xxx-xxxx",
        GenderID:  1,
+       RoleID: 2,
    }
-   db.FirstOrCreate(Member, &entity.Members{
-       Email: "sa@gmail.com",
+   db.FirstOrCreate(Member, &entity.User{
+       Email: "SMTRUE@gmail.com",
    })
 }
