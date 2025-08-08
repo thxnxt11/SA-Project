@@ -1,11 +1,17 @@
 // src/App.tsx
 import React, { useState } from 'react'
-import { Card, message } from 'antd'
-import './App.css'
+import {Layout, message } from 'antd'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+//import './App.css'
 import 'antd/dist/reset.css'
-import SignUp from './auth/signin'
-import SignIn from './auth/login'
 import { signUp, signIn } from './api/auth'
+import Report from './pages/report/reportt'
+import { Refund } from './pages/refund/refundd'
+import { RefundHis } from './pages/refund/historyrefund'
+import { ReportHis } from './pages/report/historyreport'
+import Navbar from './components/navbar';
+import SignInForm from './pages/signin/signin';
+import SignUpForm from './pages/signup/signup';
 
 const App: React.FC = () => {
   const [isSignup, setIsSignup] = useState(true)
@@ -26,26 +32,23 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="container">
-      {contextHolder}
-      <Card className="card">
-        <h2 className="title">{isSignup ? 'Sign Up' : 'Sign In'}</h2>
-
-        {isSignup ? <SignUp onFinish={onFinish} /> : <SignIn onFinish={onFinish} />}
-
-        <div className="switch">
-          {isSignup ? 'Already have an account? ' : "Don't have an account? "}
-          <a
-            onClick={() => {
-              setIsSignup(!isSignup)
-              msgApi.destroy()
-            }}
-          >
-            {isSignup ? 'Sign In' : 'Sign Up'}
-          </a>
-        </div>
-      </Card>
-    </div>
+     <Router>
+      <Layout>
+        <Navbar />
+        <Routes>
+          <Route path="/report" element={<Report />} />
+          <Route path="/refund" element={<Refund />} />
+          <Route path="/login" element={<SignInForm onFinish={function (values: any): void {
+            throw new Error('Function not implemented.');
+          } } />} />
+          <Route path="/signup" element={<SignUpForm onFinish={function (values: any): void {
+            throw new Error('Function not implemented.');
+          } } />} />
+          <Route path="/historyreport" element={<ReportHis />} />
+          <Route path="/historyrefund" element={<RefundHis />} />
+        </Routes>
+      </Layout>
+    </Router>
   )
 }
 
