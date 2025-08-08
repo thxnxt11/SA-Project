@@ -3,10 +3,9 @@ package entity
 import "gorm.io/gorm"
 
 type SeatAvailable struct{
-	gorm.Model
-	ShowDateID uint `json:"showdate_id"`
-	ShowDate *ShowDate `gorm:"foreignKey:ShowDateID" json:"showdate"`
+	ZoneID uint `json:"zone_id"`
+	Zone *Booking `gorm:"foreignKey:ZoneID" json:"zone"`
+	SeatID uint `json:"seat_id"`
+	Seat *Seat `gorm:"foreignKey:SeatID" json:"seat"`
 	SeatAvailableStatus string `gorm:"type:text" json:"seatavailable_status"`
-	BookingID uint `json:"booking_id"`
-	Booking *Booking `gorm:"foreignKey:BookingID" json:"booking"`
 }
