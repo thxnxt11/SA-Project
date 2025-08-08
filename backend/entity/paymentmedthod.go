@@ -1,10 +1,9 @@
 package entity
 
 import (
-   //"time"
    "gorm.io/gorm"
 )
 
-type Promotion struct {
+type PaymentMedthod struct {
    gorm.Model
 }

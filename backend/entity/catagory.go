@@ -1,10 +1,10 @@
 package entity
 
 import (
-   //"time"
    "gorm.io/gorm"
 )
 
-type Promotion struct {
+type Catagory struct {
    gorm.Model
+   Catagory 	string 	`json:"catagory"`
 }

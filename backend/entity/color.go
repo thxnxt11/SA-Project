@@ -5,7 +5,7 @@ import (
    "gorm.io/gorm"
 )
 
-type Concert struct {
+type Color struct {
    gorm.Model
-   Concert 	string 	`json:"concert"`
+   Color	string	`json:"color"`
 }
