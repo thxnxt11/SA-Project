@@ -3,7 +3,7 @@ package connection
 import (
    "fmt"
    "time"
-   "github.com/yourname/went-back/datastruct"
+   "github.com/yourname/went-back/entity"
    "gorm.io/driver/sqlite"
    "gorm.io/gorm"
 )
@@ -25,29 +25,50 @@ func ConnectionDB() {
 
 func SetupDatabase() {
    db.AutoMigrate(
-       &datastruct.Users{},
-       &datastruct.Genders{},
+    &entity.User{},
+    &entity.Genders{},
+    &entity.Role{},
+    &entity.Department{},
+    &entity.Venue{},
+    &entity.Concert{},
+    &entity.Stage{},
+    &entity.StageEquipment{},
+    &entity.StageType{},
+    &entity.VenueType{},
+    &entity.VenueStatus{},
+    &entity.Equipment{},
+    &entity.EquipmentType{},
+
+   &entity.Assignment{},
+    &entity.AssignmentStatus{},
+    &entity.AssignmentConcert{},
+    &entity.WorkSchedule{},
+    &entity.StaffAssignment{},
+
+
+
+
    )
    
-   GenderMale := datastruct.Genders{Gender: "Male"}
-   GenderFemale := datastruct.Genders{Gender: "Female"}
+   GenderMale := entity.Genders{Gender: "Male"}
+   GenderFemale := entity.Genders{Gender: "Female"}
 
-   db.FirstOrCreate(&GenderMale, &datastruct.Genders{Gender: "Male"})
-   db.FirstOrCreate(&GenderFemale, &datastruct.Genders{Gender: "Female"})
+   db.FirstOrCreate(&GenderMale, &entity.Genders{Gender: "Male"})
+   db.FirstOrCreate(&GenderFemale, &entity.Genders{Gender: "Female"})
 
    hashedPassword, _ := HashPassword("123456")
    BirthDay, _ := time.Parse("2006-01-02", "1988-11-12")
-   User := &datastruct.Users{
+   User := &entity.User{
        FirstName: "Software",
        LastName:  "Analysis",
        Email:     "sa@gmail.com",
        Age:       80,
        Password:  hashedPassword,
        BirthDay:  BirthDay,
-	   Phonenum:  "xxx-xxx-xxxx",
+	   Phonenumber:  "xxx-xxx-xxxx",
        GenderID:  1,
    }
-   db.FirstOrCreate(User, &datastruct.Users{
+   db.FirstOrCreate(User, &entity.User{
        Email: "sa@gmail.com",
    })
 }
