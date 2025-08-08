@@ -16,7 +16,12 @@ import {
   message,
   Upload,
 } from "antd";
-import type { InputNumberProps, DatePickerProps, UploadFile, UploadProps } from "antd";
+import type {
+  InputNumberProps,
+  DatePickerProps,
+  UploadFile,
+  UploadProps,
+} from "antd";
 import {
   CreatePromotion,
   GetAllPromotionTypes,
@@ -189,14 +194,6 @@ const AddPromotion: React.FC = () => {
     return () => {};
   }, []);
 
-  // const normFile = (e: any) => {
-  //   if (Array.isArray(e)) {
-  //     return e;
-  //   }
-  //   return e?.fileList;
-  // };
-  // Function to handle the actual file upload to our API
-  
   return (
     <>
       {contextHolder}
@@ -333,8 +330,8 @@ const AddPromotion: React.FC = () => {
                   </Col>
                   <Col xs={24} sm={24} md={12} lg={12} xl={12}>
                     <Form.Item
-                      name="poster_url" // This field will hold the URL
-                      label="poster"
+                      name="poster_url"
+                      label="Poster"
                       rules={[
                         {
                           required: true,
@@ -477,23 +474,22 @@ const AddPromotion: React.FC = () => {
                       </Select>
                     </Form.Item>
                   </Col>
-                </Row>
-
-                <Row style={{ display: "flex", justifyContent: "center" }}>
-                  <Form.Item>
-                    <Space>
-                      <Button htmlType="button" onClick={onReset}>
-                        Reset
-                      </Button>
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        loading={loading}
-                      >
-                        Submit
-                      </Button>
-                    </Space>
-                  </Form.Item>
+                  <Col style={{ marginTop: 31, marginLeft: 120 }}>
+                    <Form.Item>
+                      <Space>
+                        <Button htmlType="button" onClick={onReset}>
+                          Reset
+                        </Button>
+                        <Button
+                          type="primary"
+                          htmlType="submit"
+                          loading={loading}
+                        >
+                          Submit
+                        </Button>
+                      </Space>
+                    </Form.Item>
+                  </Col>
                 </Row>
               </Form>
             </div>

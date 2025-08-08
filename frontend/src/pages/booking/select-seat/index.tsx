@@ -305,7 +305,7 @@ const SelectSeat: React.FC = () => {
           )}
           {(zoneType === "ยืน" || selectedSeats.length > 0) && (
             <div>
-              <Col xs={24}>
+              <Col xs={24} style={{ marginLeft: "21px" }}>
                 <Card
                   style={{
                     width: 1200,

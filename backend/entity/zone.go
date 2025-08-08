@@ -12,4 +12,5 @@ type Zone struct {
 	ZoneName string `json:"zone_name"`
 	ZoneTypeID uint `json:"zonetype_id"`
 	ZoneType *ZoneType `gorm:"foreignkey:ZoneTypeID" json:"zone_type"`
+	ZonePrice float32 `json:"zone_price"`
 }

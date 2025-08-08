@@ -15,7 +15,6 @@ import {
 } from "../../services/promotions";
 
 const { confirm } = Modal;
-
 // Helper function สำหรับ format วันที่
 const formatDate = (dateString: string) => {
   if (!dateString) return "-";
@@ -72,9 +71,8 @@ const Promotion: React.FC = () => {
     {
       title: "Type",
       key: "promotion_type",
-      dataIndex: "promotion_type_id", // แก้ไข: ใช้ promotion_type_id
+      dataIndex: "promotion_type_id", 
       render: (_, record) => {
-        // Fallback: ใช้ mapping แบบเดิม
         const typeMap: Record<number, string> = {
           1: "Early Bird",
           2: "Code",
@@ -98,13 +96,13 @@ const Promotion: React.FC = () => {
       title: "Start Date",
       key: "start_date",
       dataIndex: "start_date",
-      render: (date) => formatDate(date), // แก้ไข: format วันที่
+      render: (date) => formatDate(date), 
     },
     {
       title: "End Date",
       key: "end_date",
       dataIndex: "end_date",
-      render: (date) => formatDate(date), // แก้ไข: format วันที่
+      render: (date) => formatDate(date), 
     },
     {
       title: "Limit",

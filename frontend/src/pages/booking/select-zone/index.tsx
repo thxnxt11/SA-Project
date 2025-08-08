@@ -6,13 +6,12 @@ import { Radio } from "antd";
 import chart from "../../../assets/chart.svg";
 import { mockShowDates } from "../../../mock/selectzone";
 import { useNavigate } from "react-router-dom";
-// Mock data for show dates and zones
 
 const SelectZone: React.FC = () => {
   const [selectedShowDateId, setSelectedShowDateId] = useState<number | null>(
     null
   );
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
 
   const onShowDateChange = (e: RadioChangeEvent) => {
     setSelectedShowDateId(e.target.value);
@@ -159,7 +158,7 @@ const SelectZone: React.FC = () => {
                                 backgroundColor:
                                   zone.availableSeats === 0
                                     ? "#ef4444"
-                                    : "#22c55e", // Red for 0, Green for >0
+                                    : "#22c55e", 
                                 display: "flex",
                                 justifyContent: "center",
                                 alignItems: "center",

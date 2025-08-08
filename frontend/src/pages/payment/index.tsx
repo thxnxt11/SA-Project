@@ -36,7 +36,6 @@ interface TicketOption {
   id: string;
   name: string;
   icon: React.ReactNode;
-  fee?: number;
 }
 
 const Payment: React.FC = () => {
@@ -104,23 +103,11 @@ const Payment: React.FC = () => {
       name: "Prompt Pay",
       icon: <BankOutlined style={{ fontSize: "40px", color: "#1890ff" }} />,
     },
-    // {
-    //   id: "credit-card",
-    //   name: "Credit Card",
-    //   icon: (
-    //     <CreditCardOutlined style={{ fontSize: "24px", color: "#faad14" }} />
-    //   ),
-    // },
     {
       id: "truemoney",
       name: "True Money Wallet",
       icon: <WalletOutlined style={{ fontSize: "40px", color: "#ff4d4f" }} />,
     },
-    // {
-    //   id: "paycash",
-    //   name: "Pay Cash",
-    //   icon: <DollarOutlined style={{ fontSize: "24px", color: "#52c41a" }} />,
-    // },
   ];
   const [isQRModalVisible, setQRModalVisible] = useState(false);
   const [loadingPayment, setLoadingPayment] = useState(false);
@@ -142,10 +129,7 @@ const Payment: React.FC = () => {
   };
   const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
   const handleUploadReceipt = (file: File) => {
-    // Step 1: เริ่ม loading ที่ปุ่ม
     setLoadingUpload(true);
-
-    // Step 2: รอสักครู่ให้แสดง loading บนปุ่ม
     setTimeout(() => {
       setLoadingUpload(false);
       setTimeout(async () => {
@@ -155,11 +139,8 @@ const Payment: React.FC = () => {
 
           // ตัวอย่าง: await axios.post("/api/upload-receipt", formData);
           console.log("Uploading file...", file);
-
-          // แสดงข้อความสำเร็จ
           message.success("อัปโหลดสลิปสำเร็จ 🎉");
 
-          // ปิด modal
           setUploadModalOpen(false);
           setShowFullScreenLoader(true);
           navigate("/e-ticket", {

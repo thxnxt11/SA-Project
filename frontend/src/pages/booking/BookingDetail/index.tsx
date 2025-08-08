@@ -341,10 +341,6 @@ const BookingDetail: React.FC = () => {
                       type="primary"
                       onClick={handleApplyDiscount}
                       size="large"
-                      // style={{
-                      //   backgroundColor: "#00306E",
-                      //   borderColor: "#00306E",
-                      // }}
                     >
                       use
                     </Button>
