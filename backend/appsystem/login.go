@@ -9,7 +9,7 @@ import (
    "gorm.io/gorm"
    "github.com/yourname/went-back/connection"
    "github.com/yourname/went-back/entity"
-   "github.com/yourname/went-back/services"
+   "github.com/yourname/went-back/service"
 
 )
 

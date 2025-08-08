@@ -1,4 +1,4 @@
-package Entity
+package entity
 
 import (
 	"gorm.io/gorm"
@@ -7,10 +7,10 @@ import (
 type Report struct {
 	gorm.Model
 	Topic string `json:"topic"`
-	description string  `json:"gender"`
+	description string  `json:"description"`
 
-	MembersID uint   
-	Members   *Members `gorm:"foreignKey:MembersID"`
+	UserID uint   
+	User   *User `gorm:"foreignKey:MembersID"`
 
 	ReportStatusID uint
 	ReportStatus *ReportStatus `gorm:"foreignKey:ReportStatusID"`

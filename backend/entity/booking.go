@@ -8,8 +8,8 @@ import (
 
 type Booking struct {
 	gorm.Model
-	MemberID uint `json:"member_id"`
-	Member *Members `gorm:"foreignKey:MemberID" json:"member"`
+	UserID uint `json:"member_id"`
+	User *User `gorm:"foreignKey:MemberID" json:"member"`
 
 	ShowDateID uint `json:"showdate_id"`
 	ShowDate *ShowDate `gorm:"foreignKey:ShowDateID" json:"showdate"`

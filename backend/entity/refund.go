@@ -1,4 +1,4 @@
-package Entity
+package entity
 
 import (
 	"time"
@@ -13,8 +13,8 @@ type Refund struct {
 	Bank_number string    `json:"bank_number"`
 	Consume     time.Time `json:"consume"`
 
-	MembersID uint   
-	Members   *Members `gorm:"foreignKey:MembersID"`
+	UserID uint   
+	User  *User `gorm:"foreignKey:MembersID"`
 
 	BookingID uint   
 	Booking   *Booking `gorm:"foreignKey:BookingID"`
