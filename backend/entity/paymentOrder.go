@@ -15,6 +15,6 @@ type PaymentOrder struct {
    TotalPrice     float32     `json:"total_price"`
    StatusID       uint    	`json:"payment_id"`
    Status         *PaymentStatus  `gorm:"foreignKey: payment_id" json:"payment"`
-   MedthodID      	uint    		`json:"medthod_id"`
-   Medthod        	*PaymentMedthod  `gorm:"foreignKey: medthod_id" json:"medthod"`
+   MedthodID      uint    		`json:"medthod_id"`
+   Medthod        *PaymentMethod  `gorm:"foreignKey: medthod_id" json:"medthod"`
 }

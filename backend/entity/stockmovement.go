@@ -11,5 +11,5 @@ type Movement struct {
    Adjusted    	string    	`json:"adjusted"`
    Amount       	uint8     	`json:"amount"`
    StaffID		uint8 	`json:"staff_id"`
-   Staff  	*Users 	`gorm:"foreignKey: staff_id" json:"staff"`
+   Staff  	*User 	`gorm:"foreignKey: staff_id" json:"staff"`
 }
