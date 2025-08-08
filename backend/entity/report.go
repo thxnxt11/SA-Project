@@ -7,7 +7,7 @@ import (
 type Report struct {
 	gorm.Model
 	Topic string `json:"topic"`
-	description string  `json:"description"`
+	Description string  `json:"description"`
 
 	UserID uint   
 	User   *User `gorm:"foreignKey:MembersID"`

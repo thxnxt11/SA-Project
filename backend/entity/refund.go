@@ -9,7 +9,7 @@ import (
 type Refund struct {
 	gorm.Model
 	Reason      string    `json:"reason"`
-	amount      float32   `json:"amount"`
+	Amount      float32   `json:"amount"`
 	Bank_number string    `json:"bank_number"`
 	Consume     time.Time `json:"consume"`
 
