@@ -12,7 +12,5 @@ type Venue struct{
 	VenueStatusID uint `json:"venue_status_id"`
 	VenueStatus *VenueStatus `gorm:"foreignKey: venue_status_id" json:"venue_status"`
 
-
-
-
 }
+
