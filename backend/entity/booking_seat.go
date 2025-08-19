@@ -6,8 +6,8 @@ import (
 
 type BookingSeat struct {
 	gorm.Model
-	BookingID uint `json:"booking_id"`
+	BookingID uint `gorm:"uniqueIndex:idx_book_seat" json:"booking_id"`
 	Booking *Booking `gorm:"foreignKey:BookingID"`
-	SeatID    uint `json:"seat_id"`
+	SeatID    uint `gorm:"uniqueIndex:idx_book_seat" json:"seat_id"`
 	Seat    *Seat    `gorm:"foreignKey:SeatID"`
 }

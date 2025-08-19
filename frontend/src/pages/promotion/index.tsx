@@ -9,10 +9,7 @@ import { FaEdit } from "react-icons/fa";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { Link } from "react-router-dom";
 import EditPromotionModal from "../promotion/edit";
-import {
-  GetAllPromotion,
-  DeletePromotionByID,
-} from "../../services/promotions";
+import { GetAllPromotion, DeletePromotionByID } from "../../services/https";
 
 const { confirm } = Modal;
 // Helper function สำหรับ format วันที่
@@ -71,7 +68,7 @@ const Promotion: React.FC = () => {
     {
       title: "Type",
       key: "promotion_type",
-      dataIndex: "promotion_type_id", 
+      dataIndex: "promotion_type_id",
       render: (_, record) => {
         const typeMap: Record<number, string> = {
           1: "Early Bird",
@@ -96,13 +93,13 @@ const Promotion: React.FC = () => {
       title: "Start Date",
       key: "start_date",
       dataIndex: "start_date",
-      render: (date) => formatDate(date), 
+      render: (date) => formatDate(date),
     },
     {
       title: "End Date",
       key: "end_date",
       dataIndex: "end_date",
-      render: (date) => formatDate(date), 
+      render: (date) => formatDate(date),
     },
     {
       title: "Limit",

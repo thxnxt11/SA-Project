@@ -9,6 +9,8 @@ import Dashboard from "./pages/dashboard";
 import SelectSeat from "./pages/booking/select-seat";
 import BookingDetail from "./pages/booking/BookingDetail";
 import Payment from "./pages/payment";
+import Concert from "./pages/concert";
+import ConcertDetail from "./pages/concert/concertdetails";
 // import { Card, message } from "antd";
 // import "./App.css";
 
@@ -88,11 +90,13 @@ const App: React.FC = () => {
           }
         />
         <Route path="/organizer/dashboard" element={<Dashboard />} />
-        <Route path="/selectzone" element={<SelectZone />} />
 
         <Route path="/selectseat" element={<SelectSeat />} />
         <Route path="/bookingdetail" element={<BookingDetail />} />
         <Route path="/payment" element={<Payment />} />
+        <Route path="/concert" element={<Concert />} />
+        <Route path="/concert/:id" element={<ConcertDetail />} />
+        <Route path="/concert/:id/selectzone" element={<SelectZone />} />
       </Routes>
     </Router>
   );

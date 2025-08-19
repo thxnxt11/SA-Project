@@ -23,9 +23,8 @@ import {
   GetAllPromotionTypes,
   GetPromotionByID,
   UpdatePromotionByID,
-} from "../../../services/promotions";
+} from "../../../services/https";
 import { PlusOutlined } from "@ant-design/icons";
-
 
 const { Option } = Select;
 

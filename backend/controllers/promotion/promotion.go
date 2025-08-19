@@ -26,7 +26,7 @@ func GetPromotionByID(c *gin.Context) {
     var promotion entity.Promotion
     result := connection.DB().
         Preload("PromotionType").
-        Preload("CreateBy").
+        Preload("User").
         Preload("Concert").
         First(&promotion, uint(id))
     
@@ -42,7 +42,7 @@ func GetPromotionByID(c *gin.Context) {
 
 // GET /promotion - แก้ไขให้ใช้ service function
 func GetAllPromotions(c *gin.Context) {
-    promotions, err := service.GetAllPromotions()
+    promotions, err := services.GetAllPromotions()
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch promotions", "details": err.Error()})
         return
@@ -53,7 +53,7 @@ func GetAllPromotions(c *gin.Context) {
 // POST /promotions/add
 func CreatePromotion(c *gin.Context) {
     var promo entity.Promotion
-	var promoService = &service.PromotionService{DB: connection.DB()}
+	var promoService = &services.PromotionService{DB: connection.DB()}
     if err := c.ShouldBindJSON(&promo); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
@@ -79,6 +79,7 @@ func UpdatePromotion(c *gin.Context) {
 
 	var promo entity.Promotion
 	if err := connection.DB().First(&promo, uint(id)).Error; err != nil {
+		fmt.Println("DB Error:", err)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Promotion not found"})
 		return
 	}
@@ -162,22 +163,12 @@ func GetAllPromotionTypes(c *gin.Context) {
 }
 
 func GetAllConcerts(c *gin.Context) {
-    var concerts []entity.Concert
-    if err := connection.DB().Find(&concerts).Error; err != nil {
+    concerts, err := services.GetAllConcert()
+    if err != nil {
         
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch concerts"})
         return
     }
-
-    // สร้าง slice ของ struct ใหม่เพื่อให้มี key ที่ถูกต้อง
-    var formattedConcerts []gin.H
-    for _, c := range concerts {
-        formattedConcerts = append(formattedConcerts, gin.H{
-            "id":   c.ID,
-            "concert_name": c.ConcertName,
-        })
-    }
-
-    c.JSON(http.StatusOK, formattedConcerts)
+	c.JSON(http.StatusOK, concerts)
 }
 

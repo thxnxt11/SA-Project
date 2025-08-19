@@ -1,4 +1,4 @@
 export interface PromotionTypeInterface {
-  ID?: number;
+  id?: number;
   type_name?: string;
 }

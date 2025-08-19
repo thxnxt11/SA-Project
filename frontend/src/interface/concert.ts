@@ -1,9 +1,13 @@
+import type { ShowDatesInterface } from "./showdate";
+
 export interface ConcertInterface {
-    id?: number;
-    concert_name?: string;
-    artist? : string;
-    venue? : string; 
-    onsale_date?: string; // "YYYY-MM-DD"
-    offsale_date?: string; // "YYYY-MM-DD"
-    chart_image? : string;
+  ID: number;
+  concert_name: string;
+  artist?: string;
+  venue?: string;
+  onsale_date?: string; // "YYYY-MM-DD"
+  offsale_date?: string; // "YYYY-MM-DD"
+  concert_poster_url: string;
+  chart_image: string;
+  ShowDates?: ShowDatesInterface[];
 }

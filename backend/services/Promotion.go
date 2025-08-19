@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"github.com/yourname/went-back/connection"
@@ -14,8 +14,8 @@ func GetPromotionByID(id uint) (*entity.Promotion, error) {
     var promotion entity.Promotion
     err := connection.DB().
         Preload("PromotionType").
-        Preload("CreateBy").
-        Preload("Concert").
+        Preload("User").
+        Preload("Concert.User").
         First(&promotion, id).Error
     
     if err != nil {
@@ -27,20 +27,31 @@ func GetPromotionByID(id uint) (*entity.Promotion, error) {
 func GetAllPromotions() ([]entity.Promotion, error) {
     var promotions []entity.Promotion
     err := connection.DB().
-        Raw("SELECT * FROM promotions").
-        Scan(&promotions).Error
+        Preload("PromotionType").
+        Preload("User").
+        Preload("Concert.User").
+        Find(&promotions).Error
     return promotions, err
+}
+
+func GetAllConcert() ([]entity.Concert, error){
+    var concerts []entity.Concert
+    err := connection.DB().
+        Preload("User").
+        Preload("Venue").
+        Preload("ShowDates").
+        Find(&concerts).Error
+    return concerts, err
 }
 
 func (s *PromotionService) CreatePromotion(promotion *entity.Promotion) (*entity.Promotion, error) {
     if err := s.DB.Create(promotion).Error; err != nil {
         return nil, err
     }
-    // ดึง Promotion ที่เพิ่งสร้างขึ้นมาพร้อมกับ relations
     var createdPromo entity.Promotion
     if err := s.DB.
         Preload("PromotionType").
-        Preload("CreateBy").
+        Preload("User").
         Preload("Concert").
         First(&createdPromo, promotion.ID).Error; err != nil {
         return nil, err

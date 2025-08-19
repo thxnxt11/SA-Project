@@ -54,6 +54,12 @@ async function GetAllConcerts() {
     .catch((e) => e.response);
 }
 
+// async function GetConcertByID(id: string) {
+//   return await axios
+//     .get(`${publicUrl}/concert/${id}`)
+//     .then((res) => res)
+//     .catch((e) => e.response);
+// }
 
 export {
   CreatePromotion,
@@ -63,5 +69,5 @@ export {
   DeletePromotionByID,
   GetAllPromotionTypes,
   GetAllConcerts,
-
+  // GetConcertByID,
 };

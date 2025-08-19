@@ -1,11 +1,12 @@
 package connection
 
 import (
-   "fmt"
-   "time"
-   "github.com/yourname/went-back/entity"
-   "gorm.io/driver/sqlite"
-   "gorm.io/gorm"
+	"fmt"
+	"time"
+
+	"github.com/yourname/went-back/entity"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 var db *gorm.DB
@@ -42,6 +43,7 @@ func SetupDatabase() {
        &entity.PaymentStatus{},
        &entity.Payment{},
        &entity.Seat{},
+       &entity.SeatAvailable{},
        &entity.Zone{},
        &entity.ZoneType{},
        
@@ -69,4 +71,41 @@ func SetupDatabase() {
    db.FirstOrCreate(Member, &entity.User{
        Email: "SMTRUE@gmail.com",
    })
+
+   db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
+      PromotionType: "Early Bird",
+   })
+   db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
+      PromotionType: "Code",
+   })
+   db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
+      PromotionType: "Concert",
+   })
+
+   db.FirstOrCreate(&entity.ZoneType{}, entity.ZoneType{
+      ZoneType: "Standing",
+   })
+   db.FirstOrCreate(&entity.ZoneType{}, entity.ZoneType{
+      ZoneType: "Seating",
+   })
+
+   SeedSeatAvailable(DB())
+
+   sql := `
+		UPDATE seat_availables
+		SET seat_available_status = 'Booked'
+		WHERE rowid IN (
+			SELECT rowid
+			FROM seat_availables
+			WHERE zone_id = ?
+			LIMIT 10
+		)
+	`
+	result := db.Exec(sql, 1)
+   if result.Error != nil {
+		panic(result.Error)
+	}
+
+
+   
 }

@@ -1,9 +1,25 @@
 export interface ZoneInterface {
-  zone_id?: string;
-  show_date_id?: string;
+  ID?: number;
+  id?: number;
   zone_name?: string;
-  zone_type?: string; // "standing", "seated"
-  price?: number; // Price of the zone
-  available?: number; // Number of available seats in the zone
-  capacity?: number; // Maximum number of people allowed in the zone
+  zonePrice?: number | string;
+  zone_price?: number | string;
+  type?: string; // เผื่อส่งมาด้วย
+  ZoneType?: { zone_type?: string } | null;
+  zone_type?: { zone_type?: string } | null;
+
+  // ที่นั่งว่าง (อาจมาจาก relation seat_available)
+  seat_available?: Array<{ seatavailable_status?: string | null }> | null;
+  SeatAvailable?: Array<{ SeatAvailableStatus?: string | null }> | null;
+
+  availableSeats?: number;
+}
+
+export interface SeatAvailable {
+  ID?: number;
+  zone_id?: number;
+  zone?: string;
+  seat_id: number;
+  seat?: string;
+  seatavailable_status?: string;
 }

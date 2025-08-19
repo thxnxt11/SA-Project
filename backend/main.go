@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	
+
 	"github.com/gin-gonic/gin"
 	"github.com/yourname/went-back/appsystem"
 	"github.com/yourname/went-back/connection"
+	"github.com/yourname/went-back/controllers/booking"
 	"github.com/yourname/went-back/controllers/promotion"
 )
 
@@ -16,7 +17,7 @@ func main() {
 
 	// setup gin
 	r := gin.Default()
-	
+	connection.SeedSeats(1, []string{"A", "B", "C", "D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S"}, 15)
 	// CORS middleware
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
@@ -42,6 +43,8 @@ func main() {
 		api.GET("/promotions", promotion.GetAllPromotionTypes)
 		api.GET("/concerts", promotion.GetAllConcerts)
 		api.POST("/upload",promotion.UploadFile)
+		api.GET("/concert/:id", booking.GetConcertByID)
+		api.GET("/showdate/:id/zones", booking.GetZonesByShowDate)
 		
 	}
 	r.Static("/uploads", "./uploads")

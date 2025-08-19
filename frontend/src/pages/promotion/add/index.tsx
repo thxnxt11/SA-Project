@@ -26,7 +26,7 @@ import {
   CreatePromotion,
   GetAllPromotionTypes,
   GetAllConcerts,
-} from "../../../services/promotions";
+} from "../../../services/https";
 import { useNavigate } from "react-router-dom";
 const { Option } = Select;
 
@@ -148,6 +148,8 @@ const AddPromotion: React.FC = () => {
         concert_id: values.promotion_type === 3 ? values.concert : null,
         poster_url: posterUrl,
       };
+      console.log("Form values:", values);
+      console.log("Payload:", payload);
 
       let res = await CreatePromotion(payload);
 
@@ -280,7 +282,7 @@ const AddPromotion: React.FC = () => {
                   {selectedType === 3 && (
                     <Col xs={24} sm={24} md={12} lg={12} xl={12}>
                       <Form.Item
-                        name="Concert"
+                        name="concert"
                         label="Concert"
                         rules={
                           selectedType === 3
@@ -299,7 +301,7 @@ const AddPromotion: React.FC = () => {
                           allowClear
                         >
                           {concerts.map((concert) => (
-                            <Option key={concert.id} value={concert.id}>
+                            <Option key={concert.ID} value={concert.ID}>
                               {concert.concert_name}
                             </Option>
                           ))}

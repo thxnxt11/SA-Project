@@ -101,7 +101,7 @@ func SignIn(c *gin.Context) {
        c.JSON(http.StatusBadRequest, gin.H{"error": "password is incerrect"})
        return
    }
-   jwtWrapper := service.JwtWrapper{
+   jwtWrapper := services.JwtWrapper{
        SecretKey:       "SvNQpBN8y3qlVrsGAYYWoJJk56LtzFHx",
        Issuer:          "AuthService",
        ExpirationHours: 24,
