@@ -6,8 +6,12 @@ import (
 
 type Report struct {
 	gorm.Model
+
 	Topic string `json:"topic"`
-	description string  `json:"gender"`
+
+	Description string  `json:"description"`
+
+	Photo string `json:"photo"`
 
 	MembersID uint   
 	Members   *Members `gorm:"foreignKey:MembersID"`

@@ -19,7 +19,7 @@ const SignUpForm: React.FC<{ onFinish: (values: any) => void }> = ({
         marginTop: 220
       }}
     >
-      <h1 style={{fontSize: 30 ,display: "flex",justifyContent: "center"}}>SignUp</h1>
+      <h1 style={{fontSize: 30 ,display: "flex",justifyContent: "center"}}>Sign Up</h1>
       <Form
         layout="vertical"
         onFinish={onFinish}

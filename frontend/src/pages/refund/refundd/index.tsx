@@ -18,14 +18,15 @@ dayjs.extend(customParseFormat);
 const dateFormat = "YYYY-MM-DD";
 
 export const Refund = () => {
+  const [form] = Form.useForm();
   const navigatee = useNavigate();
 
   const goToHistoryy = () => {
     navigatee("/historyrefund");
   };
   return (
-    <>
-      <div
+    <div style={{ backgroundColor: "#ffffff" }}>
+      <Row 
         style={{
           width: 1300,
           margin: "20px auto 0 auto",
@@ -36,6 +37,7 @@ export const Refund = () => {
       >
         <Title level={2}>Refund</Title>
         <Button
+          type="primary"
           style={{
             width: 150,
             height: 40,
@@ -48,35 +50,28 @@ export const Refund = () => {
         >
           History
         </Button>
-      </div>
+      </Row>
 
       <Form
         onFinish={(values) => {
           console.log("Refund Form Submitted:", values);
         }}
+        layout="vertical"
+        form={form}
+        style={{ width: 1300, margin: "0 auto" }}
       >
-        <Card
-          style={{
-            height: 550,
-            width: 1300,
-            marginTop: 10,
-            position: "absolute",
-            top: "20%",
-            left: "50%",
-            transform: "translateX(-50%)",
-          }}
-        >
-          <div style={{ marginLeft: 100 }}>
+        <Card style={{ borderRadius: 10, height: 500 }}>
+          <Row style={{ marginLeft: 100 }} >
             <Form.Item
               name="Booking ID"
               label="BookingID"
               layout="vertical"
               rules={[{ required: true }]}
-              style={{ marginTop: 20 }}
+        
             >
               <Input style={{ width: 500, height: 40 }} />
             </Form.Item>
-            <Row style={{ marginTop: 80 }}>
+            <Row >
               <Form.Item
                 name="User ID"
                 label="UserID"
@@ -98,7 +93,7 @@ export const Refund = () => {
                 />
               </Form.Item>
             </Row>
-            <Row style={{ marginTop: 50 }}>
+            <Row >
               <Form.Item
                 name="Bank"
                 label="Bank"
@@ -152,7 +147,6 @@ export const Refund = () => {
               label="Reason"
               layout="vertical"
               rules={[{ required: true }]}
-              style={{ marginTop: 50 }}
             >
               <TextArea
                 showCount
@@ -161,14 +155,15 @@ export const Refund = () => {
                 style={{ width: 1045, height: 90 }}
               />
             </Form.Item>
-          </div>
+          </Row>
         </Card>
         <div style={{ textAlign: "center" }}>
           <Button
+            type="primary"
             htmlType="submit"
             style={{
               width: 150,
-              marginTop: 600,
+              margin: 30,
               height: 40,
               backgroundColor: "#00306E",
               color: "#ffffff",
@@ -179,6 +174,6 @@ export const Refund = () => {
           </Button>
         </div>
       </Form>
-    </>
+    </div>
   );
 };

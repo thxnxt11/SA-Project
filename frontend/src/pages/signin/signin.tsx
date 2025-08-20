@@ -16,7 +16,7 @@ const SignInForm: React.FC<{ onFinish: (values: any) => void }> = ({
         width: 500,
       }}
     >
-      <h1 style={{fontSize: 30 ,display: "flex",justifyContent: "center"}}>SignIn</h1>
+      <h1 style={{fontSize: 30 ,display: "flex",justifyContent: "center"}}>Sign In</h1>
       <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
         <Form.Item
           label="Email"

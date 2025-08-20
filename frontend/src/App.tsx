@@ -1,10 +1,9 @@
 // src/App.tsx
-import React, { useState } from 'react'
-import {Layout, message } from 'antd'
+import React from 'react'
+import {Layout} from 'antd'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 //import './App.css'
 import 'antd/dist/reset.css'
-import { signUp, signIn } from './api/auth'
 import Report from './pages/report/reportt'
 import { Refund } from './pages/refund/refundd'
 import { RefundHis } from './pages/refund/historyrefund'
@@ -14,23 +13,6 @@ import SignInForm from './pages/signin/signin';
 import SignUpForm from './pages/signup/signup';
 
 const App: React.FC = () => {
-  const [isSignup, setIsSignup] = useState(true)
-  const [msgApi, contextHolder] = message.useMessage()
-
-  const onFinish = async (values: any) => {
-    try {
-      if (isSignup) {
-        await signUp(values)
-        msgApi.success('Signup successful!')
-      } else {
-        const data = await signIn(values)
-        msgApi.success(`Token: ${data.token}`)
-      }
-    } catch (err: any) {
-      msgApi.error(err.message || 'Something went wrong')
-    }
-  }
-
   return (
      <Router>
       <Layout>
