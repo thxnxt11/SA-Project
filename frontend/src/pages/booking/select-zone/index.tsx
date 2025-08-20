@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { RadioChangeEvent } from "antd";
 import Navbar from "../../../component/layout/navbar";
-import { Card, Col, Row, Radio, message, Spin } from "antd";
+import { Card, Col, Radio, message, Spin } from "antd";
 import { useNavigate, useParams } from "react-router-dom";
 import chart from "../../../assets/chart.svg";
 import type { ZoneInterface } from "../../../interface/zone";

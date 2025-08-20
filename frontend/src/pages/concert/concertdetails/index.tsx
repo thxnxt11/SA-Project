@@ -201,7 +201,7 @@ const ConcertDetail: React.FC = () => {
                 >
                   <FaRegCalendarAlt />
                   {dateRangeText}
-                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                   <FaRegClock />
                   {extractTime(concert?.ShowDates?.[0]?.show_date)}
                 </h2>
@@ -227,9 +227,16 @@ const ConcertDetail: React.FC = () => {
                     }}
                   >
                     <FaDollarSign />
-                    {concert.ShowDates[0].Zones.map((z: any) =>
-                      thb.format(Number(z.zone_price))
-                    ).join(" / ")}{" "}
+                    {Array.from(
+                      new Set(
+                        concert.ShowDates[0].Zones.map((z: any) =>
+                          Number(z.zone_price)
+                        )
+                      )
+                    )
+                      .sort((a, b) => b - a) // เรียงจากมาก -> น้อย
+                      .map((price) => thb.format(price))
+                      .join(" / ")}{" "}
                     THB
                   </h2>
                 )}

@@ -86,16 +86,16 @@ const Concert: React.FC = () => {
 
     return `${firstStr} – ${lastStr}`;
   };
-  const getVenueName = (venue: any): string => {
-    if (!venue) return ""; // ถ้า venue เป็น string
-    if (typeof venue === "string") {
-      return venue;
-    } // ถ้า venue เป็น object
-    if (typeof venue === "object") {
-      return venue.venue_name || venue.name || "";
-    }
-    return "";
-  };
+  // const getVenueName = (venue: any): string => {
+  //   if (!venue) return ""; // ถ้า venue เป็น string
+  //   if (typeof venue === "string") {
+  //     return venue;
+  //   } // ถ้า venue เป็น object
+  //   if (typeof venue === "object") {
+  //     return venue.venue_name || venue.name || "";
+  //   }
+  //   return "";
+  // };
   if (loading) {
     return (
       <>
