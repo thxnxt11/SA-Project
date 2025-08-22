@@ -3,6 +3,7 @@ import { Row, Col, Card, Typography, Spin, message, Button } from "antd";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../component/layout/navbar";
 import type { ConcertInterface } from "../../interface/concert";
+import { concertAPI } from "../../services/https";
 
 const { Title, Paragraph } = Typography;
 
@@ -15,13 +16,16 @@ const Concert: React.FC = () => {
     const fetchConcerts = async (): Promise<void> => {
       setLoading(true);
       try {
-        const res = await fetch("http://localhost:8000/api/concerts");
-        if (!res.ok) {
+        const response = await concertAPI.getAll(); // หรือ await GetAllConcerts();
+
+        // ตรวจสอบว่า response สำเร็จหรือไม่
+        if (!response || response.status !== 200) {
           throw new Error(
-            `Failed to fetch concerts: ${res.status} ${res.statusText}`
+            `Failed to fetch concerts: ${response?.status || "Unknown error"}`
           );
         }
-        const data: ConcertInterface[] = await res.json();
+
+        const data: ConcertInterface[] = response.data || [];
         console.log("Raw API response:", data);
         console.log("Concerts length:", data.length);
         setConcerts(data.slice(0, 5)); // เอาเฉพาะ 5 คอนเสิร์ตแรก
@@ -183,7 +187,7 @@ const Concert: React.FC = () => {
 
                       {concert.artist && (
                         <Paragraph type="secondary" ellipsis>
-                          {concert.artist} 
+                          {concert.artist}
                         </Paragraph>
                       )}
                       {/* {getVenueName(concert.venue) && (

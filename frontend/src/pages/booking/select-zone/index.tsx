@@ -66,18 +66,20 @@ const formatDateLong = (iso?: string): string => {
   if (!iso) return "—";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-};
 
+  return d
+    .toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })
+    .toUpperCase();
+};
 // คำนวณจำนวนที่นั่งว่างในโซน
 const calcAvailableSeats = (zone: ZoneInterface): number => {
   if (typeof zone.availableSeats === "number") return zone.availableSeats;
 
-  const list = zone.seat_available ?? zone.SeatAvailable ?? [];
+  const list = zone.seat_available ?? [];
   if (!Array.isArray(list)) return 0;
 
   // นับที่นั่งที่ available (ถ้า field สถานะไม่มี ให้ถือว่าทั้งหมดคือที่นั่งที่เหลือ)
@@ -99,10 +101,10 @@ const zonePriceNumber = (z: ZoneInterface): number =>
   Number(z.zone_price ?? z.zonePrice ?? 0);
 
 const zoneNameText = (z: ZoneInterface): string =>
-  z.zone_name ?? z.zone_type?.zone_type ?? z.ZoneType?.zone_type ?? "Zone";
+  z.zone_name ?? z.zone_type?.zone_type ?? "Zone";
 
 const zoneTypeText = (z: ZoneInterface): string =>
-  z.ZoneType?.zone_type ?? z.zone_type?.zone_type ?? z.type ?? "—";
+  z.zone_type?.zone_type ?? z.type ?? "—";
 
 const AVAILABLE_BG = "#22c55e"; // green
 const SOLDOUT_BG = "#ef4444";
@@ -118,8 +120,6 @@ const SelectZone: React.FC = () => {
   const [selectedShowDateId, setSelectedShowDateId] = useState<number | null>(
     null
   );
-
-  // โหลดข้อมูลคอนเสิร์ตจากแบ็กเอนด์
   useEffect(() => {
     const fetchDetail = async () => {
       if (!id) {
@@ -129,7 +129,6 @@ const SelectZone: React.FC = () => {
       }
       setLoading(true);
       try {
-        // NOTE: ให้แบ็กเอนด์รองรับ Preload ShowDates.Zones.ZoneType (+ seat_available)
         const res = await fetch(`http://localhost:8000/api/concert/${id}`);
         if (!res.ok)
           throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
@@ -172,7 +171,7 @@ const SelectZone: React.FC = () => {
     if (!selectedShowDate) return [];
     return (selectedShowDate.Zones ?? selectedShowDate.Zones ?? [])
       .slice()
-      .sort((a, b) => zonePriceNumber(a) - zonePriceNumber(b)); // เรียงราคาต่ำ→สูง
+      .sort((a, b) => zonePriceNumber(b) - zonePriceNumber(a));
   }, [selectedShowDate]);
 
   const handleZoneCardClick = (zone: ZoneInterface) => {
@@ -193,12 +192,11 @@ const SelectZone: React.FC = () => {
       state: {
         concertId: concert?.ID,
         showDateId: sd.ID ?? sd.ID,
-        showDate: sd.show_date,
+        showDate: formatDateLong(sd.show_date),
         showTime: extractTime(sd.show_date),
         zoneId: zone.ID ?? zone.id,
         zoneName: zoneNameText(zone),
-        zoneType:
-          zone.zone_type?.zone_type ?? zone.ZoneType?.zone_type ?? zone.type,
+        zoneType: zone.zone_type?.zone_type ?? zone.type,
         zonePrice: zonePriceNumber(zone),
       },
     });

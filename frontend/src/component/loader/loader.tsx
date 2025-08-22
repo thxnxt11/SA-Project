@@ -11,7 +11,8 @@ const Loader = () => {
   );
 };
 
-const StyledWrapper = styled.div`
+const StyledWrapper = styled.div
+`
   position: fixed;
   top: 0;
   left: 0;

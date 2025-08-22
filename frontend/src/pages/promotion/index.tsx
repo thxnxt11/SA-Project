@@ -9,7 +9,7 @@ import { FaEdit } from "react-icons/fa";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { Link } from "react-router-dom";
 import EditPromotionModal from "../promotion/edit";
-import { GetAllPromotion, DeletePromotionByID } from "../../services/https";
+import {promotionAPI } from "../../services/https";
 
 const { confirm } = Modal;
 // Helper function สำหรับ format วันที่
@@ -37,7 +37,7 @@ const Promotion: React.FC = () => {
   const fetchPromotions = async () => {
     setLoading(true);
     try {
-      const res = await GetAllPromotion();
+      const res = await promotionAPI.getAll();
       console.log("API Response:", res); // Debug log
 
       if (res && res.status === 200) {
@@ -175,7 +175,7 @@ const Promotion: React.FC = () => {
       async onOk() {
         try {
           setLoading(true);
-          const res = await DeletePromotionByID(id.toString());
+          const res = await promotionAPI.delete(id);
           if (res && res.status === 200) {
             message.success("ลบโปรโมชั่นสำเร็จ");
             fetchPromotions(); // รีโหลดข้อมูล

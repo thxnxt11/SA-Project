@@ -101,7 +101,7 @@ func SetupDatabase() {
 			LIMIT 10
 		)
 	`
-	result := db.Exec(sql, 1)
+	result := db.Exec(sql,2 )
    if result.Error != nil {
 		panic(result.Error)
 	}

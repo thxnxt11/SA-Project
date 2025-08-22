@@ -7,7 +7,18 @@ import (
 	"github.com/yourname/went-back/connection"
 	"github.com/gin-gonic/gin"
 	"github.com/yourname/went-back/entity"
+    "github.com/yourname/went-back/services"
 )
+
+func GetAllConcerts(c *gin.Context) {
+    concerts, err := services.GetAllConcert()
+    if err != nil {
+        
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch concerts"})
+        return
+    }
+	c.JSON(http.StatusOK, concerts)
+}
 
 func GetConcertByID(c *gin.Context) {
     idStr := c.Param("id")
@@ -21,7 +32,6 @@ func GetConcertByID(c *gin.Context) {
     if err := connection.DB().
         Preload("Venue").
         Preload("User").
-        Preload("ShowDates.Venue").
         Preload("ShowDates.Zones.ZoneType").
         Preload("ShowDates.Zones.Seats.Seat").
         First(&concert, id).Error; err != nil {
@@ -32,26 +42,27 @@ func GetConcertByID(c *gin.Context) {
     c.JSON(http.StatusOK, concert)
 }
 
-func GetZonesByShowDate(c *gin.Context) {
-    idStr := c.Param("id")
-    id, err := strconv.ParseUint(idStr, 10, 64)
-    if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid showdate ID"})
-        return
-    }
+// func GetZonesByShowDate(c *gin.Context) {
+//     idStr := c.Param("id")
+//     id, err := strconv.ParseUint(idStr, 10, 64)
+//     if err != nil {
+//         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid showdate ID"})
+//         return
+//     }
 
-    var zones []entity.Zone
-    if err := connection.DB().
-        Preload("ZoneType").
-        Preload("Venue").
-        Preload("Seats").              // โหลดที่นั่งที่สัมพันธ์กับ Zone
-        Preload("Seats.Seat").         // โหลดข้อมูล seat จริง ๆ
-        Where("show_date_id = ?", id).
-        Find(&zones).Error; err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
+//     var zones []entity.Zone
+//     if err := connection.DB().
+//         Preload("ZoneType").
+//         Preload("Venue").
+//         Preload("Seats").              // โหลดที่นั่งที่สัมพันธ์กับ Zone
+//         Preload("Seats.Seat").         // โหลดข้อมูล seat จริง ๆ
+//         Where("show_date_id = ?", id).
+//         Find(&zones).Error; err != nil {
+//         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+//         return
+//     }
 
-    c.JSON(http.StatusOK, zones)
-}
+//     c.JSON(http.StatusOK, zones)
+// }
+
 

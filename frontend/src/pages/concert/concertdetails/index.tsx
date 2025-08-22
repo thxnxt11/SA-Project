@@ -14,6 +14,7 @@ import {
 } from "antd";
 import { FaRegCalendarAlt, FaRegClock, FaDollarSign } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
+import { concertAPI } from "../../../services/https";
 
 const toUpperMonthRange = (isoDates: (string | undefined)[]): string => {
   const parsed = isoDates
@@ -75,30 +76,38 @@ const ConcertDetail: React.FC = () => {
     // ไปหน้า selectzone แบบ path ต่อจาก concert/:id
     navigate(`/concert/${concert.ID}/selectzone`);
   };
-  useEffect(() => {
-    const fetchDetail = async () => {
-      if (!id) {
-        message.error("ไม่พบคอนเสิร์ต");
-        navigate("/");
-        return;
+useEffect(() => {
+  const fetchDetail = async () => {
+    if (!id) {
+      message.error("ไม่พบคอนเสิร์ต");
+      navigate("/");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await concertAPI.getById(Number(id)); // หรือ await GetConcertById(id);
+
+      // ตรวจสอบว่า response สำเร็จหรือไม่
+      if (!response || response.status !== 200) {
+        throw new Error(
+          `Failed to fetch concert: ${response?.status || "Unknown error"}`
+        );
       }
-      setLoading(true);
-      try {
-        const res = await fetch(`http://localhost:8000/api/concert/${id}`);
-        if (!res.ok)
-          throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
-        const data: ConcertInterface = await res.json();
-        setConcert(data);
-        console.log("Raw api data:", data);
-      } catch (e) {
-        console.error(e);
-        message.error("ไม่สามารถโหลดรายละเอียดคอนเสิร์ตได้");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDetail();
-  }, [id, navigate]);
+
+      const data: ConcertInterface = response.data || response; // response อาจจะเป็น data โดยตรงหรือใน response.data
+      setConcert(data);
+      console.log("Raw api data:", data);
+    } catch (e) {
+      console.error(e);
+      message.error("ไม่สามารถโหลดรายละเอียดคอนเสิร์ตได้");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchDetail();
+}, [id, navigate]);
 
   const getVenueName = (venue: any): string => {
     if (!venue) return ""; // ถ้า venue เป็น string

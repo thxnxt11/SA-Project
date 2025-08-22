@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/yourname/went-back/appsystem"
+	"github.com/yourname/went-back/controllers"
 	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/controllers/booking"
 	"github.com/yourname/went-back/controllers/promotion"
@@ -22,9 +22,11 @@ func main() {
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization") 
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true") 
+		
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(200)
+			c.AbortWithStatus(204) 
 			return
 		}
 		c.Next()
@@ -41,10 +43,12 @@ func main() {
 	api := r.Group("/api")
 	{
 		api.GET("/promotions", promotion.GetAllPromotionTypes)
-		api.GET("/concerts", promotion.GetAllConcerts)
 		api.POST("/upload",promotion.UploadFile)
+		api.GET("/concerts", booking.GetAllConcerts)
 		api.GET("/concert/:id", booking.GetConcertByID)
-		api.GET("/showdate/:id/zones", booking.GetZonesByShowDate)
+		bookingHandler := booking.NewBookingHandler()
+		api.GET("/zone/:id/seats",bookingHandler.GetSeatByZoneID)
+		// api.GET("/showdate/:id/zones", booking.GetZonesByShowDate)
 		
 	}
 	r.Static("/uploads", "./uploads")

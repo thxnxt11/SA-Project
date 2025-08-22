@@ -102,7 +102,7 @@ func UpdatePromotion(c *gin.Context) {
 	var updatedPromo entity.Promotion
 	if err := connection.DB().
 		Preload("PromotionType").
-		Preload("CreateBy").
+		Preload("User").
 		Preload("Concert").
 		First(&updatedPromo, uint(id)).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch updated promotion"})
@@ -162,13 +162,5 @@ func GetAllPromotionTypes(c *gin.Context) {
     c.JSON(http.StatusOK, formattedTypes)
 }
 
-func GetAllConcerts(c *gin.Context) {
-    concerts, err := services.GetAllConcert()
-    if err != nil {
-        
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch concerts"})
-        return
-    }
-	c.JSON(http.StatusOK, concerts)
-}
+
 

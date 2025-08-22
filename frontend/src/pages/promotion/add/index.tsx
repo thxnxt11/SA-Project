@@ -17,15 +17,12 @@ import {
   Upload,
 } from "antd";
 import type {
-  InputNumberProps,
-  DatePickerProps,
   UploadFile,
   UploadProps,
 } from "antd";
 import {
-  CreatePromotion,
-  GetAllPromotionTypes,
-  GetAllConcerts,
+  promotionAPI,
+  concertAPI,
 } from "../../../services/https";
 import { useNavigate } from "react-router-dom";
 const { Option } = Select;
@@ -44,8 +41,8 @@ const AddPromotion: React.FC = () => {
   const onGetInitialData = async () => {
     try {
       const [typesRes, concertsRes] = await Promise.all([
-        GetAllPromotionTypes(),
-        GetAllConcerts(),
+        promotionAPI.getAllTypes(),
+        concertAPI.getAll(),
       ]);
       if (typesRes.status === 200 && concertsRes.status === 200) {
         setPromotionTypes(typesRes.data);
@@ -151,7 +148,7 @@ const AddPromotion: React.FC = () => {
       console.log("Form values:", values);
       console.log("Payload:", payload);
 
-      let res = await CreatePromotion(payload);
+      let res = await promotionAPI.create(payload);
 
       if (res.status === 201) {
         messageApi.open({
@@ -181,15 +178,13 @@ const AddPromotion: React.FC = () => {
   const onReset = () => {
     form.resetFields();
     setSelectedType(null);
+
+    setFileList([]); 
+    setPosterUrl(null); 
+    form.setFieldsValue({ poster_url: undefined }); 
   };
 
-  const onDiscountChange: InputNumberProps["onChange"] = (value) => {
-    console.log("changed", value);
-  };
 
-  const onDateChange: DatePickerProps["onChange"] = (date, dateString) => {
-    console.log(date, dateString);
-  };
 
   useEffect(() => {
     onGetInitialData();
@@ -392,7 +387,7 @@ const AddPromotion: React.FC = () => {
                           value?.replace("%", "") as unknown as number
                         }
                         style={{ width: 300 }}
-                        onChange={onDiscountChange}
+
                       />
                     </Form.Item>
                   </Col>
@@ -427,7 +422,7 @@ const AddPromotion: React.FC = () => {
                         showTime={{ format: "HH:mm:ss" }}
                         format="YYYY-MM-DD HH:mm:ss"
                         style={{ width: 300 }}
-                        onChange={onDateChange}
+
                       />
                     </Form.Item>
                   </Col>
@@ -458,7 +453,7 @@ const AddPromotion: React.FC = () => {
                         showTime={{ format: "HH:mm:ss" }}
                         format="YYYY-MM-DD HH:mm:ss"
                         style={{ width: 300 }}
-                        onChange={onDateChange}
+
                       />
                     </Form.Item>
                   </Col>
