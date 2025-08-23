@@ -1,6 +1,7 @@
 // src/SignUp.tsx
 import React from "react";
 import { Form, Input, InputNumber, DatePicker, Select, Button, message ,Card} from "antd";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
 import type{ UserInterface } from "../../interface/user"; 
@@ -154,6 +155,9 @@ return (
           <Button type="primary" htmlType="submit" block size="large">
             Sign Up
           </Button>
+        </Form.Item>
+        <Form.Item>
+          <Link to="/signin">got an account?</Link>
         </Form.Item>
       </Form>
     </Card>
