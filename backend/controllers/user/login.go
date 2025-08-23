@@ -115,7 +115,7 @@ func SignIn(c *gin.Context) {
 	jwtWrapper := services.JwtWrapper{
 		SecretKey:       "SvNQpBN8y3qlVrsGAYYWoJJk56LtzFHx",
 		Issuer:          "AuthService",
-		ExpirationHours: 24,
+		ExpirationHours: 1,
 	}
 	token, err := jwtWrapper.GenerateToken(user.Email)
 	if err != nil {

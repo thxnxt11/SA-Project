@@ -141,7 +141,7 @@ export default function ConcertManagement() {
 
 
   const columns = [
-    { title: "ID", dataIndex: "ID", key: "ID" },
+    // { title: "ID", dataIndex: "ID", key: "ID" },
     { title: "Concert Name", dataIndex: "concert_name", key: "concert_name" },
     { title: "Artist", dataIndex: "artist", key: "artist" },
     {
@@ -191,14 +191,14 @@ export default function ConcertManagement() {
 
   return (
     <SidebarLayout>
+
       <Button
         size="large"
-        style={{ color: "white", backgroundColor: "#00306E", position: "absolute", right: 10 }}
+        style={{ color: "white", backgroundColor: "#00306E", position: "relative", left: 1110, margin: 20 }}
         onClick={openAdd}
       >
         Add data
       </Button>
-
       <Table
         dataSource={concerts}
         columns={columns as any}
@@ -227,6 +227,8 @@ export default function ConcertManagement() {
         )}
 
       </Modal>
+
+      
 
     </SidebarLayout>
   );
