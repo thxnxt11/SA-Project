@@ -16,7 +16,7 @@ export async function getAllConcerts(): Promise<ConcertInterface[]> {
 }
 
 
-export async function addConcert(data: Partial<ConcertInterface>) {
+export async function addConcerts(data: Partial<ConcertInterface>) {
   const res = await axios.post(`${API_URL}/concerts`, data, { headers: authHeader() });
   return res.data;
 }

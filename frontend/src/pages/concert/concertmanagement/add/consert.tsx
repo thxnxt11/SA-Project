@@ -4,15 +4,15 @@ import { Form, Input, DatePicker, Button } from "antd";
 import moment from "moment";
 import type { ConcertInterface } from "../../../../interface/concert";
 
-interface EditConcertFormProps {
+interface AddConcertFormProps {
   initialValues: ConcertInterface;
   onFinish: (values: any) => void;
 }
 
-const AddConcertForm: React.FC<EditConcertFormProps> = ({ initialValues, onFinish }) => {
+const AddConcertForm: React.FC<AddConcertFormProps> = ({ initialValues, onFinish }) => {
   const formInitial = {
     ...initialValues,
-    // DatePicker needs moment objects as initial values
+
     onsale_date: initialValues.onsale_date
       ? moment(initialValues.onsale_date, "YYYY-MM-DD")
       : undefined,

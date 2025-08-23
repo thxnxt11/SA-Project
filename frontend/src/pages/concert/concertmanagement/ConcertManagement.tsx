@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Table, Button, Space, Modal, message } from "antd";
 import SidebarLayout from "../../../component/layout/SidebarLayout";
 import EditConcertForm from "./edit/consert";
+import AddConcertForm from "./add/consert";
 import type { ConcertInterface } from "../../../interface/concert";
 
 
@@ -11,7 +12,9 @@ import {
   getAllConcerts,
   updateConcert,
   deleteConcert,
+  addConcerts as createConcert,
 } from "../../../services/https/consert";
+
 
 const API = "http://localhost:8000"; 
 
@@ -31,6 +34,7 @@ const fmtDate = (iso?: string) => {
 export default function ConcertManagement() {
   const [concerts, setConcerts] = useState<ConcertInterface[]>([]);
   const [editingConcert, setEditingConcert] = useState<ConcertInterface | null>(null);
+  const [addConcert, setaddConcert] = useState<ConcertInterface | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -55,7 +59,14 @@ export default function ConcertManagement() {
   const openEdit = (record: ConcertInterface) => {
     setEditingConcert(record);
     setIsModalOpen(true);
+    setaddConcert(null);   
   };
+
+  const openAdd = () =>{
+    setaddConcert({} as ConcertInterface);
+    setIsModalOpen(true)
+    setEditingConcert(null);   
+  }
 
   const handleEditFinish = async (values: any) => {
     if (!editingConcert) return;
@@ -101,6 +112,33 @@ export default function ConcertManagement() {
         }
       },
     });
+
+  const handleAddconcert = async (values: any) => {
+
+    const payload = {
+      concert_name: values.concert_name,
+      artist: values.artist,
+      onsale_date: values.onsale_date
+      ? values.onsale_date.startOf("day").toDate().toISOString()
+      : null,
+       offsale_date: values.offsale_date
+      ? values.offsale_date.startOf("day").toDate().toISOString()
+      : null,
+    concert_poster_url: values.concert_poster_url ?? "",
+    };
+
+    try {
+      await createConcert(payload);
+      message.success("add complete?]!");
+      setIsModalOpen(false);
+      setaddConcert(null);
+      fetchConcerts();
+    } catch (e: any) {
+      console.error("Update failed:", e);
+      message.error(e?.message || "Update failed");
+    }
+  };
+
 
   const columns = [
     { title: "ID", dataIndex: "ID", key: "ID" },
@@ -156,7 +194,7 @@ export default function ConcertManagement() {
       <Button
         size="large"
         style={{ color: "white", backgroundColor: "#00306E", position: "absolute", right: 10 }}
-        // onClick={() => navigate("/organizer/concerts/add")} // optional if you have an add page
+        onClick={openAdd}
       >
         Add data
       </Button>
@@ -175,14 +213,21 @@ export default function ConcertManagement() {
         open={isModalOpen}
         onCancel={() => {
           setIsModalOpen(false);
+          setaddConcert(null)
           setEditingConcert(null);
         }}
         footer={null}
       >
         {editingConcert && (
-          <EditConcertForm initialValues={editingConcert} onFinish={handleEditFinish} />
+        <EditConcertForm initialValues={editingConcert} onFinish={handleEditFinish} />
         )}
+
+        {addConcert && (
+        <AddConcertForm initialValues={addConcert} onFinish={handleAddconcert} />
+        )}
+
       </Modal>
+
     </SidebarLayout>
   );
 }
