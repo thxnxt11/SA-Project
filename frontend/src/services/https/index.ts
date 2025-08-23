@@ -37,8 +37,8 @@ export const Post = async (
   data: any,
   requireAuth: boolean = true
 ): Promise<AxiosResponse | any> => {
-  const config = getConfigWithoutAuth();
-  // const config = requireAuth ? getConfig() : getConfigWithoutAuth();
+  // const config = getConfigWithoutAuth();
+  const config = requireAuth ? getConfig() : getConfigWithoutAuth();
   return await axios
     .post(url, data, config)
     .then((res) => res)
@@ -55,8 +55,8 @@ export const Get = async (
   url: string,
   requireAuth: boolean = true
 ): Promise<AxiosResponse | any> => {
-  const config = getConfigWithoutAuth();
-  // const config = requireAuth ? getConfig() : getConfigWithoutAuth();
+  // const config = getConfigWithoutAuth();
+  const config = requireAuth ? getConfig() : getConfigWithoutAuth();
   return await axios
     .get(url, config)
     .then((res) => res)
@@ -77,8 +77,8 @@ export const Update = async (
   data: any,
   requireAuth: boolean = true
 ): Promise<AxiosResponse | any> => {
-  const config = getConfigWithoutAuth();
-  // const config = requireAuth ? getConfig() : getConfigWithoutAuth();
+  // const config = getConfigWithoutAuth();
+  const config = requireAuth ? getConfig() : getConfigWithoutAuth();
   return await axios
     .put(url, data, config)
     .then((res) => res)
@@ -95,8 +95,8 @@ export const Delete = async (
   url: string,
   requireAuth: boolean = true
 ): Promise<AxiosResponse | any> => {
-  const config = getConfigWithoutAuth();
-  // const config = requireAuth ? getConfig() : getConfigWithoutAuth();
+  // const config = getConfigWithoutAuth();
+  const config = requireAuth ? getConfig() : getConfigWithoutAuth();
   return await axios
     .delete(url, config)
     .then((res) => res)
@@ -125,4 +125,13 @@ export const promotionAPI = {
 export const concertAPI = {
   getAll: () => Get(`${PUBLIC_API_URL}/concerts`, false),
   getById: (id: number) => Get(`${PUBLIC_API_URL}/concert/${id}`, false),
+};
+
+export const seatAPI = {
+  getByZoneId: (id: number) => Get(`${PUBLIC_API_URL}/zone/${id}/seats`, false),
+};
+
+export const ShowDateAPI = {
+  getZonesByShowDateId: (id: number) =>
+    Get(`${PUBLIC_API_URL}/showdate/${id}/zones`, false),
 };

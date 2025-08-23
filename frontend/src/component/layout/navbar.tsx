@@ -1,3 +1,4 @@
+// src/components/layout/Navbar.tsx
 import React, { useMemo, useState } from "react";
 import {
   Layout,
@@ -5,8 +6,6 @@ import {
   Badge,
   Avatar,
   Dropdown,
-  Menu,
-  Drawer,
   Grid,
   Space,
   Typography,
@@ -14,7 +13,8 @@ import {
 import { FaUserCircle, FaBell, FaBars } from "react-icons/fa";
 import { DownOutlined } from "@ant-design/icons";
 import logo from "../../assets/logo.png";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../hook/authContext"; // <-- ตรวจ path ให้ถูก
 
 const { Header } = Layout;
 const { useBreakpoint } = Grid;
@@ -22,32 +22,46 @@ const { useBreakpoint } = Grid;
 const Navbar: React.FC = () => {
   const [open, setOpen] = useState(false);
   const screens = useBreakpoint();
+  const isMobile = !screens.md;
+  const navigate = useNavigate();
+
+  const { user, logout } = useAuth();
 
   const navLinks = useMemo(
     () => [
-      { label: "Concert", href: "/concert" },
-      { label: "Shopping", href: "/shopping" },
-      { label: "Support", href: "/support" },
+      { label: "Concert", to: "/concert" },
+      { label: "Shopping", to: "/shopping" },
+      { label: "Support", to: "/support" },
     ],
     []
   );
 
-  const userMenu = (
-    <Menu
-      items={[
-        { key: "profile", label: <a href="/profile">Profile</a> },
-        { key: "orders", label: <a href="/orders">My E-Tickets</a> },
-        { type: "divider" as const },
-        {
-          key: "logout",
-          danger: true,
-          label: <Link to="/logout">Log out</Link>,
-        },
-      ]}
-    />
-  );
+  // ✅ สร้างชื่อแสดงผลจาก firstname + lastname > name > email prefix
+  const displayName = user?.name ;
 
-  const isMobile = !screens.md;
+  // ตัวอักษรย่อใน Avatar
+  // const initials = (
+  //   [user?.firstname, user?.lastname]
+  //     .filter(Boolean)
+  //     .map((s) => String(s)[0])
+  //     .join("") ||
+  //   displayName?.[0] ||
+  //   "U"
+  // ).toUpperCase();
+
+  const userMenu = {
+    items: [
+      { key: "profile", label: <Link to="/profile">Profile</Link> },
+      { key: "orders", label: <Link to="/orders">My E-Tickets</Link> },
+      { type: "divider" as const },
+      {
+        key: "logout",
+        danger: true,
+        label: "Log out",
+        onClick: () => logout(),
+      },
+    ],
+  };
 
   return (
     <Header
@@ -65,8 +79,8 @@ const Navbar: React.FC = () => {
       }}
     >
       {/* Left: Brand */}
-      <a
-        href="/"
+      <Link
+        to="/"
         style={{
           display: "flex",
           alignItems: "center",
@@ -85,7 +99,7 @@ const Navbar: React.FC = () => {
         >
           Eventix
         </Typography.Title>
-      </a>
+      </Link>
 
       {/* Center: Nav (hidden on mobile) */}
       {!isMobile && (
@@ -99,9 +113,9 @@ const Navbar: React.FC = () => {
           }}
         >
           {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
+            <Link
+              key={link.to}
+              to={link.to}
               style={{
                 color: "rgba(255,255,255,0.95)",
                 fontSize: 18,
@@ -131,7 +145,7 @@ const Navbar: React.FC = () => {
                 }}
                 className="hover-underline"
               />
-            </a>
+            </Link>
           ))}
         </nav>
       )}
@@ -153,34 +167,58 @@ const Navbar: React.FC = () => {
               />
             </Badge>
 
-            <Dropdown
-              overlay={userMenu}
-              placement="bottomRight"
-              trigger={["click"]}
-            >
+            {!user ? (
               <Button
                 type="default"
+                onClick={() => navigate("/signin")}
                 style={{
                   background: "white",
                   height: 48,
                   borderRadius: 999,
                   paddingInline: 14,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
                   fontSize: 16,
                   fontWeight: 600,
                 }}
               >
                 <Avatar
-                  size={28}
+                  size={24}
                   icon={<FaUserCircle />}
                   style={{ backgroundColor: "#E6F4FF", color: "#00306E" }}
-                />
-                Tan Thanat
-                <DownOutlined style={{ fontSize: 12 }} />
+                ></Avatar>
+                Sign in
               </Button>
-            </Dropdown>
+            ) : (
+              <Dropdown
+                menu={userMenu}
+                placement="bottomRight"
+                trigger={["click"]}
+              >
+                <Button
+                  type="default"
+                  style={{
+                    background: "white",
+                    height: 48,
+                    borderRadius: 999,
+                    paddingInline: 14,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    fontSize: 16,
+                    fontWeight: 600,
+                  }}
+                >
+                  <Avatar
+                    size={28}
+                    icon={<FaUserCircle />}
+                    style={{ backgroundColor: "#E6F4FF", color: "#00306E" }}
+                  >
+                    {/* {displayName ? initials : null} */}
+                  </Avatar>
+                  {displayName || "User"}
+                  <DownOutlined style={{ fontSize: 12 }} />
+                </Button>
+              </Dropdown>
+            )}
           </Space>
         ) : (
           <Space>
@@ -202,76 +240,6 @@ const Navbar: React.FC = () => {
           </Space>
         )}
       </div>
-
-      {/* Drawer for mobile */}
-      <Drawer
-        title={
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <img src={logo} alt="Eventix logo" style={{ width: 28 }} />
-            <span style={{ fontWeight: 700 }}>Menu</span>
-          </div>
-        }
-        placement="right"
-        closable
-        onClose={() => setOpen(false)}
-        open={open}
-        bodyStyle={{ paddingTop: 8, paddingBottom: 16 }}
-      >
-        <Space direction="vertical" size={8} style={{ width: "100%" }}>
-          {navLinks.map((link) => (
-            <Button
-              key={link.href}
-              href={link.href}
-              type="text"
-              size="large"
-              style={{
-                justifyContent: "flex-start",
-                height: 48,
-                borderRadius: 10,
-                fontWeight: 600,
-              }}
-              onClick={() => setOpen(false)}
-            >
-              {link.label}
-            </Button>
-          ))}
-          <div style={{ height: 8 }} />
-          <Button
-            href="/profile"
-            size="large"
-            style={{
-              height: 48,
-              borderRadius: 12,
-              fontWeight: 700,
-              background:
-                "linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,1))",
-            }}
-            icon={<FaUserCircle style={{ marginRight: 6 }} />}
-            onClick={() => setOpen(false)}
-          >
-            Tan Thanat
-          </Button>
-          <Button
-            href="/orders"
-            type="text"
-            size="large"
-            style={{ height: 44, borderRadius: 10 }}
-            onClick={() => setOpen(false)}
-          >
-            My Tickets
-          </Button>
-          <Button
-            href="/logout"
-            type="text"
-            danger
-            size="large"
-            style={{ height: 44, borderRadius: 10 }}
-            onClick={() => setOpen(false)}
-          >
-            Log out
-          </Button>
-        </Space>
-      </Drawer>
     </Header>
   );
 };

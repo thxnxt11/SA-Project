@@ -33,7 +33,7 @@ func GetConcertByID(c *gin.Context) {
         Preload("Venue").
         Preload("User").
         Preload("ShowDates.Zones.ZoneType").
-        Preload("ShowDates.Zones.Seats.Seat").
+        Preload("ShowDates.Zones").
         First(&concert, id).Error; err != nil {
         c.JSON(http.StatusNotFound, gin.H{"error": "Concert not found"})
         return
@@ -42,7 +42,7 @@ func GetConcertByID(c *gin.Context) {
     c.JSON(http.StatusOK, concert)
 }
 
-// func GetZonesByShowDate(c *gin.Context) {
+// func GetZonesAvailableByShowDate(c *gin.Context) {
 //     idStr := c.Param("id")
 //     id, err := strconv.ParseUint(idStr, 10, 64)
 //     if err != nil {

@@ -1,13 +1,14 @@
 export interface ZoneInterface {
   ID?: number;
-  id?: number;
   zone_name?: string;
-  zonePrice?: number | string;
   zone_price?: number | string;
-  type?: string; // เผื่อส่งมาด้วย
-  zone_type?: { zone_type?: string } | null;
+  zone_type?:string ;
   seat_available?: Array<{ seatavailable_status?: string | null }> | null;
+  capacity?: number;
+  pending_holds?: number;
+  seat_sold?: number;
   availableSeats?: number;
+  available_count?: number;
 }
 
 export interface SeatAvailable {

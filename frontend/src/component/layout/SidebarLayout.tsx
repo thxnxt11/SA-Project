@@ -25,6 +25,7 @@ import { LuTicketPercent } from "react-icons/lu";
 import { FaRegCalendarAlt, FaUserCircle, FaBell } from "react-icons/fa";
 import logo from "../../assets/logo.png";
 import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../hook/authContext"; // <- ตรวจ path ให้ตรง
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -41,6 +42,8 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const screens = useBreakpoint();
+
+  const { user, logout } = useAuth();
 
   const isMobile = !screens.lg; // < lg = mobile/tablet
 
@@ -86,9 +89,27 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     items: [
       { key: "profile", label: <Link to="/profile">Profile</Link> },
       { type: "divider" as const },
-      { key: "logout", danger: true, label: <Link to="/logout">Log out</Link> },
+      {
+        key: "logout",
+        danger: true,
+        label: "Log out",
+        onClick: () => logout(),
+      },
     ],
   };
+
+  // ✅ ทำชื่อแสดงผล (firstname lastname > name > email prefix)
+  const displayName = user?.name 
+
+  // ✅ ตัวอักษรย่อสำหรับ Avatar
+  // const initials = (
+  //   [user?.firstname, user?.lastname]
+  //     .filter(Boolean)
+  //     .map((s) => String(s)[0])
+  //     .join("") ||
+  //   displayName?.[0] ||
+  //   "U"
+  // ).toUpperCase();
 
   return (
     <Layout>
@@ -265,22 +286,15 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
             <Divider type="vertical" style={{ height: 24, marginInline: 8 }} />
 
-            <Dropdown
-              menu={userMenu}
-              placement="bottomRight"
-              trigger={["click"]}
-            >
+            {!user ? (
               <Button
                 type="default"
+                onClick={() => navigate("/signin")}
                 style={{
                   background: "white",
                   height: 44,
                   borderRadius: 999,
-                  paddingInline: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  fontSize: 15,
+                  paddingInline: 14,
                   fontWeight: 600,
                 }}
               >
@@ -288,11 +302,48 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                   size={24}
                   icon={<FaUserCircle />}
                   style={{ backgroundColor: "#E6F4FF", color: "#00306E" }}
-                />
-                SM TRUE
-                <DownOutlined style={{ fontSize: 10 }} />
+                ></Avatar>
+                Sign in
               </Button>
-            </Dropdown>
+            ) : (
+              <Dropdown
+                menu={userMenu}
+                placement="bottomRight"
+                trigger={["click"]}
+              >
+                <Button
+                  type="default"
+                  style={{
+                    background: "white",
+                    height: 44,
+                    borderRadius: 999,
+                    paddingInline: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    fontSize: 15,
+                    fontWeight: 600,
+                  }}
+                >
+                  <Avatar
+                    size={24}
+                    icon={<FaUserCircle />}
+                    style={{ backgroundColor: "#E6F4FF", color: "#00306E" }}
+                  >
+                    {/* {displayName ? initials : null} */}
+                  </Avatar>
+
+                  <Typography.Text
+                    style={{ maxWidth: 140 }}
+                    ellipsis={{ tooltip: displayName }}
+                  >
+                    {displayName || "User"}
+                  </Typography.Text>
+
+                  <DownOutlined style={{ fontSize: 10 }} />
+                </Button>
+              </Dropdown>
+            )}
           </div>
         </Header>
 

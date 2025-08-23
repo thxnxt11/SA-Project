@@ -7,42 +7,7 @@ import chart from "../../../assets/chart.svg";
 import type { ZoneInterface } from "../../../interface/zone";
 import type { ConcertInterface } from "../../../interface/concert";
 import type { ShowDatesInterface } from "../../../interface/showdate";
-
-// ---- Types (ยืดหยุ่นรองรับ snake_case/UpperCase) ----
-// type Zone = {
-// ID?: number;
-// id?: number;
-// zone_name?: string;
-// zonePrice?: number | string;
-// zone_price?: number | string;
-// type?: string; // เผื่อส่งมาด้วย
-// ZoneType?: { zone_type?: string } | null;
-// zone_type?: { zone_type?: string } | null;
-
-// // ที่นั่งว่าง (อาจมาจาก relation seat_available)
-// seat_available?: Array<{ seatavailable_status?: string | null }> | null;
-// SeatAvailable?: Array<{ SeatAvailableStatus?: string | null }> | null;
-
-//   availableSeats?: number; // เผื่อกรณีแบ็กเอนด์คำนวณแล้ว
-// };
-
-// type ShowDate = {
-//   ID?: number;
-//   id?: number;
-//   show_date?: string; // ISO
-//   Zones?: Zone[];
-//   zones?: Zone[];
-// };
-
-// type ConcertDetail = {
-//   ID: number;
-//   concert_name: string;
-//   concert_poster_url: string;
-//   chart_image?: string;
-//   ShowDates?: ShowDate[];
-//   show_dates?: ShowDate[];
-//   venue?: any;
-// };
+import { concertAPI, ShowDateAPI } from "../../../services/https";
 
 const thb = new Intl.NumberFormat("th-TH");
 
@@ -75,36 +40,56 @@ const formatDateLong = (iso?: string): string => {
     })
     .toUpperCase();
 };
-// คำนวณจำนวนที่นั่งว่างในโซน
+
+// คำนวณจำนวนที่นั่งว่างตาม service package
 const calcAvailableSeats = (zone: ZoneInterface): number => {
-  if (typeof zone.availableSeats === "number") return zone.availableSeats;
+  // ใช้ available_count ที่ส่งมาจาก backend ถ้ามี
+  if (typeof zone.available_count === "number") {
+    return zone.available_count;
+  }
 
-  const list = zone.seat_available ?? [];
-  if (!Array.isArray(list)) return 0;
+  // fallback: ถ้าเป็น standing zone และมี capacity
+  if (zone.zone_type?.toLowerCase() === "standing" && zone.capacity) {
+    const capacity = zone.capacity;
+    const sold = zone.seat_sold || 0;
+    const holds = zone.pending_holds || 0;
+    const available = capacity - sold - holds;
+    return Math.max(0, available);
+  }
 
-  // นับที่นั่งที่ available (ถ้า field สถานะไม่มี ให้ถือว่าทั้งหมดคือที่นั่งที่เหลือ)
-  const count = list.reduce((acc, s) => {
-    const st1 = (s as any)?.seatavailable_status?.toLowerCase?.();
-    const st2 = (s as any)?.SeatAvailableStatus?.toLowerCase?.();
-    const status = st1 ?? st2;
+  // fallback: ถ้าเป็น seating zone ให้นับจาก seat_available
+  const seatList = zone.seat_available || [];
+  if (!Array.isArray(seatList)) return 0;
 
-    if (!status) return acc + 1; // ไม่มีสถานะ -> นับว่า available
-    if (["available"].includes(status)) return acc + 1;
+  // นับที่นั่งที่ available
+  const availableCount = seatList.reduce((acc, seat) => {
+    const status = seat.seatavailable_status?.toLowerCase();
+    if (status === "available") {
+      return acc + 1;
+    }
     return acc;
   }, 0);
 
-  return count;
+  return availableCount;
 };
 
 // ดึงชื่อโซน + ราคา
-const zonePriceNumber = (z: ZoneInterface): number =>
-  Number(z.zone_price ?? z.zonePrice ?? 0);
+const zonePriceNumber = (z: ZoneInterface): number => Number(z.zone_price ?? 0);
 
-const zoneNameText = (z: ZoneInterface): string =>
-  z.zone_name ?? z.zone_type?.zone_type ?? "Zone";
+const zoneNameText = (z: ZoneInterface): string => {
+  // ลองดึงจากหลายๆ field ที่เป็นไปได้
+  if (z.zone_name) return z.zone_name;
+  return "Zone";
+};
 
-const zoneTypeText = (z: ZoneInterface): string =>
-  z.zone_type?.zone_type ?? z.type ?? "—";
+// แก้ไขการดึง zone_type ให้ตรงกับ response จาก backend
+const zoneTypeText = (z: ZoneInterface): string => {
+  // ดึงจาก zone_type field ตรงๆ (จาก API response)
+  if (z.zone_type) {
+    return z.zone_type;
+  }
+  return "—";
+};
 
 const AVAILABLE_BG = "#22c55e"; // green
 const SOLDOUT_BG = "#ef4444";
@@ -116,10 +101,14 @@ const SelectZone: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [concert, setConcert] = useState<ConcertInterface | null>(null);
 
+  // state แยกสำหรับ zones ของ showdate ที่เลือก
+  const [selectedZones, setSelectedZones] = useState<ZoneInterface[]>([]);
+
   // state ของวันแสดงที่เลือก
   const [selectedShowDateId, setSelectedShowDateId] = useState<number | null>(
     null
   );
+
   useEffect(() => {
     const fetchDetail = async () => {
       if (!id) {
@@ -127,35 +116,80 @@ const SelectZone: React.FC = () => {
         navigate("/");
         return;
       }
+
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:8000/api/concert/${id}`);
-        if (!res.ok)
-          throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
-        const data: ConcertInterface = await res.json();
-        setConcert(data);
+        const response = await concertAPI.getById(Number(id));
 
-        // ตั้งค่า default วันแรก
-        const showDates = data.ShowDates ?? data.ShowDates ?? [];
-        if (showDates.length > 0)
-          setSelectedShowDateId(showDates[0].ID ?? showDates[0].ID ?? null);
+        // ตรวจสอบว่า response สำเร็จหรือไม่
+        if (!response || response.status !== 200) {
+          throw new Error(`Failed to fetch concert: ${response?.status}`);
+        }
+
+        const data: ConcertInterface = response.data || response;
+        setConcert(data);
+        console.log("Raw api data:", data);
       } catch (e) {
         console.error(e);
-        message.error("โหลดข้อมูล Select Zone ไม่ได้");
+        message.error("ไม่สามารถโหลดรายละเอียดคอนเสิร์ตได้");
       } finally {
         setLoading(false);
       }
     };
+
+    const loadZones = async () => {
+      if (!selectedShowDateId) {
+        setSelectedZones([]);
+        return;
+      }
+
+      try {
+        const res = await ShowDateAPI.getZonesByShowDateId(selectedShowDateId);
+        console.log("Zones response:", res);
+
+        if (res.status === 200 && res.data) {
+          const zones = Array.isArray(res.data.data) ? res.data.data : [];
+
+          const normalizedZones = zones.map((zone: any) => ({
+            ID: zone.id,
+            zone_name: zone.zone_name,
+            zone_price: zone.zone_price,
+            zone_type: zone.zone_type,
+            capacity: zone.capacity,
+            pending_holds: zone.pending_holds,
+            seat_sold: zone.seat_sold,
+            available_count: zone.available_count,
+            seat_available: zone.seat_available || [],
+          }));
+
+          console.log("Normalized zones:", normalizedZones);
+
+          setSelectedZones(normalizedZones);
+        }
+      } catch (err) {
+        message.error("โหลดโซนไม่สำเร็จ");
+        console.error("Error loading zones:", err);
+        setSelectedZones([]);
+      }
+    };
+
     fetchDetail();
-  }, [id, navigate]);
+
+    // โหลดโซนเมื่อเลือกวันที่
+    if (selectedShowDateId) {
+      loadZones();
+    }
+  }, [id, navigate, selectedShowDateId]);
 
   const onShowDateChange = (e: RadioChangeEvent) => {
-    setSelectedShowDateId(e.target.value);
+    const sid = e.target.value as number;
+    setSelectedShowDateId(sid);
+    // จะ trigger useEffect ให้โหลด zones ใหม่
   };
 
   // สร้างรายการ showDates (normalize)
   const showDates: ShowDatesInterface[] = useMemo(
-    () => concert?.ShowDates ?? concert?.ShowDates ?? [],
+    () => concert?.ShowDates ?? [],
     [concert]
   );
 
@@ -163,16 +197,19 @@ const SelectZone: React.FC = () => {
   const selectedShowDate: ShowDatesInterface | undefined = useMemo(() => {
     const sid = selectedShowDateId;
     if (!sid) return undefined;
-    return showDates.find((d) => (d.ID ?? d.ID) === sid);
+    return showDates.find((d) => (d.ID) === sid);
   }, [selectedShowDateId, showDates]);
 
-  // รายการโซนของวันนั้น
+  // รายการโซนของวันที่เลือก - ใช้ selectedZones แทน
   const zonesForSelectedDate: ZoneInterface[] = useMemo(() => {
-    if (!selectedShowDate) return [];
-    return (selectedShowDate.Zones ?? selectedShowDate.Zones ?? [])
+    if (!selectedZones.length) return [];
+
+    console.log("Zones for selected date:", selectedZones);
+
+    return selectedZones
       .slice()
       .sort((a, b) => zonePriceNumber(b) - zonePriceNumber(a));
-  }, [selectedShowDate]);
+  }, [selectedZones]);
 
   const handleZoneCardClick = (zone: ZoneInterface) => {
     const sd = selectedShowDate;
@@ -191,12 +228,12 @@ const SelectZone: React.FC = () => {
     navigate("/selectseat", {
       state: {
         concertId: concert?.ID,
-        showDateId: sd.ID ?? sd.ID,
+        showDateId: sd.ID,
         showDate: formatDateLong(sd.show_date),
         showTime: extractTime(sd.show_date),
-        zoneId: zone.ID ?? zone.id,
+        zoneId: zone.ID,
         zoneName: zoneNameText(zone),
-        zoneType: zone.zone_type?.zone_type ?? zone.type,
+        zoneType: zoneTypeText(zone),
         zonePrice: zonePriceNumber(zone),
       },
     });
@@ -230,7 +267,7 @@ const SelectZone: React.FC = () => {
           left: 100,
           marginTop: 30,
           width: 600,
-          height: 600,
+          maxHeight: 1000,
           borderColor: "#d3d3d3ff",
           backgroundColor: "#F6F6F8",
           borderRadius: 15,
@@ -247,7 +284,7 @@ const SelectZone: React.FC = () => {
                 : chart
             }
             alt="chart"
-            style={{ width: "90%" }}
+            style={{ width: "100%" }}
           />
         </div>
       </Card>
@@ -282,10 +319,10 @@ const SelectZone: React.FC = () => {
             }}
           >
             {showDates.map((d) => {
-              const sid = d.ID ?? d.ID!;
+              const sid = d.ID!;
               return (
                 <Radio
-                  key={sid}
+                  key={`showdate-${sid}`}
                   value={sid}
                   className="cursor-pointer"
                   style={{ fontSize: "18px" }}
@@ -328,12 +365,18 @@ const SelectZone: React.FC = () => {
                 <div style={{ width: 540, maxWidth: "100%", margin: "0 auto" }}>
                   {zonesForSelectedDate.length > 0 ? (
                     zonesForSelectedDate.map((zone) => {
-                      const id = zone.ID ?? zone.id!;
+                      const id = zone.ID;
                       const name = zoneNameText(zone);
                       const type = zoneTypeText(zone);
                       const price = thb.format(zonePriceNumber(zone));
                       const available = calcAvailableSeats(zone);
                       const disabled = available === 0;
+
+                      console.log("Zone object details:", {
+                        zone,
+                        zone_name: zone.zone_name,
+                        zone_type: zone.zone_type,
+                      }); // debug zone name and type
 
                       return (
                         <Card

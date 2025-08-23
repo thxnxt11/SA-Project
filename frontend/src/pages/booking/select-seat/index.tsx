@@ -17,6 +17,7 @@ import { RxCrossCircled } from "react-icons/rx"; // ❌ จองแล้ว
 import { TbTicket } from "react-icons/tb";
 import { useLocation, useNavigate } from "react-router-dom";
 import Loader from "../../../component/loader/loader";
+import { seatAPI } from "../../../services/https";
 
 type SeatFromAPI = {
   id: number;
@@ -106,48 +107,50 @@ const SelectSeat: React.FC = () => {
   const [seatRows, setSeatRows] = useState<SeatRow[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const isStanding = (zoneType ?? "").toLowerCase() === "standing";
+useEffect(() => {
+  const isStanding = (zoneType ?? "").toLowerCase() === "standing";
 
-    if (!zoneId || isStanding) {
-      setSeatRows([]);
-      setLoading(false);
-      setApiError(null);
-      return;
-    }
+  if (!zoneId || isStanding) {
+    setSeatRows([]);
+    setLoading(false);
+    setApiError(null);
+    return;
+  }
 
-    const abort = new AbortController();
+  const abort = new AbortController();
 
-    const fetchSeats = async () => {
-      setLoading(true);
-      setApiError(null);
-      try {
-        const res = await fetch(
-          `http://localhost:8000/api/zone/${zoneId}/seats`,
-          {
-            signal: abort.signal,
-          }
+  const fetchSeats = async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const res = await seatAPI.getByZoneId(zoneId);
+
+      if (abort.signal.aborted) return;
+      if (!res || (res.status && res.status !== 200)) {
+        throw new Error(
+          `HTTP ${res?.status || "Unknown"} ${res?.statusText || "Error"}`
         );
-        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-
-        const data = await res.json();
-        const items: SeatFromAPI[] = Array.isArray(data) ? data : [];
-        console.log("Seat: ", data);
-        const grid = buildSeatGrid(items);
-        if (!abort.signal.aborted) setSeatRows(grid);
-      } catch (e) {
-        if (!abort.signal.aborted) {
-          console.error("Fetch seats error:", e);
-          setApiError("ไม่สามารถโหลดผังที่นั่งได้");
-        }
-      } finally {
-        if (!abort.signal.aborted) setLoading(false);
       }
-    };
+      
+      const data = res.data || res;
+      const items: SeatFromAPI[] = Array.isArray(data) ? data : [];
+      console.log("Seat: ", data);
 
-    fetchSeats();
-    return () => abort.abort();
-  }, [zoneId, zoneType]);
+      const grid = buildSeatGrid(items);
+      if (!abort.signal.aborted) setSeatRows(grid);
+    } catch (e) {
+      if (!abort.signal.aborted) {
+        console.error("Fetch seats error:", e);
+        setApiError("ไม่สามารถโหลดผังที่นั่งได้");
+      }
+    } finally {
+      if (!abort.signal.aborted) setLoading(false);
+    }
+  };
+
+  fetchSeats();
+  return () => abort.abort();
+}, [zoneId, zoneType]);
 
   // เลือก/ยกเลิกเลือก seat (จำกัดสูงสุด 2)
   const handleSeatClick = (seatCode: string, status: string) => {

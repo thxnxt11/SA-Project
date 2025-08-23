@@ -4,10 +4,11 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/yourname/went-back/controllers"
 	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/controllers/booking"
 	"github.com/yourname/went-back/controllers/promotion"
+	"github.com/yourname/went-back/controllers/user"
+	"github.com/yourname/went-back/services"
 )
 
 func main() {
@@ -40,20 +41,23 @@ func main() {
        router.GET("/promotion", promotion.GetAllPromotions)
        router.DELETE("/promotion/:id", promotion.DeletePromotion)
    	}
+	zoneSvc := services.NewZoneService()
+	zoneCtl := booking.NewZoneController(zoneSvc)
+	bookingHandler := booking.NewBookingHandler()
 	api := r.Group("/api")
 	{
 		api.GET("/promotions", promotion.GetAllPromotionTypes)
 		api.POST("/upload",promotion.UploadFile)
 		api.GET("/concerts", booking.GetAllConcerts)
 		api.GET("/concert/:id", booking.GetConcertByID)
-		bookingHandler := booking.NewBookingHandler()
+		api.GET("/showdate/:id/zones", zoneCtl.GetZonesAvailableByShowDate)
 		api.GET("/zone/:id/seats",bookingHandler.GetSeatByZoneID)
 		// api.GET("/showdate/:id/zones", booking.GetZonesByShowDate)
 		
 	}
 	r.Static("/uploads", "./uploads")
-	r.POST("/signup", appsystem.SignUp)
-	r.POST("/signin", appsystem.SignIn)
+	r.POST("/signup", user.SignUp)
+	r.POST("/signin", user.SignIn)
 
 	// start
 	fmt.Println("Server running on http://localhost:8000")

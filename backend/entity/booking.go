@@ -11,6 +11,8 @@ type Booking struct {
 	User *User `gorm:"foreignKey:UserID" json:"user"`
 	ShowDateID uint `json:"showdate_id"`
 	ShowDate *ShowDate `gorm:"foreignKey:ShowDateID" json:"showdate"`
+	ZoneID uint `json:"zone_id"`
+	Zone *Zone `gorm:"foreignKey:ZoneID" json:"zone"`
 	QueueNumber int `json:"queue_number"`
 	TotalPrice int `json:"total_price"`
 	BookingStatusID uint `json:"booking_status_id"`
