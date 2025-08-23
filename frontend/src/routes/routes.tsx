@@ -1,56 +1,32 @@
-// imports เพิ่ม useState, useNavigate ถ้ายังไม่มี
-import React, { useState } from "react";
-import { Form, Input, Button, message } from "antd";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
+// src/App.tsx
+import { Routes, Route, Navigate } from "react-router-dom";
+import MemberRoutes from "./memberroutes";
+import OrganizerRoutes from "./organizerroutes";
+import type { ReactElement, FC } from "react";
 
-const API_URL = "http://localhost:8000";
+function RequireAuth({ children }: { children: ReactElement }) {
+  const token = localStorage.getItem("token");
+  return token ? children : <Navigate to="/signin" replace />;
+}
 
-const SignUpForm: React.FC = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-
-  const onFinish = async (values: any) => {
-    try {
-      setLoading(true);
-
-      // TODO: map ค่า values -> payload ตามที่คุณต้องการ
-      const payload = { /* ...จาก values... */ };
-
-      const res = await axios.post(`${API_URL}/signup`, payload);
-
-      // เช็คสถานะสำเร็จ
-      if (res.status === 200 || res.status === 201) {
-        message.success("Sign up success!");
-        // รอตรงนี้ให้บันทึกเสร็จแล้วค่อย redirect
-        navigate("/signin", { replace: true });
-      } else {
-        message.error("Sign up failed");
-      }
-    } catch (e: any) {
-      console.error(e?.response || e);
-      message.error(e?.response?.data?.message || "Sign up failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+const Runroute: FC = () => {
   return (
-    <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
-      {/* ... ฟิลด์ต่าง ๆ ... */}
-
-      {/* แทนที่ Link + Button ด้วยปุ่ม submit ธรรมดา */}
-      <Button
-        type="primary"
-        htmlType="submit"
-        block
-        size="large"
-        loading={loading}
-      >
-        Sign Up
-      </Button>
-    </Form>
+    <Routes>
+      <Route path="/" element={<Navigate to="/signin" replace />} />
+      <Route path="/*" element={<MemberRoutes />} />
+      <Route
+        path="/organizer/*"
+        element={
+          <RequireAuth>
+            <OrganizerRoutes />
+          </RequireAuth>
+        }
+      />
+      <Route path="*" element={<Navigate to="/signin" replace />} />
+    </Routes>
   );
 };
 
-export default SignUpForm;
+export default Runroute;
+
+// if you want to manage route when login fix that on login.tsx at page.user

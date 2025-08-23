@@ -1,5 +1,5 @@
 // src/auth/AuthContext.tsx
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 
 const API_URL = "http://localhost:8000";
@@ -18,12 +18,13 @@ type LoginResult = {
   token: string;
   user: User | null;
   role: string | number;
-  role_id: number;
+  role_id: number | string;
 };
 
 type AuthContextType = {
   user: User | null;
   token: string | null;
+  authReady: boolean; // ✅ บอกว่า hydrate เสร็จหรือยัง
   login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
 };
@@ -39,7 +40,16 @@ const safeDecodeJwt = (token: string) => {
   }
 };
 
-// Helper function to combine firstname and lastname into name
+// ช่วยเช็คหมดอายุจาก exp (ถ้าไม่มี exp จะถือว่ายังไม่หมดอายุ)
+const isJwtExpired = (token: string | null | undefined) => {
+  if (!token) return true;
+  const payload: any = safeDecodeJwt(token);
+  const exp = payload?.exp;
+  if (!exp) return false;
+  return Date.now() >= exp * 1000;
+};
+
+
 const combineNames = (
   firstname?: string,
   lastname?: string,
@@ -48,9 +58,6 @@ const combineNames = (
   const first = firstname?.trim() || "";
   const last = lastname?.trim() || "";
   const combined = [first, last].filter(Boolean).join(" ");
-
-  // If we have firstname or lastname, use the combined name
-  // Otherwise, keep the existing name
   return combined || existingName || "";
 };
 
@@ -59,15 +66,44 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    const t = localStorage.getItem("token");
+    const uStr = localStorage.getItem("user");
+    // const r = localStorage.getItem("role");
+    // const rid = localStorage.getItem("role_id");
+
+    if (t && !isJwtExpired(t)) {
+      setToken(t);
+      axios.defaults.headers.common.Authorization = `Bearer ${t}`;
+      if (uStr) {
+        try {
+          setUser(JSON.parse(uStr));
+        } catch {
+          setUser(null);
+        }
+      }
+      // เก็บ role/role_id ไว้ใน state user ถ้าต้องการ (ไม่จำเป็นตรงนี้เพราะมักอยู่ใน user อยู่แล้ว)
+    } else {
+      // token หมดอายุ/ไม่มี → ล้างทิ้ง
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("role");
+      localStorage.removeItem("role_id");
+      setUser(null);
+      setToken(null);
+      delete axios.defaults.headers.common.Authorization;
+    }
+
+    setAuthReady(true);
+  }, []);
 
   const login = async (
     email: string,
     password: string
   ): Promise<LoginResult> => {
-    const res = await axios.post(`${API_URL}/signin`, {
-      email,
-      password,
-    });
+    const res = await axios.post(`${API_URL}/signin`, { email, password });
     const data = res.data || {};
     const token = data.token ?? data.accessToken ?? data.access_token;
 
@@ -80,7 +116,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
 
     let userObj: User | null = data.user ?? null;
 
-    // If userObj exists, ensure name is firstname + lastname
+    // สร้าง name จาก firstname + lastname
     if (userObj) {
       const combinedName = combineNames(
         userObj.firstname,
@@ -110,7 +146,8 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
           };
         }
       } catch {
-        const payload = safeDecodeJwt(token);
+        // fallback จาก JWT
+        const payload: any = safeDecodeJwt(token);
         const emailFromJwt =
           payload.Email || payload.email || payload.username || "";
         const firstnameFromJwt = payload.firstname || payload.Firstname || "";
@@ -128,7 +165,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
                 email: emailFromJwt || undefined,
                 firstname: firstnameFromJwt || undefined,
                 lastname: lastnameFromJwt || undefined,
-                name: combinedNameFromJwt ,
+                name: combinedNameFromJwt,
                 role,
                 role_id,
               }
@@ -136,7 +173,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
       }
     }
 
-    // Update state + localStorage
+
     setToken(token);
     setUser(userObj);
 
@@ -152,11 +189,16 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.clear();
+    delete axios.defaults.headers.common.Authorization;
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    localStorage.removeItem("role_id");
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, authReady, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
