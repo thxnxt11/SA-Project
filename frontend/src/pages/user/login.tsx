@@ -36,7 +36,7 @@ const SignIn: React.FC = () => {
 
 
       const target =
-        rid === 2 || rname === "member" ? "/concert" :
+        rid === 2 || rname === "member" ? "/concerts" :
         rid === 1 || rname === "organizer" ? "/organizer/dashboard" :
         rid === 3 || rname === "admin" ? "/organizer/dashboard" :
         rid === 4 || rname === "staff" ? "/organizer/dashboard" :
