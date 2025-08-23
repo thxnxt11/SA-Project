@@ -4,10 +4,11 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/yourname/went-back/appsystem"
+	"github.com/yourname/went-back/controllers/user"
 	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/controllers/booking"
 	"github.com/yourname/went-back/controllers/promotion"
+	"github.com/yourname/went-back/controllers/concert"
 )
 
 func main() {
@@ -37,6 +38,12 @@ func main() {
        router.PUT("/promotion/:id", promotion.UpdatePromotion)
        router.GET("/promotion", promotion.GetAllPromotions)
        router.DELETE("/promotion/:id", promotion.DeletePromotion)
+
+	    router.GET("/concerts", concert.GetAllConcerts)
+	    router.POST("/concerts", concert.AddConcert)
+	    router.PUT("/concerts/:id", concert.UpdateConcert)
+	    router.DELETE("/concerts/:id", concert.DeleteConcert)
+
    	}
 	api := r.Group("/api")
 	{
@@ -48,8 +55,8 @@ func main() {
 		
 	}
 	r.Static("/uploads", "./uploads")
-	r.POST("/signup", appsystem.SignUp)
-	r.POST("/signin", appsystem.SignIn)
+	r.POST("/signup", user.SignUp)
+	r.POST("/signin", user.SignIn)
 
 	// start
 	fmt.Println("Server running on http://localhost:8000")

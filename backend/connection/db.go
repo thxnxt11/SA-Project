@@ -89,6 +89,8 @@ func SetupDatabase() {
       ZoneType: "Seating",
    })
 
+   
+
    SeedSeatAvailable(DB())
 
    sql := `
