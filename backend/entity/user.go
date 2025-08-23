@@ -15,7 +15,7 @@ type User struct{
 	Address string `json:"address"`
 	Email string `json:"staff_email"`
 	Password string `json:"-"`
-	Phonenum string  `json:"satff_phone_number"`
+	Phonenum string  `json:"phone_number"`
 
 	GenderID uint `json:"gender_id"`
 	Gender *Genders  `gorm:"foreignKey: gender_id" json:"gender"`

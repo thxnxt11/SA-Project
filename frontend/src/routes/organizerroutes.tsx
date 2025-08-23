@@ -30,7 +30,7 @@ export default function OrganizerRoutes() {
       />
 
       {/* 404 inside /organizer */}
-      <Route path="*" element={<Navigate to="dashboard" replace />} />
+      <Route path="*" element={<Navigate to="" replace />} />
     </Routes>
   );
 }

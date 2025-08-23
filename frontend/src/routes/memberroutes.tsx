@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import SignIn from "../pages/user/login";
 import SignUp from "../pages/user/register";
 
-import Concert from "../pages/concert/concertdetails";
+import Concert from "../pages/concert/index.tsx";
 import ConcertDetail from "../pages/concert/concertdetails";
 import SelectZone from "../pages/booking/select-zone";
 import SelectSeat from "../pages/booking/select-seat";
@@ -18,7 +18,7 @@ export default function MemberRoutes() {
       <Route path="/signup" element={<SignUp />} />
 
       {/* public */}
-      <Route path="/concert" element={<Concert />} />
+      <Route path="/concerts" element={<Concert />} />
       <Route path="/concert/:id" element={<ConcertDetail />} />
       <Route path="/concert/:id/selectzone" element={<SelectZone />} />
       <Route path="/selectseat" element={<SelectSeat />} />
