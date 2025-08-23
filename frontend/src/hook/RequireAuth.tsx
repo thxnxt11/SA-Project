@@ -1,17 +1,27 @@
 // src/auth/RequireAuth.tsx
 import React from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, Outlet } from "react-router-dom";
+import { Spin } from "antd";
 import { useAuth } from "./authContext";
 
-
 const RequireAuth: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
   const location = useLocation();
 
-  if (!user) {
-    return <Navigate to="/signin" state={{ from: location.pathname }} replace />;
+  if (!authReady) {
+    return (
+      <div style={{ minHeight: "40vh", display: "grid", placeItems: "center" }}>
+        <Spin size="large" />{" "}
+      </div>
+    );
   }
-  return <>{children}</>;
+
+  if (!user) {
+    // แก้ไขตรงนี้
+    return <Navigate to="/signin" state={{ from: location }} replace />;
+  }
+
+  return children ? <>{children}</> : <Outlet />;
 };
 
 export default RequireAuth;

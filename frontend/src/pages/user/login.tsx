@@ -1,11 +1,11 @@
-// src/pages/user/login.tsx (only the onFinish + imports)
 import React from "react";
 import { Form, Input, Button, message, Card } from "antd";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../hook/authContext";
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, user } = useAuth();
 
   const onFinish = async (values: any) => {
@@ -16,7 +16,19 @@ const SignIn: React.FC = () => {
 
       message.success("Signed in!");
 
-      // ดึง role/role_id จากผล login (fallback ไปที่ localStorage ถ้าจำเป็น)
+      // ตรวจสอบว่ามี redirect URL จาก location state หรือ query parameter หรือไม่
+      const redirectTo =
+        location.state?.from?.pathname ||
+        new URLSearchParams(location.search).get("redirect");
+
+      if (redirectTo && redirectTo !== "/signin") {
+        // ถ้ามี redirect URL และไม่ใช่หน้า signin เอง ให้ไปที่นั่น
+        console.log("redirecting to:", redirectTo);
+        navigate(redirectTo, { replace: true });
+        return; // สำคัญ! ต้อง return เพื่อไม่ให้รันโค้ดต่อ
+      }
+
+      // ถ้าไม่มี redirect URL ให้ใช้ logic เดิมตาม role
       const role =
         result?.user?.role ??
         result?.role ??

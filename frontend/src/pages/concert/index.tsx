@@ -16,9 +16,8 @@ const Concert: React.FC = () => {
     const fetchConcerts = async (): Promise<void> => {
       setLoading(true);
       try {
-        const response = await concertAPI.getAll(); // หรือ await GetAllConcerts();
+        const response = await concertAPI.getAll();
 
-        // ตรวจสอบว่า response สำเร็จหรือไม่
         if (!response || response.status !== 200) {
           throw new Error(
             `Failed to fetch concerts: ${response?.status || "Unknown error"}`
@@ -26,9 +25,7 @@ const Concert: React.FC = () => {
         }
 
         const data: ConcertInterface[] = response.data || [];
-        console.log("Raw API response:", data);
-        console.log("Concerts length:", data.length);
-        setConcerts(data.slice(0, 5)); // เอาเฉพาะ 5 คอนเสิร์ตแรก
+        setConcerts(data.slice(0, 5));
       } catch (err) {
         console.error("Error fetching concerts:", err);
         message.error("ไม่สามารถโหลดข้อมูลคอนเสิร์ตได้");
@@ -51,8 +48,6 @@ const Concert: React.FC = () => {
 
   const formatDateRange = (dates: string[]): string => {
     if (!dates || dates.length === 0) return "ไม่ระบุวันที่";
-
-    // แปลงเป็น Date object และ sort
     const parsed = dates
       .map((d) => new Date(d))
       .filter((d) => !isNaN(d.getTime()))
@@ -63,20 +58,16 @@ const Concert: React.FC = () => {
     const first = parsed[0];
     const last = parsed[parsed.length - 1];
 
-    // ถ้าอยู่เดือนเดียวกัน
     if (
       first.getMonth() === last.getMonth() &&
       first.getFullYear() === last.getFullYear()
     ) {
       return `${first.getDate()}–${last.getDate()} ${first.toLocaleString(
         "en-US",
-        {
-          month: "long",
-        }
+        { month: "long" }
       )} ${first.getFullYear()}`;
     }
 
-    // ถ้าข้ามเดือน/ปี → แสดงเต็มทั้งสอง
     const firstStr = first.toLocaleDateString("en-US", {
       day: "numeric",
       month: "long",
@@ -90,16 +81,23 @@ const Concert: React.FC = () => {
 
     return `${firstStr} – ${lastStr}`;
   };
-  // const getVenueName = (venue: any): string => {
-  //   if (!venue) return ""; // ถ้า venue เป็น string
-  //   if (typeof venue === "string") {
-  //     return venue;
-  //   } // ถ้า venue เป็น object
-  //   if (typeof venue === "object") {
-  //     return venue.venue_name || venue.name || "";
-  //   }
-  //   return "";
-  // };
+
+  // ===== helper: เช็คว่าคอนเสิร์ต “จบแล้ว” หรือยัง =====
+  // parse YYYY-MM-DD (หรือ string มีเวลา) เป็น local date (ตัดเวลา)
+  const parseLocalYMD = (s: string): Date => {
+    const ymd = s.split("T")[0] || s; // กันมีเวลา
+    const [y, m, d] = ymd.split(/[-/]/).map((n) => parseInt(n, 10));
+    return new Date(y, (m || 1) - 1, d || 1);
+  };
+
+  const isConcertEnded = (showDates?: { show_date: string }[]): boolean => {
+    if (!showDates || showDates.length === 0) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // เทียบเป็นรายวัน
+    // จบแล้ว = ทุก show_date < วันนี้
+    return showDates.every((sd) => parseLocalYMD(sd.show_date) < today);
+  };
+
   if (loading) {
     return (
       <>
@@ -123,7 +121,7 @@ const Concert: React.FC = () => {
     <>
       <Navbar />
       <div style={{ padding: "20px 40px" }}>
-        <Title level={2} style={{ marginBottom: 24, marginLeft: "15%" }}>
+        <Title level={2} style={{ marginBottom: 24, marginLeft: "6%" }}>
           🎶 Recommended Concerts
         </Title>
 
@@ -142,87 +140,90 @@ const Concert: React.FC = () => {
             <Row
               gutter={[16, 20]}
               justify="center"
-              style={{
-                maxWidth: "1200px",
-                width: "100%",
-              }}
+              style={{ maxWidth: "1300px", width: "100%" }}
             >
-              {concerts.map((concert) => (
-                <Col key={concert.ID}>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <Card
-                      hoverable
-                      cover={
-                        <img
-                          alt={concert.concert_name || "Concert"}
-                          src={`http://localhost:8000${concert.concert_poster_url}`}
-                          style={{
-                            height: 280,
-                            objectFit: "fill",
-                          }}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = "/placeholder-image.jpg";
-                          }}
-                        />
-                      }
+              {concerts.map((concert) => {
+                const ended = isConcertEnded(concert.ShowDates);
+                const baseBtnStyle: React.CSSProperties = {
+                  height: 48,
+                  fontSize: 18,
+                  width: "230px",
+                  borderRadius: 15,
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                };
+                const grayBtnStyle: React.CSSProperties = {
+                  ...baseBtnStyle,
+                  backgroundColor: "#d9d9d9",
+                  borderColor: "#d9d9d9",
+                  color: "#fff",
+                };
+
+                return (
+                  <Col key={concert.ID}>
+                    <div
                       style={{
-                        width: "250px",
                         display: "flex",
                         flexDirection: "column",
-                        justifyContent: "space-between",
-                      }}
-                      onClick={() => handleConcertClick(concert.ID)}
-                    >
-                      <Title level={5} ellipsis={{ rows: 2 }}>
-                        {concert.concert_name || "ไม่ระบุชื่อคอนเสิร์ต"}
-                      </Title>
-
-                      {concert.artist && (
-                        <Paragraph type="secondary" ellipsis>
-                          {concert.artist}
-                        </Paragraph>
-                      )}
-                      {/* {getVenueName(concert.venue) && (
-                        <Paragraph style={{ marginBottom: 8 }}>
-                          {" "}
-                          📍 {getVenueName(concert.venue)}{" "}
-                        </Paragraph>
-                      )} */}
-                      {concert.ShowDates && (
-                        <Paragraph style={{ marginBottom: 0 }}>
-                          📅{" "}
-                          {formatDateRange(
-                            concert.ShowDates.map((sd) => sd.show_date)
-                          )}
-                        </Paragraph>
-                      )}
-                    </Card>
-
-                    <Button
-                      onClick={() => handleConcertClick(concert.ID)}
-                      type="primary"
-                      size="large"
-                      style={{
-                        height: 48,
-                        fontSize: 18,
-                        width: "250px",
-                        borderRadius: 15,
-                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                        alignItems: "center",
+                        gap: "12px",
                       }}
                     >
-                      BuyNow
-                    </Button>
-                  </div>
-                </Col>
-              ))}
+                      <Card
+                        hoverable={!ended}
+                        cover={
+                          <img
+                            alt={concert.concert_name || "Concert"}
+                            src={`http://localhost:8000${concert.concert_poster_url}`}
+                            style={{ height: 280, objectFit: "fill" }}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "/placeholder-image.jpg";
+                            }}
+                          />
+                        }
+                        style={{
+                          width: "230px",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          cursor: ended ? "not-allowed" : "pointer",
+                          opacity: ended ? 0.9 : 1,
+                        }}
+                        onClick={() => !ended && handleConcertClick(concert.ID)}
+                      >
+                        <Title level={5} ellipsis={{ rows: 2 }}>
+                          {concert.concert_name || "ไม่ระบุชื่อคอนเสิร์ต"}
+                        </Title>
+
+                        {concert.artist && (
+                          <Paragraph type="secondary" ellipsis>
+                            {concert.artist}
+                          </Paragraph>
+                        )}
+
+                        {concert.ShowDates && (
+                          <Paragraph style={{ marginBottom: 0 }}>
+                            📅{" "}
+                            {formatDateRange(
+                              concert.ShowDates.map((sd) => sd.show_date)
+                            )}
+                          </Paragraph>
+                        )}
+                      </Card>
+
+                      <Button
+                        onClick={() => !ended && handleConcertClick(concert.ID)}
+                        type={ended ? "default" : "primary"}
+                        size="large"
+                        disabled={ended}
+                        style={ended ? grayBtnStyle : baseBtnStyle}
+                      >
+                        BuyNow
+                      </Button>
+                    </div>
+                  </Col>
+                );
+              })}
             </Row>
           </div>
         )}
