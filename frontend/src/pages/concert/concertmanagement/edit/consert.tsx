@@ -12,7 +12,7 @@ interface EditConcertFormProps {
 const EditConcertForm: React.FC<EditConcertFormProps> = ({ initialValues, onFinish }) => {
   const formInitial = {
     ...initialValues,
-    // DatePicker needs moment objects as initial values
+
     onsale_date: initialValues.onsale_date
       ? moment(initialValues.onsale_date, "YYYY-MM-DD")
       : undefined,

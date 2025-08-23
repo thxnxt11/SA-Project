@@ -44,41 +44,34 @@ func DeleteConcert(c *gin.Context) {
 }
 
 func UpdateConcert(c *gin.Context) {
-	db := connection.DB()
+    db := connection.DB()
 
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
-		return
-	}
+    id, err := strconv.Atoi(c.Param("id"))
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+        return
+    }
 
-	var body entity.Concert
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
-		return
-	}
 
-	// partial update to avoid zeroing fields
-	upd := map[string]interface{}{
-		"concert_name":       body.ConcertName,
-		"artist":             body.Artist,
-		"onsale_date":        body.OnsaleDate,
-		"offsale_date":       body.OffsaleDate,
-		"concert_poster_url": body.Poster,
-		"chart_image":        body.ChartImage,
-		"venue_id":           body.VenueID,
-		"user_id":            body.UserID,
-	}
+    var body entity.Concert
+    if err := c.ShouldBindJSON(&body); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON: " + err.Error()})
+        return
+    }
 
-	if err := db.Model(&entity.Concert{}).Where("id = ?", id).Updates(upd).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Update failed"})
-		return
-	}
 
-	var out entity.Concert
-	if err := db.Preload("Venue").First(&out, id).Error; err == nil {
-		c.JSON(http.StatusOK, out)
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Concert updated"})
+    if err := db.Model(&entity.Concert{}).
+        Where("id = ?", id).
+        Select("ConcertName", "Artist", "OnsaleDate", "OffsaleDate", "Poster", "ChartImage", "VenueID", "UserID").
+        Updates(body).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    var out entity.Concert
+    if err := db.Preload("Venue").First(&out, id).Error; err == nil {
+        c.JSON(http.StatusOK, out)
+        return
+    }
+    c.JSON(http.StatusOK, gin.H{"message": "Concert updated"})
 }

@@ -5,31 +5,46 @@ import SidebarLayout from "../../../component/layout/SidebarLayout";
 import EditConcertForm from "./edit/consert";
 import type { ConcertInterface } from "../../../interface/concert";
 
-const API = "http://localhost:8000";
+
+
+import {
+  getAllConcerts,
+  updateConcert,
+  deleteConcert,
+} from "../../../services/https/consert";
+
+const API = "http://localhost:8000"; 
 
 const fmtDate = (iso?: string) => {
-  if (!iso) return "—";
-  // treat Go's zero-time as empty
-  if (iso.startsWith("0001-")) return "—";
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+    if (!iso || iso.startsWith("0001-")) return "—";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(d);
+
 };
 
 export default function ConcertManagement() {
   const [concerts, setConcerts] = useState<ConcertInterface[]>([]);
   const [editingConcert, setEditingConcert] = useState<ConcertInterface | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const fetchConcerts = async () => {
     try {
-      const res = await fetch(`${API}/organizer/concerts`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setConcerts(Array.isArray(data) ? data : []);
+      setLoading(true);
+      const rows = await getAllConcerts();
+      setConcerts(Array.isArray(rows) ? rows : []);
     } catch (e: any) {
       console.error(e);
       message.error("โหลดรายชื่อคอนเสิร์ตไม่สำเร็จ");
       setConcerts([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,38 +57,31 @@ export default function ConcertManagement() {
     setIsModalOpen(true);
   };
 
+  const handleEditFinish = async (values: any) => {
+    if (!editingConcert) return;
 
+    const payload = {
+      ...editingConcert, // keep fields not in the form
+      ...values,
+      onsale_date: values.onsale_date
+        ? values.onsale_date.startOf("day").toDate().toISOString()
+        : editingConcert.onsale_date,
+      offsale_date: values.offsale_date
+        ? values.offsale_date.startOf("day").toDate().toISOString()
+        : editingConcert.offsale_date,
+    };
 
-const handleEditFinish = async (values: any) => {
-  if (!editingConcert) return;
-
-  const payload = {
-    // merge with original so we don't wipe fields not in the form
-    ...editingConcert,
-    ...values,
-    // ensure dates are strings, not moment objects
-    onsale_date: values.onsale_date
-      ? values.onsale_date.format("YYYY-MM-DD")
-      : editingConcert.onsale_date,
-    offsale_date: values.offsale_date
-      ? values.offsale_date.format("YYYY-MM-DD")
-      : editingConcert.offsale_date,
+    try {
+      await updateConcert(editingConcert.ID, payload);
+      message.success("อัปเดตคอนเสิร์ตสำเร็จ");
+      setIsModalOpen(false);
+      setEditingConcert(null);
+      fetchConcerts();
+    } catch (e: any) {
+      console.error("Update failed:", e);
+      message.error(e?.message || "อัปเดตไม่สำเร็จ");
+    }
   };
-
-  try {
-    const res = await fetch(`${API}/organizer/concerts/${editingConcert.ID}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    setIsModalOpen(false);
-    setEditingConcert(null);
-    fetchConcerts();
-  } catch (e) {
-    console.error("Update failed:", e);
-  }
-}
 
   const handleDelete = (id: number) =>
     Modal.confirm({
@@ -84,11 +92,12 @@ const handleEditFinish = async (values: any) => {
       cancelText: "ยกเลิก",
       onOk: async () => {
         try {
-          await fetch(`${API}/organizer/concerts/${id}`, { method: "DELETE" });
+          await deleteConcert(id);
+          message.success("ลบสำเร็จ");
           fetchConcerts();
-        } catch (e) {
+        } catch (e: any) {
           console.error(e);
-          message.error("ลบไม่สำเร็จ");
+          message.error(e?.message || "ลบไม่สำเร็จ");
         }
       },
     });
@@ -124,16 +133,19 @@ const handleEditFinish = async (values: any) => {
     {
       title: "Venue",
       key: "venue",
-      render: (_: any, r: ConcertInterface) =>
-        (r as any)?.venue?.venue_name ?? "—",
+      render: (_: any, r: ConcertInterface) => (r as any)?.venue?.venue_name ?? "—",
     },
     {
       title: "Actions",
       key: "actions",
       render: (_: any, r: ConcertInterface) => (
         <Space direction="vertical">
-          <Button size="small" onClick={() => openEdit(r)}>Edit</Button>
-          <Button danger size="small" onClick={() => handleDelete(r.ID)}>Remove</Button>
+          <Button size="small" onClick={() => openEdit(r)}>
+            Edit
+          </Button>
+          <Button danger size="small" onClick={() => handleDelete(r.ID)}>
+            Remove
+          </Button>
         </Space>
       ),
     },
@@ -144,6 +156,7 @@ const handleEditFinish = async (values: any) => {
       <Button
         size="large"
         style={{ color: "white", backgroundColor: "#00306E", position: "absolute", right: 10 }}
+        // onClick={() => navigate("/organizer/concerts/add")} // optional if you have an add page
       >
         Add data
       </Button>
@@ -153,13 +166,17 @@ const handleEditFinish = async (values: any) => {
         columns={columns as any}
         rowKey="ID"
         bordered
+        loading={loading}
         pagination={{ pageSize: 50 }}
       />
 
       <Modal
         title="Edit Concert"
         open={isModalOpen}
-        onCancel={() => { setIsModalOpen(false); setEditingConcert(null); }}
+        onCancel={() => {
+          setIsModalOpen(false);
+          setEditingConcert(null);
+        }}
         footer={null}
       >
         {editingConcert && (
