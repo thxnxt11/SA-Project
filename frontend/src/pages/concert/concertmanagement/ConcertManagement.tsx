@@ -195,7 +195,8 @@ export default function ConcertManagement() {
       <Button
         size="large"
         style={{ color: "white", backgroundColor: "#00306E", position: "relative", left: 1110, margin: 20 }}
-        onClick={openAdd}
+        onClick={openAdd} 
+    
       >
         Add data
       </Button>
@@ -209,8 +210,10 @@ export default function ConcertManagement() {
       />
 
       <Modal
+        
         title="Edit Concert"
-        open={isModalOpen}
+        open={isModalOpen} 
+        destroyOnHidden
         onCancel={() => {
           setIsModalOpen(false);
           setaddConcert(null)

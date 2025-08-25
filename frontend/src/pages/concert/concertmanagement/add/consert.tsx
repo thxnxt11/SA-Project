@@ -1,7 +1,6 @@
 // src/pages/concert/edit/consert.tsx
 import React from "react";
 import { Form, Input, DatePicker, Button } from "antd";
-import moment from "moment";
 import type { ConcertInterface } from "../../../../interface/concert";
 import VenueSelect from "../venue";
 
@@ -10,21 +9,11 @@ interface AddConcertFormProps {
   onFinish: (values: any) => void;
 }
 
-const AddConcertForm: React.FC<AddConcertFormProps> = ({ initialValues, onFinish }) => {
-  const formInitial = {
-    ...initialValues,
+const AddConcertForm: React.FC<AddConcertFormProps> = ({ onFinish }) => {
 
-    venue_id:
-    (initialValues as any)?.venue_id ??
-    (initialValues as any)?.venue?.id ??
-    undefined,
-
-    onsale_date: initialValues.onsale_date ? moment(initialValues.onsale_date, ): null,
-    offsale_date: initialValues.offsale_date? moment(initialValues.offsale_date,): null,
-  };
 
   return (
-    <Form layout="vertical" onFinish={onFinish} initialValues={formInitial} requiredMark={false}>
+    <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
       <Form.Item label="Concert Name" name="concert_name" rules={[{ required: true }]}>
         <Input />
       </Form.Item>
