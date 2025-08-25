@@ -13,7 +13,7 @@ import {
   updateConcert,
   deleteConcert,
   addConcerts as createConcert,
-} from "../../../services/https/consert";
+} from "../../../services/https/concert";
 
 
 const API = "http://localhost:8000"; 
@@ -24,6 +24,8 @@ const fmtDate = (iso?: string) => {
     if (Number.isNaN(d.getTime())) return "—";
 
     return new Intl.DateTimeFormat("en-GB", {
+      minute: "2-digit",
+      hour: "2-digit",
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -75,11 +77,11 @@ export default function ConcertManagement() {
       ...editingConcert, // keep fields not in the form
       ...values,
       onsale_date: values.onsale_date
-        ? values.onsale_date.startOf("day").toDate().toISOString()
-        : editingConcert.onsale_date,
+      ? values.onsale_date.toDate().toISOString()  
+      : editingConcert.onsale_date,
       offsale_date: values.offsale_date
-        ? values.offsale_date.startOf("day").toDate().toISOString()
-        : editingConcert.offsale_date,
+      ? values.offsale_date.toDate().toISOString()
+      : editingConcert.offsale_date,
     };
 
     try {
@@ -96,19 +98,19 @@ export default function ConcertManagement() {
 
   const handleDelete = (id: number) =>
     Modal.confirm({
-      title: "คุณแน่ใจหรือไม่ว่าจะลบคอนเสิร์ตนี้?",
-      content: "การลบข้อมูลนี้จะไม่สามารถกู้คืนได้",
-      okText: "ลบ",
+      title: "Are you sure that you gonna delete this concert data",
+      content: "after press this button cant be roll back",
+      okText: "delete",
       okType: "danger",
-      cancelText: "ยกเลิก",
+      cancelText: "cancel",
       onOk: async () => {
         try {
           await deleteConcert(id);
-          message.success("ลบสำเร็จ");
+          message.success("delete suscessful");
           fetchConcerts();
         } catch (e: any) {
           console.error(e);
-          message.error(e?.message || "ลบไม่สำเร็จ");
+          message.error(e?.message || "delete unsuscessful");
         }
       },
     });
@@ -118,12 +120,9 @@ export default function ConcertManagement() {
     const payload = {
       concert_name: values.concert_name,
       artist: values.artist,
-      onsale_date: values.onsale_date
-      ? values.onsale_date.startOf("day").toDate().toISOString()
-      : null,
-       offsale_date: values.offsale_date
-      ? values.offsale_date.startOf("day").toDate().toISOString()
-      : null,
+
+    onsale_date: values.onsale_date ? values.onsale_date.toDate().toISOString() : null,
+    offsale_date: values.offsale_date ? values.offsale_date.toDate().toISOString() : null,
     concert_poster_url: values.concert_poster_url ?? "",
     };
 

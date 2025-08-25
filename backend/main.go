@@ -74,6 +74,7 @@ func main() {
 		router.POST("/concerts", concert.AddConcert)
 		router.PUT("/concerts/:id", concert.UpdateConcert)
 		router.DELETE("/concerts/:id", concert.DeleteConcert)
+		router.GET("/venues/option",concert.GetAllVenues)
 	}
 
 	// public API
