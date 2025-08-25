@@ -17,7 +17,6 @@ const RequireAuth: React.FC<React.PropsWithChildren> = ({ children }) => {
   }
 
   if (!user) {
-    // แก้ไขตรงนี้
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 

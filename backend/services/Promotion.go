@@ -25,6 +25,7 @@ func GetPromotionByID(id uint) (*entity.Promotion, error) {
     return &promotion, nil
 }
 func GetAllPromotions() ([]entity.Promotion, error) {
+
     var promotions []entity.Promotion
     err := connection.DB().
         Preload("PromotionType").

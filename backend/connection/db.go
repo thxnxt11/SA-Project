@@ -66,10 +66,24 @@ func SetupDatabase() {
        BirthDay:  BirthDay,
 	   Phonenum:  "xxx-xxx-xxxx",
        GenderID:  1,
-       RoleID: 2,
+       RoleID: 1,
    }
    db.FirstOrCreate(Member, &entity.User{
        Email: "SMTRUE@gmail.com",
+   })
+   Organizer := &entity.User{
+       FirstName: "John",
+       LastName:  "Doe",
+       Email:     "ENTERTAIN@gmail.com",
+       Age:       40,
+       Password:  hashedPassword,
+       BirthDay:  BirthDay,
+	    Phonenum:  "xxx-xxx-xxxx",
+       GenderID:  1,
+       RoleID: 1,
+   }
+   db.FirstOrCreate(Organizer, &entity.User{
+       Email: "ENTERTAIN@gmail.com",
    })
 
    db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
@@ -91,20 +105,20 @@ func SetupDatabase() {
 
    SeedSeatAvailable(DB())
 
-   sql := `
-		UPDATE seat_availables
-		SET seat_available_status = 'Booked'
-		WHERE rowid IN (
-			SELECT rowid
-			FROM seat_availables
-			WHERE zone_id = ?
-			LIMIT 10
-		)
-	`
-	result := db.Exec(sql,2 )
-   if result.Error != nil {
-		panic(result.Error)
-	}
+   // sql := `
+	// 	UPDATE seat_availables
+	// 	SET seat_available_status = 'Booked'
+	// 	WHERE rowid IN (
+	// 		SELECT rowid
+	// 		FROM seat_availables
+	// 		WHERE zone_id = ?
+	// 		LIMIT 10
+	// 	)
+	// `
+	// result := db.Exec(sql,2 )
+   // if result.Error != nil {
+	// 	panic(result.Error)
+	// }
 
 
    

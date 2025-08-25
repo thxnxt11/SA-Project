@@ -6,6 +6,6 @@ export interface UserInterface {
   age?: number;
   birthday?: string; // "YYYY-MM-DD"
   gender_id?: number;
-  phonnumber?: string;
+  phonenum?: string;
   role_id?: number;
 }

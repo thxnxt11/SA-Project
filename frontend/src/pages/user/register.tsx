@@ -41,7 +41,7 @@ const SignUpForm: React.FC = () => {
       age: values.age,
       password: values.password,
       birthday: (values.birthday as dayjs.Dayjs).toISOString(),
-      phonnumber: values.phonenum,
+      phonenum: values.phonenum,
       gender_id: values.gender_id,
       role_id: 2,
     };

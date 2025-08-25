@@ -25,9 +25,12 @@ import {
   concertAPI,
 } from "../../../services/https";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../hook/authContext";
+
 const { Option } = Select;
 
 const AddPromotion: React.FC = () => {
+  const {user} = useAuth();
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
@@ -144,6 +147,7 @@ const AddPromotion: React.FC = () => {
         promotion_status: values.promotion_status,
         concert_id: values.promotion_type === 3 ? values.concert : null,
         poster_url: posterUrl,
+        user_id: typeof user?.id === "string" ? parseInt(user.id, 10) : user?.id,
       };
       console.log("Form values:", values);
       console.log("Payload:", payload);

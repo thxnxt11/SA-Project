@@ -9,7 +9,8 @@ import { FaEdit } from "react-icons/fa";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { Link } from "react-router-dom";
 import EditPromotionModal from "../promotion/edit";
-import {promotionAPI } from "../../services/https";
+import { promotionAPI } from "../../services/https";
+import { useAuth } from "../../hook/authContext";
 
 const { confirm } = Modal;
 // Helper function สำหรับ format วันที่
@@ -27,6 +28,7 @@ const formatDate = (dateString: string) => {
 };
 
 const Promotion: React.FC = () => {
+  const { user } = useAuth();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedPromotionId, setSelectedPromotionId] = useState<number | null>(
     null
@@ -139,24 +141,39 @@ const Promotion: React.FC = () => {
     {
       title: "Action",
       key: "action",
-      render: (record: PromotionInterface) => (
-        <Space size="middle">
-          <FaEdit
-            style={{ fontSize: 20, color: "#0048ffff", cursor: "pointer" }}
-            onClick={() => record.ID !== undefined && handleEdit(record.ID)}
-          />
-          <RiDeleteBin6Line
-            style={{ fontSize: 20, color: "#ff0000ff", cursor: "pointer" }}
-            onClick={() =>
-              record.ID !== undefined &&
-              record.promotion_name &&
-              handleDelete(record.ID, record.promotion_name)
-            }
-          />
-        </Space>
-      ),
+      render: (record: PromotionInterface) => {
+        const creatorId = record.user_id;
+        const currentUserId = user?.id;
+        const isOwner =
+          creatorId !== undefined &&
+          currentUserId !== undefined &&
+          String(creatorId) === String(currentUserId);
+
+        if (!isOwner) return null; // ไม่ใช่เจ้าของ → ไม่แสดงอะไรเลย
+
+        return (
+          <Space size="middle">
+            <FaEdit
+              style={{ fontSize: 20, color: "#0048ffff", cursor: "pointer" }}
+              onClick={() =>
+                (record as any).ID !== undefined &&
+                handleEdit((record as any).ID)
+              }
+            />
+            <RiDeleteBin6Line
+              style={{ fontSize: 20, color: "#ff0000ff", cursor: "pointer" }}
+              onClick={() =>
+                (record as any).ID !== undefined &&
+                (record as any).promotion_name &&
+                handleDelete((record as any).ID, (record as any).promotion_name)
+              }
+            />
+          </Space>
+        );
+      },
     },
   ];
+  [user?.id]
 
   const handleEdit = (id: number) => {
     setSelectedPromotionId(id);
