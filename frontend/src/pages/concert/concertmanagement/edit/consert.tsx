@@ -19,7 +19,7 @@ const EditConcertForm: React.FC<EditConcertFormProps> = ({ initialValues, onFini
     (initialValues as any)?.venue?.id ??
     undefined,
 
-    onsale_date: initialValues.onsale_date ? moment(initialValues.onsale_date) : undefined,
+    onsale_date: initialValues.onsale_date ? moment(initialValues.onsale_date,)  : undefined,
     offsale_date: initialValues.offsale_date ? moment(initialValues.offsale_date) : undefined,
   };
 

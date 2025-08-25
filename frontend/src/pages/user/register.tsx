@@ -1,18 +1,39 @@
 // src/SignUp.tsx
-import React from "react";
-import { Form, Input, InputNumber, DatePicker, Select, Button, message ,Card} from "antd";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import {
+  Form,
+  Input,
+  InputNumber,
+  DatePicker,
+  Select,
+  Button,
+  message,
+  Card,
+} from "antd";
+import { CheckCircleFilled, CloseCircleOutlined } from "@ant-design/icons";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
-import type{ UserInterface } from "../../interface/user"; 
-
+import type { UserInterface } from "../../interface/user";
 
 const { Option } = Select;
 const API_URL = "http://localhost:8000";
 
+const PASSWORD_POLICY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
+const successColor = "#52c41a";
+
 const SignUpForm: React.FC = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [form] = Form.useForm();
+
+  // ดูค่ารหัสผ่านแบบเรียลไทม์
+  const passwordValue: string = Form.useWatch("password", form) || "";
+  const hasUpper = /[A-Z]/.test(passwordValue);
+  const hasLower = /[a-z]/.test(passwordValue);
+  const hasDigit = /\d/.test(passwordValue);
+
   const onFinish = async (values: any) => {
-    // convert to your interface
     const user: UserInterface & { password: string } = {
       first_name: values.first_name,
       last_name: values.last_name,
@@ -22,23 +43,46 @@ const SignUpForm: React.FC = () => {
       birthday: (values.birthday as dayjs.Dayjs).toISOString(),
       phonnumber: values.phonenum,
       gender_id: values.gender_id,
-      role: values.role_id ?? 2, 
+      role_id: 2,
     };
 
     try {
+      setLoading(true);
       const res = await axios.post(`${API_URL}/signup`, user);
       if (res.status === 201) {
         message.success("Sign-up successful!");
-
+        navigate("/signin", { replace: true });
       } else {
         message.error(res.data?.error || "Sign-up failed");
       }
     } catch (e: any) {
       message.error(e?.response?.data?.error || "Sign-up failed");
+    } finally {
+      setLoading(false);
     }
   };
 
-return (
+  const RuleItem: React.FC<{ ok: boolean; text: string }> = ({ ok, text }) => (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        fontSize: 12,
+        lineHeight: "22px",
+        color: ok ? successColor : undefined,
+      }}
+    >
+      <span>{text}</span>
+      {ok ? (
+        <CheckCircleFilled style={{ color: successColor }} />
+      ) : (
+        <CloseCircleOutlined />
+      )}
+    </div>
+  );
+
+  return (
     <Card
       style={{
         position: "absolute",
@@ -47,11 +91,15 @@ return (
         transform: "translate(-50%, -50%)",
         width: 500,
         height: "auto",
-        marginTop: 220
+        marginTop: 220,
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
       }}
     >
-      <h1 style={{fontSize: 30 ,display: "flex",justifyContent: "center"}}>Sign Up</h1>
+      <h1 style={{ fontSize: 30, display: "flex", justifyContent: "center" }}>
+        Sign Up
+      </h1>
       <Form
+        form={form}
         layout="vertical"
         onFinish={onFinish}
         initialValues={{ age: 18, gender_id: 1 }}
@@ -89,7 +137,24 @@ return (
           label="Password"
           name="password"
           hasFeedback
-          rules={[{ required: true, message: "Please enter your password" }]}
+          // validator จริง ๆ ยังบังคับรวม ๆ ว่าต้องผ่านทั้งสามเงื่อนไข
+          rules={[
+            { required: true, message: "Please enter your password" },
+            { min: 8, message: "Password must be at least 8 characters" },
+            {
+              validator: (_, value) =>
+                !value || PASSWORD_POLICY.test(value)
+                  ? Promise.resolve()
+                  : Promise.reject(),
+            },
+          ]}
+          extra={
+            <div style={{ marginTop: 4 }}>
+              <RuleItem ok={hasUpper} text="At least one [A-Z] character" />
+              <RuleItem ok={hasLower} text="At least one [a-z] character" />
+              <RuleItem ok={hasDigit} text="At least one [0-9] digit" />
+            </div>
+          }
         >
           <Input.Password />
         </Form.Item>
@@ -147,12 +212,18 @@ return (
         >
           <Select>
             <Option value={1}>Male</Option>
-            <Option value={0}>Female</Option>
+            <Option value={2}>Female</Option>
           </Select>
         </Form.Item>
 
         <Form.Item>
-          <Button type="primary" htmlType="submit" block size="large">
+          <Button
+            type="primary"
+            htmlType="submit"
+            block
+            size="large"
+            loading={loading}
+          >
             Sign Up
           </Button>
         </Form.Item>
@@ -162,7 +233,6 @@ return (
       </Form>
     </Card>
   );
-  
 };
 
 export default SignUpForm;
