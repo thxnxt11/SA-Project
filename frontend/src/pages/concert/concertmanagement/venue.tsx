@@ -10,15 +10,23 @@ type Props = {
   required?: boolean;  
 };
 
+
 export default function VenueSelect({ name="venue_id", label="Venue", required=true }: Props) {
-  const [opts, setOpts] = useState<VenueOptions[]>([]);
+  const [opts, setvenue] = useState<VenueOptions[]>([]);
+
+const putvenue = async() =>{
+  try{
+    const rowsvenue = await venueoption();
+    setvenue(rowsvenue);
+  }
+  catch (error){
+      console.error("error : ",error);
+    }
+  
+};
 
   useEffect(() => {
-    let on = true;
-    venueoption()
-      .then(v => on && setOpts(v))
-      .catch(() => message.error("โหลดรายชื่อสถานที่ไม่สำเร็จ"));
-    return () => { on = false; };
+    putvenue();
   }, []);
 
   return (

@@ -21,7 +21,6 @@ const EditConcertForm: React.FC<EditConcertFormProps> = ({ initialValues, onFini
 
     onsale_date: initialValues.onsale_date ? moment(initialValues.onsale_date) : undefined,
     offsale_date: initialValues.offsale_date ? moment(initialValues.offsale_date) : undefined,
-
   };
 
   return (
@@ -35,7 +34,7 @@ const EditConcertForm: React.FC<EditConcertFormProps> = ({ initialValues, onFini
       </Form.Item>
 
       <Form.Item label="On sale" name="onsale_date" rules={[{ required: true }]}>
-        <DatePicker showTime={{ format: "HH:mm" }} style={{ width: "100%" }} format="YYYY-MM-DD HH:mm" />
+        <DatePicker   showTime={{ format: "HH:mm" }} style={{ width: "100%" }} format="YYYY-MM-DD HH:mm" />
       </Form.Item>
 
       <Form.Item label="Off sale" name="offsale_date" rules={[{ required: true }]}>

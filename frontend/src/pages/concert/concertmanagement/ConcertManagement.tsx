@@ -116,14 +116,15 @@ export default function ConcertManagement() {
     });
 
   const handleAddconcert = async (values: any) => {
-
+    
+    
     const payload = {
       concert_name: values.concert_name,
       artist: values.artist,
-
-    onsale_date: values.onsale_date ? values.onsale_date.toDate().toISOString() : null,
-    offsale_date: values.offsale_date ? values.offsale_date.toDate().toISOString() : null,
-    concert_poster_url: values.concert_poster_url ?? "",
+      venue_id : Number(values.venue_id),
+      onsale_date: values.onsale_date ? values.onsale_date.toDate().toISOString() : null,
+      offsale_date: values.offsale_date ? values.offsale_date.toDate().toISOString() : null,
+      concert_poster_url: values.concert_poster_url ?? "",
     };
 
     try {

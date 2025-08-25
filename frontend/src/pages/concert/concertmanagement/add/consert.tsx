@@ -19,12 +19,8 @@ const AddConcertForm: React.FC<AddConcertFormProps> = ({ initialValues, onFinish
     (initialValues as any)?.venue?.id ??
     undefined,
 
-    onsale_date: initialValues.onsale_date
-      ? moment(initialValues.onsale_date, "YYYY-MM-DD HH:mm")
-      : undefined,
-    offsale_date: initialValues.offsale_date
-      ? moment(initialValues.offsale_date, "YYYY-MM-DD HH:mm")
-      : undefined,
+    onsale_date: initialValues.onsale_date ? moment(initialValues.onsale_date, ): null,
+    offsale_date: initialValues.offsale_date? moment(initialValues.offsale_date,): null,
   };
 
   return (
