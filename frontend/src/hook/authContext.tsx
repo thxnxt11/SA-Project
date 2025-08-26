@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
     setAuthReady(true);
   }, []);
 
-  const login = async (
+ const login = async (
     email: string,
     password: string
   ): Promise<LoginResult> => {

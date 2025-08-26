@@ -125,11 +125,12 @@ export default function ConcertManagement() {
       onsale_date: values.onsale_date ? values.onsale_date.toDate().toISOString() : null,
       offsale_date: values.offsale_date ? values.offsale_date.toDate().toISOString() : null,
       concert_poster_url: values.concert_poster_url ?? "",
+      user_id : Number(localStorage.getItem("id"))?? 0, // input user_id here from localstroage
     };
 
     try {
       await createConcert(payload);
-      message.success("add complete?]!");
+      message.success("add complete?");
       setIsModalOpen(false);
       setaddConcert(null);
       fetchConcerts();
@@ -172,6 +173,12 @@ export default function ConcertManagement() {
       title: "Venue",
       key: "venue",
       render: (_: any, r: ConcertInterface) => (r as any)?.venue?.venue_name ?? "—",
+    },
+    {
+      title: "user_id(test)",
+      dataIndex: "user_id",
+      key :"user_id",
+
     },
     {
       title: "Actions",

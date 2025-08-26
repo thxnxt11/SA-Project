@@ -16,7 +16,7 @@ const SignIn: React.FC = () => {
 
       message.success("Signed in!");
 
-      // ตรวจสอบว่ามี redirect URL จาก location state หรือ query parameter หรือไม่
+
       const redirectTo =
         location.state?.from?.pathname ||
         new URLSearchParams(location.search).get("redirect");
