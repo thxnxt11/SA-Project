@@ -4,33 +4,76 @@ import Promotion from "../pages/promotion";
 import AddPromotion from "../pages/promotion/add";
 import EditPromotionModal from "../pages/promotion/edit";
 import Dashboard from "../pages/dashboard";
+
+import RequireAuth from "../hook/RequireAuth";
+import RequireRole from "../hook/RequireRole";
 import ConcertManagement from "../pages/concert/concertmanagement/ConcertManagement";
 
 export default function OrganizerRoutes() {
   return (
     <Routes>
-      {/* /organizer -> concerts */}
-      <Route index element={<Navigate to="concerts" replace />} />
+      {/* /organizer -> dashboard */}
+      <Route index element={<Navigate to="dashboard" replace />} />
 
-      {/* NOTE: all paths are RELATIVE (no leading /) */}
-      <Route path="dashboard" element={<Dashboard />} />
-      <Route path="concerts" element={<ConcertManagement />} />
-      <Route path="promotion" element={<Promotion />} />
-      <Route path="promotion/add" element={<AddPromotion />} />
+      {/* ทั้งหมดต้องล็อกอิน + role organizer */}
+      <Route
+        path="dashboard"
+        element={
+          <RequireAuth>
+            <RequireRole allow={["organizer"]}> {/*สามารถเพิ่ม role อื่นได้ */}
+              <Dashboard />
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="concerts"
+        element={
+          <RequireAuth>
+            <RequireRole allow={["organizer"]}> {/*สามารถเพิ่ม role อื่นได้ */}
+              <ConcertManagement />
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="promotion"
+        element={
+          <RequireAuth>
+            <RequireRole allow={["organizer"]}>
+              <Promotion />
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="promotion/add"
+        element={
+          <RequireAuth>
+            <RequireRole allow={["organizer"]}>
+              <AddPromotion />
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
       <Route
         path="promotion/edit/:id"
         element={
-          <EditPromotionModal
-            visible={false}
-            onCancel={() => {}}
-            onSuccess={() => {}}
-            promotionId={null}
-          />
+          <RequireAuth>
+            <RequireRole allow={["organizer"]}>
+              <EditPromotionModal
+                visible={false}
+                onCancel={() => {}}
+                onSuccess={() => {}}
+                promotionId={null}
+              />
+            </RequireRole>
+          </RequireAuth>
         }
       />
 
       {/* 404 inside /organizer */}
-      <Route path="*" element={<Navigate to="" replace />} />
+      <Route path="*" element={<Navigate to="dashboard" replace />} />
     </Routes>
   );
 }

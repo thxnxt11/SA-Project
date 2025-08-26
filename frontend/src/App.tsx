@@ -1,41 +1,36 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import React from "react";
+import "antd/dist/reset.css";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
 import MemberRoutes from "./routes/memberroutes";
 import OrganizerRoutes from "./routes/organizerroutes";
-import type { ReactElement, FC } from "react";
-import {useServerReady} from "./component/loader/preparesever";
+import { AuthProvider } from "./hook/authContext";
+import { useServerReady } from "./component/loader/preparesever";
 import Loader from "./component/loader/loader";
 
-function RequireAuth({ children }: { children: ReactElement }) {
-  const token = localStorage.getItem("token");
-  return token ? children : <Navigate to="/signin" replace />;
-}
-
-const Runroute: FC = () => {
-  console.log("member = t@gmail.com password = 123")
-  console.log("organizer = m@gmail.com password = 12345")
-
+const App: React.FC = () => {
   const serverReady = useServerReady("http://localhost:8000/healthz");
-
   if (!serverReady) {
-
     return <Loader />;
   }
   return (
-  
-    <Routes>
-      <Route path="/" element={<Navigate to="/signin" replace />} />
-      <Route path="/*" element={<MemberRoutes />} />
-      <Route
-        path="/organizer/*"
-        element={
-          <RequireAuth>
-            <OrganizerRoutes />
-          </RequireAuth>
-        }
-      />
-      <Route path="*" element={<Navigate to="/signin" replace />} />
-    </Routes>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Navigate to="/concerts" replace />} />
+          <Route path="/*" element={<MemberRoutes />} />
+          <Route path="/organizer/*" element={<OrganizerRoutes />} />
+          <Route path="/forbidden" element={<div>403 Not access right</div>} />
+          <Route path="*" element={<Navigate to="/concerts" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 };
 
-export default Runroute;
+export default App;
