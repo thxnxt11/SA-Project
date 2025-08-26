@@ -158,6 +158,15 @@ export default function ConcertManagement() {
       render: (d?: string) => fmtDate(d),
     },
     {
+      title: "show_date",
+      dataIndex: "show_date",
+      key: "show_date",
+       render: (_: any, record: ConcertInterface) =>
+        record.ShowDates && record.ShowDates.length > 0
+        ? record.ShowDates.map(sd => fmtDate(sd.show_date)).join(", ")
+        : "—",
+    },
+    {
       title: "Poster",
       key: "concert_poster_url",
       render: (_: any, r: ConcertInterface) =>

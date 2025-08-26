@@ -67,7 +67,7 @@ const Navbar: React.FC = () => {
             fontWeight: "bold",
             borderRadius: 15,
           }}
-          href="/login"
+          href="/signin"
         >
           <FaUserCircle />
           Tan Thanat

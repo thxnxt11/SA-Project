@@ -13,10 +13,12 @@ func GetAllConcerts(c *gin.Context) {
 
 	var concerts []entity.Concert
 	
-	if err := db.Preload("Venue").Find(&concerts).Error; err != nil {
+	if err := db.Preload("Venue").Preload("ShowDates").Find(&concerts).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch concerts"})
 		return
 	}
-
 	c.JSON(http.StatusOK, concerts)
+
+
+	
 }

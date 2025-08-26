@@ -12,6 +12,7 @@ export type User = {
   email?: string;
   role?: string | number;
   role_id?: number | string;
+  user_id?: number;
 };
 
 type LoginResult = {
@@ -19,6 +20,7 @@ type LoginResult = {
   user: User | null;
   role: string | number;
   role_id: number | string;
+  user_id?: number;
 };
 
 type AuthContextType = {
@@ -87,10 +89,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
       // เก็บ role/role_id ไว้ใน state user ถ้าต้องการ (ไม่จำเป็นตรงนี้เพราะมักอยู่ใน user อยู่แล้ว)
     } else {
       // token หมดอายุ/ไม่มี → ล้างทิ้ง
+      localStorage.removeItem("id")
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("role");
       localStorage.removeItem("role_id");
+      localStorage.removeItem("user_id")
       setUser(null);
       setToken(null);
       delete axios.defaults.headers.common.Authorization;
@@ -105,12 +109,15 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
   ): Promise<LoginResult> => {
     const res = await axios.post(`${API_URL}/signin`, { email, password });
     const data = res.data || {};
+    console.log("signin response", data);
     const token = data.token ?? data.accessToken ?? data.access_token;
 
     if (!token) throw new Error("No token returned from server");
 
     const role = data.role ?? data.user?.role;
     const role_id = data.role_id ?? data.user?.role_id;
+
+    const user_id = data.id ?? data.user?.id;
 
     axios.defaults.headers.common.Authorization = `Bearer ${token}`;
 
@@ -144,7 +151,9 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
             ...profileData,
             name: combinedName,
           };
+          
         }
+        
       } catch {
         // fallback จาก JWT
         const payload: any = safeDecodeJwt(token);
@@ -168,6 +177,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
                 name: combinedNameFromJwt,
                 role,
                 role_id,
+                user_id,
               }
             : null;
       }
@@ -180,10 +190,11 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
     localStorage.setItem("token", token);
     if (role !== undefined) localStorage.setItem("role", String(role));
     if (role_id !== undefined) localStorage.setItem("role_id", String(role_id));
+    if (user_id !== undefined) localStorage.setItem("user_id",String(user_id));
     if (userObj) localStorage.setItem("user", JSON.stringify(userObj));
     else localStorage.removeItem("user");
 
-    return { token, user: userObj, role, role_id };
+    return { token, user: userObj, role, role_id ,user_id};
   };
 
   const logout = () => {
@@ -191,10 +202,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
     setUser(null);
     delete axios.defaults.headers.common.Authorization;
 
+    
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("role");
     localStorage.removeItem("role_id");
+    localStorage.removeItem("user_id");
   };
 
   return (

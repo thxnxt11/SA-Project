@@ -22,7 +22,6 @@ func AddConcert(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to insert concert: " + err.Error()})
 		return
 	}
-	
 
 	c.JSON(http.StatusCreated, newConcert)
 }

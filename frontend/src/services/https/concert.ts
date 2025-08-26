@@ -1,6 +1,7 @@
 
 import axios from "axios";
 import type { ConcertInterface } from "../../interface/concert";
+import type { ShowDatesInterface } from "../../interface/showdate";
 import type { VenueOptions } from "../../interface/venue";
 
 const API_URL = "http://localhost:8000/organizer";
@@ -38,4 +39,22 @@ export async function deleteConcert(id: string | number) {
   const res = await axios.delete(`${API_URL}/concerts/${id}`, { headers: authHeader() });
   return res.data;
 }
+
+export async function addShowdate(data: Partial<ShowDatesInterface>) {
+  const res = await axios.post(`${API_URL}/showdate`, data, { headers: authHeader() });
+  return res.data;
+}
+
+
+export async function updateShowdate(id: string | number, data: Partial<ShowDatesInterface>) {
+  const res = await axios.put(`${API_URL}/showdate/${id}`, data, { headers: authHeader() });
+  return res.data;
+}
+
+
+export async function deleteShowdate(id: string | number) {
+  const res = await axios.delete(`${API_URL}/showdate/${id}`, { headers: authHeader() });
+  return res.data;
+}
+
 

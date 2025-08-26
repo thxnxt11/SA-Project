@@ -28,7 +28,6 @@ const SignIn: React.FC = () => {
         return; // สำคัญ! ต้อง return เพื่อไม่ให้รันโค้ดต่อ
       }
 
-      // ถ้าไม่มี redirect URL ให้ใช้ logic เดิมตาม role
       const role =
         result?.user?.role ??
         result?.role ??
