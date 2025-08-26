@@ -1,9 +1,10 @@
 // src/pages/concert/edit/consert.tsx
 import React from "react";
 import { Form, Input, DatePicker, Button } from "antd";
-import moment from "moment";
+
 import type { ConcertInterface } from "../../../../interface/concert";
 import VenueSelect from "../venue";
+import dayjs from "dayjs"; // use this to show day instead of memont in antd v.5
 
 interface EditConcertFormProps {
   initialValues: ConcertInterface;
@@ -19,9 +20,12 @@ const EditConcertForm: React.FC<EditConcertFormProps> = ({ initialValues, onFini
     (initialValues as any)?.venue?.id ??
     undefined,
 
-    onsale_date: initialValues.onsale_date ? moment(initialValues.onsale_date,)  : undefined,
-    offsale_date: initialValues.offsale_date ? moment(initialValues.offsale_date) : undefined,
+    onsale_date: initialValues.onsale_date ? dayjs(initialValues.onsale_date,)  : undefined,
+    offsale_date: initialValues.offsale_date ? dayjs(initialValues.offsale_date) : undefined,
+    
   };
+  console.log(initialValues.onsale_date) // test here
+  console.log(initialValues.offsale_date) // test here
 
   return (
     <Form layout="vertical" onFinish={onFinish} initialValues={formInitial} requiredMark={false}>
@@ -34,11 +38,11 @@ const EditConcertForm: React.FC<EditConcertFormProps> = ({ initialValues, onFini
       </Form.Item>
 
       <Form.Item label="On sale" name="onsale_date" rules={[{ required: true }]}>
-        <DatePicker   showTime={{ format: "HH:mm" }} style={{ width: "100%" }} format="YYYY-MM-DD HH:mm" />
+        <DatePicker   showTime={{ format:"HH:mm" }} style={{ width: "100%" }}  />
       </Form.Item>
 
       <Form.Item label="Off sale" name="offsale_date" rules={[{ required: true }]}>
-        <DatePicker showTime={{ format: "HH:mm" }} style={{ width: "100%" }} format="YYYY-MM-DD HH:mm" />
+        <DatePicker showTime={{ format:"HH:mm" }} style={{ width: "100%" }}  />
       </Form.Item>
 
       
