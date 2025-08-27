@@ -5,6 +5,7 @@ import SidebarLayout from "../../../component/layout/SidebarLayout";
 import EditConcertForm from "./edit/consert";
 import AddConcertForm from "./add/consert";
 import type { ConcertInterface } from "../../../interface/concert";
+import dayjs from "dayjs"
 
 
 
@@ -13,7 +14,11 @@ import {
   updateConcert,
   deleteConcert,
   addConcerts as createConcert,
+  addShowdate,
+  updateShowdate,
+  deleteShowdate,
 } from "../../../services/https/concert";
+
 
 
 const API = "http://localhost:8000"; 
@@ -116,29 +121,63 @@ export default function ConcertManagement() {
     });
 
   const handleAddconcert = async (values: any) => {
-    
-    
-    const payload = {
-      concert_name: values.concert_name,
-      artist: values.artist,
-      venue_id : Number(values.venue_id),
-      onsale_date: values.onsale_date ? values.onsale_date.toDate().toISOString() : null,
-      offsale_date: values.offsale_date ? values.offsale_date.toDate().toISOString() : null,
-      concert_poster_url: values.concert_poster_url ?? "",
-      user_id : Number(localStorage.getItem("id"))?? 0, // input user_id here from localstroage
-    };
+  // user_id
+  const uidStr = localStorage.getItem("user_id") ?? localStorage.getItem("id");
+  const user_id = uidStr ? Number(uidStr) : undefined;
+  if (!user_id) {
+    message.error("Missing user_id (please sign in again)");
+    return;
+  }
 
-    try {
-      await createConcert(payload);
-      message.success("add complete?");
-      setIsModalOpen(false);
-      setaddConcert(null);
-      fetchConcerts();
-    } catch (e: any) {
-      console.error("Update failed:", e);
-      message.error(e?.message || "Update failed");
+
+  if (values.show_end_time && dayjs(values.show_end_time).isBefore(values.show_start_time)) {
+    message.error("End time must be after start time");
+    return;
+  }
+
+  
+  const concertPayload = {
+    concert_name: values.concert_name,
+    artist: values.artist,
+    venue_id: Number(values.venue_id),
+    onsale_date: values.onsale_date ? dayjs(values.onsale_date).toISOString() : undefined,
+    offsale_date: values.offsale_date ? dayjs(values.offsale_date).toISOString() : undefined,
+    concert_poster_url: values.concert_poster_url ?? "",
+    user_id,
+  } as const;
+
+  try {
+    const created = await createConcert(concertPayload);
+    const concertId = created?.ID ?? created?.id;
+    if (!concertId) {
+      message.error("Create concert succeeded but no ID returned");
+      return;
     }
-  };
+
+    
+    if (values.show_start_time) {
+      let inx = [values.show_start_time,values.show_end_time];
+      for (let i = 0 ; i < 2 ; i++)
+      {
+        await addShowdate({
+        concert_id: Number(concertId),
+        venue_id: Number(values.venue_id),
+        show_date: inx[i] ? dayjs(inx[i]).toISOString() : undefined,
+      });
+        console.log("showdate  created ID :",i);
+      }
+
+    }
+
+    message.success("Concert & showdate created");
+    setIsModalOpen(false);
+    setaddConcert(null);
+    fetchConcerts();
+  } catch (e: any) {
+    console.error("Create failed:", e);
+    message.error(e?.message || "Create failed");
+  }
+};
 
 
   const columns = [
@@ -158,14 +197,22 @@ export default function ConcertManagement() {
       render: (d?: string) => fmtDate(d),
     },
     {
-      title: "show_date",
-      dataIndex: "show_date",
-      key: "show_date",
-       render: (_: any, record: ConcertInterface) =>
-        record.ShowDates && record.ShowDates.length > 0
-        ? record.ShowDates.map(sd => fmtDate(sd.show_date)).join(", ")
-        : "—",
-    },
+      title: "Show time",
+      key: "show_time",
+      render: (_: any, record: any) => {
+        const items = record.show_dates ?? record.ShowDates ?? [];
+        if (!Array.isArray(items) || items.length === 0) return "—";
+          return items
+            .map((sd: any) => {
+              const start = sd.start_time ?? sd.show_date; // fallback if legacy
+              const end = sd.end_time;
+              if (!start) return null;
+              return end ? `${fmtDate(start)} – ${fmtDate(end)}` : fmtDate(start);
+            })
+            .filter(Boolean)
+            .join(", ");
+        },
+      },
     {
       title: "Poster",
       key: "concert_poster_url",
