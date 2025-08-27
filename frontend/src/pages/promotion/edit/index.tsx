@@ -307,8 +307,6 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
               </Col>
             </Row>
 
-            {/* Row 2: Code (Type=2), Concert (Type=3) */}
-            {selectedType === 2 && (
               <Row gutter={[50, 0]}>
                 <Col span={24}>
                   <Form.Item
@@ -320,7 +318,7 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
                   </Form.Item>
                 </Col>
               </Row>
-            )}
+            
             {selectedType === 3 && (
               <Row gutter={[50, 0]}>
                 <Col span={24}>

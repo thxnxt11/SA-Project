@@ -173,7 +173,7 @@ const Promotion: React.FC = () => {
       },
     },
   ];
-  [user?.id]
+  [user?.id];
 
   const handleEdit = (id: number) => {
     setSelectedPromotionId(id);
@@ -221,6 +221,7 @@ const Promotion: React.FC = () => {
           <h1>Promotion Management</h1>
           <Link to={"/organizer/promotion/add"}>
             <Button
+              className="payment-button"
               style={{
                 position: "fixed",
                 right: 40,

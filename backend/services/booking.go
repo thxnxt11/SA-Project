@@ -1,14 +1,17 @@
 package services
 
 import (
+	"errors"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/entity"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type SeatDTO struct {
@@ -21,6 +24,7 @@ type SeatDTO struct {
 
 type BookingService struct {
 	seatCodeRe *regexp.Regexp
+	DB 	   *gorm.DB
 }
 
 func NewBookingService() *BookingService {
@@ -97,3 +101,306 @@ func (s *BookingService) GetSeatsByZoneID(zoneID uint64) ([]SeatDTO, error) {
 
 	return result, nil
 }
+var (
+	ErrSeatNotFound     = errors.New("seat not found in this zone/showdate")
+	ErrSeatAlreadyTaken = errors.New("one or more seats are not available")
+)
+
+type CreateBookingInput struct {
+	UserID          uint
+	ShowDateID      uint
+	ZoneID          uint
+	SeatIDs         []uint // ถ้า seating ให้ส่ง seat_ids; ถ้า standing ปล่อยว่าง
+	QueueNumber     int
+	TotalPrice      int
+	BookingStatusID uint   // เช่น 1=pending
+	HoldMinutes     int    // ถ้าต้องการหมดอายุ (เช่น 15 นาที)
+}
+
+// services/booking_service.go (เฉพาะ CreateBooking ส่วนที่แก้/เพิ่ม)
+func (s *BookingService) CreateBooking(in CreateBookingInput) (*entity.Booking, error) {
+    db := s.DB
+    if db == nil {
+        db = connection.DB()
+    }
+
+    tx := db.Begin()
+    defer func() {
+        if r := recover(); r != nil {
+            tx.Rollback()
+            panic(r)
+        }
+    }()
+
+    now := time.Now()
+    exp := now
+    if in.HoldMinutes > 0 {
+        exp = now.Add(time.Duration(in.HoldMinutes) * time.Minute)
+    }else{
+		exp = now.Add(2 * time.Minute) // default 15 นาที (test 2 นาที)
+	}
+
+    // ---- 0) LOCK โซนเสมอเพื่อคุม PendingHold/Capacity ----
+    var zone entity.Zone
+    if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+        First(&zone, in.ZoneID).Error; err != nil {
+        tx.Rollback()
+        return nil, err
+    }
+
+    // ---- 1) คิดจำนวน ticket ที่จะถือครองชั่วคราว ----
+    // standing => 1, seating => len(seatIDs)
+    qty := 1
+    isStanding := len(in.SeatIDs) == 0
+    if !isStanding {
+        qty = len(in.SeatIDs)
+    }
+
+    // ---- 2) ตรวจ Capacity ----
+    // ต้อง seatsold + pendinghold + qty <= capacity
+    if zone.SeatSold + zone.PendingHold + qty > zone.Capacity {
+        tx.Rollback()
+        return nil, errors.New("zone capacity exceeded")
+    }
+
+    // ---- 3) ถ้า seating ต้อง lock/ตรวจ seat availability ----
+    if !isStanding {
+        var seats []entity.SeatAvailable
+        if err := tx.
+            Clauses(clause.Locking{Strength: "UPDATE"}). // lock records ไม่อ่านมีการอ่านหรือแก้ไขซ้ำ ป้องกันการเลือกที่นั่งซ้ำ
+            Where("zone_id = ? AND seat_id IN (?)", in.ZoneID, in.SeatIDs).
+            Find(&seats).Error; err != nil {
+            tx.Rollback()
+            return nil, err
+        }
+        if len(seats) != len(in.SeatIDs) {
+            tx.Rollback()
+            return nil, ErrSeatNotFound
+        }
+        for _, sa := range seats {
+            if strings.ToLower(sa.SeatAvailableStatus) != "available" { // ไม่ใช่ available
+                tx.Rollback()
+                return nil, ErrSeatAlreadyTaken
+            }
+        }
+        // Mark as locked
+        if err := tx.Model(&entity.SeatAvailable{}).
+            Where("zone_id = ? AND seat_id IN (?)", in.ZoneID, in.SeatIDs).
+            Update("seat_available_status", "locked").Error; err != nil {
+            tx.Rollback()
+            return nil, err
+        }
+    }
+
+    // ---- 4) อัปเดต PendingHold ของโซน ----
+    if err := tx.Model(&entity.Zone{}).
+        Where("id = ?", in.ZoneID).
+        UpdateColumn("pending_hold", gorm.Expr("pending_hold + ?", qty)).Error; err != nil {
+        tx.Rollback()
+        return nil, err
+    }
+
+    // ---- 5) คำนวณ queue_number (เฉพาะ standing) ----
+    queueNumber := 0
+    if isStanding {
+        // zone ถูก LOCK ตั้งแต่ต้น → ใช้ค่าใหม่หลังอัปเดตหรือก่อนอัปเดตก็ได้
+        // แนะนำให้คำนวณจากค่าเก่าก่อนเพิ่ม (เพื่อให้ "หมายเลขคิวแรก" = SeatSold+PendingHold+1)
+        // ถ้าต้องการจากค่าใหม่หลังเพิ่ม ให้ query zone อีกครั้งแล้วใช้ zone.SeatSold + zone.PendingHold
+        // ที่นี่จะใช้ค่าก่อนเพิ่ม +1 เพื่อเป็นลำดับถัดไป:
+        queueNumber = int(zone.SeatSold + zone.PendingHold + 1)
+    }
+
+    // ---- 6) สร้าง booking ----
+    b := entity.Booking{
+        UserID:          in.UserID,
+        ShowDateID:      in.ShowDateID,
+        ZoneID:          in.ZoneID,
+        QueueNumber:     queueNumber,
+        TotalPrice:      in.TotalPrice,
+        BookingStatusID: in.BookingStatusID, // pending
+        BookingDate:     now,
+        ExpiredDate:     exp,
+    }
+    if err := tx.Create(&b).Error; err != nil {
+        tx.Rollback()
+        return nil, err
+    }
+
+    // ---- 7) ถ้า seating → บันทึก booking_seats ----
+    if !isStanding {
+        for _, sid := range in.SeatIDs {
+            bs := entity.BookingSeat{
+                BookingID: b.ID,
+                SeatAvailableID:    sid,
+            }
+            if err := tx.Create(&bs).Error; err != nil {
+                tx.Rollback()
+                return nil, err
+            }
+        }
+    }
+
+    if err := tx.Commit().Error; err != nil {
+        return nil, err
+    }
+
+    // ---- 8) preload เพื่อตอบกลับ ----
+    var out entity.Booking
+    if err := db.
+        Preload("User").
+        Preload("ShowDate").
+        Preload("Zone").
+        // Preload("Zone.Seats").
+        // Preload("Zone.Seats.Seat").
+        Preload("BookingStatus").
+        // ต้องมี field BookingSeats []BookingSeat ใน entity.Booking ด้วยหากจะใช้บรรทัดล่าง
+        // Preload("BookingSeats.Seat").
+        First(&out, b.ID).Error; err != nil {
+        return nil, err
+    }
+    return &out, nil
+}
+
+// func สำหรับเช็คหมดอายุ booking 
+func (s *BookingService) ExpirePendingBookings() (int, error) {
+    db := s.DB
+    if db == nil {
+        db = connection.DB()
+    }
+
+    // status 1 = pending, 4 = expired
+    var toExpire []entity.Booking
+    if err := db.
+        Where("booking_status_id = ? AND expired_date < ?", 1, time.Now()).
+        Find(&toExpire).Error; err != nil {
+        return 0, err
+    }
+
+    cnt := 0 // นับจำนวน booking ที่หมดอายุจริงๆ
+    for _, bk := range toExpire {
+        tx := db.Begin()
+
+        // lock zone
+        if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&entity.Zone{}, bk.ZoneID).Error; err != nil {
+            tx.Rollback()
+            continue
+        }
+
+        // นับจำนวนที่ต้องปล่อย
+        qty := 1
+        var countSeats int64
+        if err := tx.Model(&entity.BookingSeat{}).
+            Where("booking_id = ?", bk.ID).Count(&countSeats).Error; err == nil && countSeats > 0 {
+            qty = int(countSeats)
+            // ปลดที่นั่ง locked -> available
+            if err := tx.Model(&entity.SeatAvailable{}).
+                Where("zone_id = ? AND seat_id IN (?)",
+                    bk.ZoneID,
+                    tx.Model(&entity.BookingSeat{}).Select("seat_id").Where("booking_id = ?", bk.ID),
+                ).
+                Update("seat_available_status", "available").Error; err != nil {
+                tx.Rollback()
+                continue
+            }
+        }
+
+        // pending_hold--
+        if err := tx.Model(&entity.Zone{}).
+            Where("id = ?", bk.ZoneID).
+            UpdateColumn("pending_hold", gorm.Expr("CASE WHEN pending_hold >= ? THEN pending_hold - ? ELSE 0 END", qty, qty)).
+            Error; err != nil {
+            tx.Rollback()
+            continue
+        }
+
+        // เปลี่ยน booking → expired (4)
+        if err := tx.Model(&entity.Booking{}).
+            Where("id = ?", bk.ID).
+            Updates(map[string]any{
+                "booking_status_id": 4,
+            }).Error; err != nil {
+            tx.Rollback()
+            continue
+        }
+
+        if err := tx.Commit().Error; err == nil {
+            cnt++
+        }
+    }
+    return cnt, nil
+}
+
+// func อัปเดตสถานะ booking เป็น "paid" และอัปเดตที่นั่ง/โซน
+func (s *BookingService) OnPaymentPaid(bookingID uint) error {
+    db := s.DB
+    if db == nil {
+        db = connection.DB()
+    }
+
+    tx := db.Begin()
+    defer func() {
+        if r := recover(); r != nil {
+            tx.Rollback()
+            panic(r)
+        }
+    }()
+
+    // โหลด booking + LOCK zone
+    var bk entity.Booking
+    if err := tx.Preload("Zone").First(&bk, bookingID).Error; err != nil {
+        tx.Rollback()
+        return err
+    }
+    if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&entity.Zone{}, bk.ZoneID).Error; err != nil {
+        tx.Rollback()
+        return err
+    }
+
+    // จำนวนที่เกี่ยวข้อง
+    qty := 1 // ตัวแปรที่บอกถึง จำนวนตั๋วที่จองแล้วต้องอัปเดตสถานะ
+    var countSeats int64
+    if err := tx.Model(&entity.BookingSeat{}).
+        Where("booking_id = ?", bookingID).
+        Count(&countSeats).Error; err != nil {
+        tx.Rollback()
+        return err
+    }
+    if countSeats > 0 {
+        qty = int(countSeats)
+        // เปลี่ยนที่นั่งจาก hold -> booked
+        if err := tx.Model(&entity.SeatAvailable{}).
+            Where("zone_id = ? AND seat_id IN (?)",
+                bk.ZoneID,
+                tx.Model(&entity.BookingSeat{}).Select("seat_id").Where("booking_id = ?", bookingID),
+            ).
+            Update("seat_available_status", "booked").Error; err != nil {
+            tx.Rollback()
+            return err
+        }
+    }
+
+    // อัปเดตโซน: pending_hold-- , seat_sold++
+    if err := tx.Model(&entity.Zone{}).
+        Where("id = ?", bk.ZoneID).
+        Updates(map[string]interface{}{
+            "pending_hold": gorm.Expr("CASE WHEN pending_hold >= ? THEN pending_hold - ? ELSE 0 END", qty, qty),
+            "seat_sold":    gorm.Expr("seat_sold + ?", qty),
+        }).Error; err != nil {
+        tx.Rollback()
+        return err
+    }
+
+    // (ถ้าคุณมี BookingStatusID สำหรับ 'paid') อัปเดต booking ด้วย
+    // e.g., 2 = paid
+    if err := tx.Model(&entity.Booking{}).
+        Where("id = ?", bookingID).
+        Update("booking_status_id", 2).
+        Error; err != nil {
+        tx.Rollback()
+        return err
+    }
+
+    return tx.Commit().Error
+}
+
+

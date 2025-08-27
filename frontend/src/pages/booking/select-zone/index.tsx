@@ -197,7 +197,7 @@ const SelectZone: React.FC = () => {
   const selectedShowDate: ShowDatesInterface | undefined = useMemo(() => {
     const sid = selectedShowDateId;
     if (!sid) return undefined;
-    return showDates.find((d) => (d.ID) === sid);
+    return showDates.find((d) => d.ID === sid);
   }, [selectedShowDateId, showDates]);
 
   // รายการโซนของวันที่เลือก - ใช้ selectedZones แทน
@@ -227,7 +227,9 @@ const SelectZone: React.FC = () => {
     // ไปหน้าเลือกที่นั่ง พร้อมส่งข้อมูลที่จำเป็น
     navigate("/selectseat", {
       state: {
+        venueName: concert?.venue,
         concertId: concert?.ID,
+        concertInfo: concert,
         showDateId: sd.ID,
         showDate: formatDateLong(sd.show_date),
         showTime: extractTime(sd.show_date),

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,13 @@ import (
 )
 type PromotionController struct{
 	DB *gorm.DB
+	svc *services.PromotionService
 }
+
+func NewPromotionController() *PromotionController {
+    return &PromotionController{svc: services.NewPromotionService()}
+}
+
 func GetPromotionByID(c *gin.Context) {
     idStr := c.Param("id")
     id, err := strconv.ParseUint(idStr, 10, 32)
@@ -160,6 +167,23 @@ func GetAllPromotionTypes(c *gin.Context) {
     }
 
     c.JSON(http.StatusOK, formattedTypes)
+}
+
+func (h *PromotionController) ValidatePromotionCode(c *gin.Context){
+	var req services.ValidatePromotionInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid body: " + err.Error()})
+		return
+	}
+
+	req.Target = strings.ToLower(strings.TrimSpace(req.Target)) // ทำให้ target เป็น lowercase และตัดช่องว่าง
+	
+	res, err := h.svc.ValidatePromotionCode(req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"valid": false ,"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"valid": true, "data": res})
 }
 
 

@@ -12,6 +12,8 @@ type Payment struct {
 	Booking *Booking `gorm:"foreignKey:BookingID" json:"booking"`
 	PromotionID uint `json:"promotion_id"`
 	Promotion *Promotion `gorm:"foreignKey:PromotionID" json:"promotion"`
+	RefundTypeID uint `json:"refund_type_id"`
+	RefundType *RefundType `gorm:"foreignKey:RefundTypeID" json:"refund_type"`
 	BasePrice float32 `json:"base_price"`
 	Discount  float32 `json:"discount"`
 	RefundFee float32 `json:"refund_fee"`

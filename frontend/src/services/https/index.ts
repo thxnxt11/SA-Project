@@ -1,6 +1,7 @@
 import axios from "axios";
 import type { AxiosResponse, AxiosError } from "axios";
 import type { PromotionInterface } from "../../interface/promotion";
+import type { bookingInterface } from "../../interface/booking";
 
 const ORGANIZER_API_URL = "http://localhost:8000/organizer";
 const PUBLIC_API_URL = "http://localhost:8000/api";
@@ -119,6 +120,8 @@ export const promotionAPI = {
     Update(`${ORGANIZER_API_URL}/promotion/${id}`, data),
   delete: (id: number) => Delete(`${ORGANIZER_API_URL}/promotion/${id}`),
   getAllTypes: () => Get(`${PUBLIC_API_URL}/promotions`, false),
+  validateCode: (data: {code: string; target: string; concert_id?: number }) =>
+    Post(`${PUBLIC_API_URL}/promotion/validate`, data, false),
 };
 
 // Concert APIs
@@ -128,10 +131,20 @@ export const concertAPI = {
 };
 
 export const seatAPI = {
-  getByZoneId: (id: number) => Get(`${PUBLIC_API_URL}/zone/${id}/seats`, false),
+  getByZoneId: (id: number) => Get(`${PUBLIC_API_URL}/zone/${id}/seats`),
 };
 
 export const ShowDateAPI = {
   getZonesByShowDateId: (id: number) =>
     Get(`${PUBLIC_API_URL}/showdate/${id}/zones`, false),
+};
+
+export const bookingAPI = {
+  create: (data: bookingInterface) => Post(`${PUBLIC_API_URL}/booking`, data),
+};
+
+export const paymentAPI = {
+  create: (data: any) => Post(`${PUBLIC_API_URL}/payment`, data),
+  getAllRefundTypes: () => Get(`${PUBLIC_API_URL}/refundtypes`),
+  getAllPaymentMethods: () => Get(`${PUBLIC_API_URL}/paymentmethods`),
 };

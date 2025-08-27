@@ -17,7 +17,9 @@ import { RxCrossCircled } from "react-icons/rx"; // ❌ จองแล้ว
 import { TbTicket } from "react-icons/tb";
 import { useLocation, useNavigate } from "react-router-dom";
 import Loader from "../../../component/loader/loader";
-import { seatAPI } from "../../../services/https";
+import { bookingAPI, seatAPI } from "../../../services/https";
+import { useAuth } from "../../../hook/authContext";
+import type { bookingInterface } from "../../../interface/booking";
 
 type SeatFromAPI = {
   id: number;
@@ -91,9 +93,10 @@ const buildSeatGrid = (items: SeatFromAPI[]): SeatRow[] => {
 };
 
 const SelectSeat: React.FC = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { showDate, showTime, zoneName, zonePrice, zoneType, zoneId } =
+  const { showDate, showTime, zoneName, zonePrice, zoneType, zoneId ,concertInfo} =
     location.state || {};
 
   // Standing zone: เริ่มเลือกไว้ 1 ใบแบบเหมารวม
@@ -171,24 +174,111 @@ const SelectSeat: React.FC = () => {
   const [loadingBooking, setLoadingBooking] = useState(false);
   const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
 
-  const handleBooking = () => {
-    setLoadingBooking(true);
-    setTimeout(() => {
-      setLoadingBooking(false);
+  // const handleBooking = () => {
+  //   setLoadingBooking(true);
+  //   setTimeout(() => {
+  //     setLoadingBooking(false);
+  //     setShowFullScreenLoader(true);
+  //     setTimeout(() => {
+  //       navigate("/bookingdetail", {
+  //         state: {
+  //           showDate,
+  //           showTime,
+  //           zone: zoneName,
+  //           seatNo: displaySeatNo,
+  //           quantity: displayQuantity,
+  //           unitPrice: zonePrice,
+  //         },
+  //       });
+  //     }, 1200);
+  //   }, 1200);
+  // };
+
+  //แปลง seatcode เป็น seatId
+  const codeToId = useMemo(() => {
+    const m = new Map<string, number>();
+    seatRows.forEach((row) =>
+      row.seats.forEach((s) => m.set(s.code, s.seatId))
+    );
+    return m;
+  }, [seatRows]);
+
+  const handleBooking = async () => {
+    try {
+      if (!zoneId) {
+        message.error("Zone ID is missing.");
+        return;
+      }
+      const showDateId = (location.state && location.state?.showDateId) || null;
+      if (!showDateId) {
+        message.error("ShowDate ID is missing.");
+        return;
+      }
+      const isStanding = (zoneType ?? "").toLowerCase() === "standing";
+      let seatIds: number[] = [];
+      if (!isStanding) {
+        seatIds = selectedSeats
+          .map((code) => codeToId.get(code))
+          .filter((v): v is number => typeof v === "number");
+
+        if (seatIds.length !== selectedSeats.length) {
+          message.error("แปลงรหัสที่นั่งเป็น seat_id ไม่ครบ");
+          return;
+        }
+        if (seatIds.length === 0) {
+          message.warning("กรุณาเลือกที่นั่งอย่างน้อย 1 ที่นั่ง");
+          return;
+        }
+      }
+      const quantity = isStanding ? 1 : seatIds.length;
+      const payload: bookingInterface = {
+        user_id: Number(user?.id),
+        showdate_id: Number(showDateId),
+        zone_id: Number(zoneId),
+        queue_number: quantity,
+        total_price: Number(zonePrice || 0) * quantity,
+        booking_status_id: 1, // pending
+        booking_date: new Date().toISOString(),
+        expired_date: "", // backend สร้างให้
+      };
+      if (!isStanding) {
+        payload.seat_ids = seatIds;
+      }
+
+      setLoadingBooking(true);
+      const res = await bookingAPI.create(payload);
+      message.success("Booking successful!");
+
       setShowFullScreenLoader(true);
+
+      const bookingData = res?.data?.data ?? res?.data ?? null;
+      const bookingId = bookingData?.ID
       setTimeout(() => {
         navigate("/bookingdetail", {
           state: {
+            concertInfo: concertInfo,
+            bookingData,
+            bookingId,
             showDate,
             showTime,
             zone: zoneName,
             seatNo: displaySeatNo,
-            quantity: displayQuantity,
+            quantity: quantity,
             unitPrice: zonePrice,
           },
         });
-      }, 1200);
-    }, 1200);
+      }, 1500);
+    } catch (err : any) {
+      console.error("Create booking error:", err?.response || err);
+      const msg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "สร้างรายการจองไม่สำเร็จ";
+      message.error(msg);
+    } finally {
+      setLoadingBooking(false);
+    }
   };
 
   const handleCancel = () => navigate(-1);
@@ -357,10 +447,13 @@ const SelectSeat: React.FC = () => {
                                     flexShrink: 0,
                                   }}
                                 >
-                                  {seat.status === "booked" ? (
+                                  {seat.status === "booked" ||
+                                  seat.status === "locked" ? (
                                     <RxCrossCircled
                                       style={{
-                                        fontSize: "46px",
+                                        fontSize: "40px",
+                                        backgroundColor: "#ffffffff",
+                                        borderRadius: "50%",
                                         color: "#ff0000ff",
                                         display: "flex",
                                         justifyItems: "center",
@@ -432,7 +525,7 @@ const SelectSeat: React.FC = () => {
                         verticalAlign: "middle",
                       }}
                     />{" "}
-                    Booked
+                    Booked / Locked
                     <span
                       style={{
                         display: "inline-block",

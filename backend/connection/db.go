@@ -55,6 +55,7 @@ func SetupDatabase() {
    db.FirstOrCreate(&GenderMale, &entity.Genders{Gender: "Male"})
    db.FirstOrCreate(&GenderFemale, &entity.Genders{Gender: "Female"})
 
+   //organizer account
    hashedPassword, _ := HashPassword("123456")
    BirthDay, _ := time.Parse("2006-01-02", "1988-11-12")
    Member := &entity.User{
@@ -86,6 +87,7 @@ func SetupDatabase() {
        Email: "ENTERTAIN@gmail.com",
    })
 
+   //promotion type
    db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
       PromotionType: "Early Bird",
    })
@@ -96,12 +98,57 @@ func SetupDatabase() {
       PromotionType: "Concert",
    })
 
+   //zone type
    db.FirstOrCreate(&entity.ZoneType{}, entity.ZoneType{
       ZoneType: "Standing",
    })
    db.FirstOrCreate(&entity.ZoneType{}, entity.ZoneType{
       ZoneType: "Seating",
    })
+
+   // booking status
+   db.FirstOrCreate(&entity.BookingStatus{}, entity.BookingStatus{
+      BookingStatus: "pending",
+   })
+   db.FirstOrCreate(&entity.BookingStatus{}, entity.BookingStatus{
+      BookingStatus: "paided",
+   })
+   db.FirstOrCreate(&entity.BookingStatus{}, entity.BookingStatus{
+      BookingStatus: "cancelled",
+   })
+   db.FirstOrCreate(&entity.BookingStatus{}, entity.BookingStatus{
+      BookingStatus: "expired",        
+   })
+   db.FirstOrCreate(&entity.BookingStatus{}, entity.BookingStatus{
+      BookingStatus: "refunded",
+   })
+
+   // refund type
+   db.FirstOrCreate(&entity.RefundType{}, entity.RefundType{
+      RefundTypeName: "Non Refundable Ticket",
+      RefundFee: 0,
+   })
+
+   db.FirstOrCreate(&entity.RefundType{}, entity.RefundType{
+      RefundTypeName: "Refundable Ticket",
+      RefundFee: 299,
+   })
+
+   // payment method
+   db.FirstOrCreate(&entity.PaymentMethod{}, entity.PaymentMethod{
+      PaymentMethodName: "QR PromptPay",
+      AccountName: "Eventix Entertainment",
+      AccountNumber: "0902745366",
+      BankName: "PromptPay",
+   })
+
+   db.FirstOrCreate(&entity.PaymentMethod{}, entity.PaymentMethod{
+      PaymentMethodName: "Account Number",
+      AccountName: "Eventix Entertainment",
+      AccountNumber: "123-4-56789-0",
+      BankName: "Bangkok Bank(BBL)",
+   })
+
 
    SeedSeatAvailable(DB())
 

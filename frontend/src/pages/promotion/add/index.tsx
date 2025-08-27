@@ -16,21 +16,15 @@ import {
   message,
   Upload,
 } from "antd";
-import type {
-  UploadFile,
-  UploadProps,
-} from "antd";
-import {
-  promotionAPI,
-  concertAPI,
-} from "../../../services/https";
+import type { UploadFile, UploadProps } from "antd";
+import { promotionAPI, concertAPI } from "../../../services/https";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../hook/authContext";
 
 const { Option } = Select;
 
 const AddPromotion: React.FC = () => {
-  const {user} = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
@@ -147,7 +141,8 @@ const AddPromotion: React.FC = () => {
         promotion_status: values.promotion_status,
         concert_id: values.promotion_type === 3 ? values.concert : null,
         poster_url: posterUrl,
-        user_id: typeof user?.id === "string" ? parseInt(user.id, 10) : user?.id,
+        user_id:
+          typeof user?.id === "string" ? parseInt(user.id, 10) : user?.id,
       };
       console.log("Form values:", values);
       console.log("Payload:", payload);
@@ -183,12 +178,10 @@ const AddPromotion: React.FC = () => {
     form.resetFields();
     setSelectedType(null);
 
-    setFileList([]); 
-    setPosterUrl(null); 
-    form.setFieldsValue({ poster_url: undefined }); 
+    setFileList([]);
+    setPosterUrl(null);
+    form.setFieldsValue({ poster_url: undefined });
   };
-
-
 
   useEffect(() => {
     onGetInitialData();
@@ -255,29 +248,28 @@ const AddPromotion: React.FC = () => {
                   </Col>
                 </Row>
                 <Row gutter={[50, 0]}>
-                  {selectedType === 2 && (
-                    <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                      <Form.Item
-                        name="promotion_code"
-                        label="Discount Code"
-                        rules={
-                          selectedType === 2
-                            ? [
-                                {
-                                  required: true,
-                                  message: "Please enter a code",
-                                },
-                              ]
-                            : []
-                        }
-                      >
-                        <Input
-                          placeholder="Enter your code"
-                          style={{ width: 625 }}
-                        />
-                      </Form.Item>
-                    </Col>
-                  )}
+                  <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+                    <Form.Item
+                      name="promotion_code"
+                      label="Discount Code"
+                      rules={
+                        selectedType === 2
+                          ? [
+                              {
+                                required: true,
+                                message: "Please enter a code",
+                              },
+                            ]
+                          : []
+                      }
+                    >
+                      <Input
+                        placeholder="Enter your code"
+                        style={{ width: 300 }}
+                      />
+                    </Form.Item>
+                  </Col>
+
                   {selectedType === 3 && (
                     <Col xs={24} sm={24} md={12} lg={12} xl={12}>
                       <Form.Item
@@ -296,7 +288,7 @@ const AddPromotion: React.FC = () => {
                       >
                         <Select
                           placeholder="Select a Concert"
-                          style={{ width: 625 }}
+                          style={{ width: 300 }}
                           allowClear
                         >
                           {concerts.map((concert) => (
@@ -391,7 +383,6 @@ const AddPromotion: React.FC = () => {
                           value?.replace("%", "") as unknown as number
                         }
                         style={{ width: 300 }}
-
                       />
                     </Form.Item>
                   </Col>
@@ -426,7 +417,6 @@ const AddPromotion: React.FC = () => {
                         showTime={{ format: "HH:mm:ss" }}
                         format="YYYY-MM-DD HH:mm:ss"
                         style={{ width: 300 }}
-
                       />
                     </Form.Item>
                   </Col>
@@ -457,7 +447,6 @@ const AddPromotion: React.FC = () => {
                         showTime={{ format: "HH:mm:ss" }}
                         format="YYYY-MM-DD HH:mm:ss"
                         style={{ width: 300 }}
-
                       />
                     </Form.Item>
                   </Col>

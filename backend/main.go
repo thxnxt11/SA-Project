@@ -43,7 +43,14 @@ func main() {
    	}
 	zoneSvc := services.NewZoneService()
 	zoneCtl := booking.NewZoneController(zoneSvc)
+
 	bookingHandler := booking.NewBookingHandler()
+
+	svc := services.NewBookingService()
+	services.StartExpiryWorker(svc) // เริ่ม worker เพื่อลบ Booking ที่หมดเวลา
+
+	promotionCtl := promotion.NewPromotionController()
+	// API routes
 	api := r.Group("/api")
 	{
 		api.GET("/promotions", promotion.GetAllPromotionTypes)
@@ -52,7 +59,10 @@ func main() {
 		api.GET("/concert/:id", booking.GetConcertByID)
 		api.GET("/showdate/:id/zones", zoneCtl.GetZonesAvailableByShowDate)
 		api.GET("/zone/:id/seats",bookingHandler.GetSeatByZoneID)
-		// api.GET("/showdate/:id/zones", booking.GetZonesByShowDate)
+		api.POST("/booking",bookingHandler.CreateBooking)
+		api.POST("/promotion/validate", promotionCtl.ValidatePromotionCode)
+		api.GET("/refundtypes", booking.GetRefundTypes)
+		api.GET("/paymentmethods", booking.GetAllPaymentMethods)
 		
 	}
 	r.Static("/uploads", "./uploads")

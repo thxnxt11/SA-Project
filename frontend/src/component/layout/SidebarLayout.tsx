@@ -99,7 +99,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   };
 
   // ✅ ทำชื่อแสดงผล (firstname lastname > name > email prefix)
-  const displayName = user?.name 
+  const displayName = user?.name;
 
   // ✅ ตัวอักษรย่อสำหรับ Avatar
   // const initials = (

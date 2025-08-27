@@ -22,17 +22,19 @@ type JwtClaim struct {
    FirstName string
    LastName  string
    ID        uint
+   Phonenum string
    jwt.StandardClaims
 }
 
 
 // Generate Token generates a jwt token
-func (j *JwtWrapper) GenerateToken(email string, firstname string, lastname string, id uint) (signedToken string, err error) {
+func (j *JwtWrapper) GenerateToken(email string, firstname string, lastname string, id uint, phonenum string) (signedToken string, err error) {
    claims := &JwtClaim{
        Email: email,
        FirstName: firstname,
 	   LastName:  lastname,
 	   ID:        id,
+       Phonenum: phonenum,
        StandardClaims: jwt.StandardClaims{
            ExpiresAt: time.Now().Local().Add(time.Hour * time.Duration(j.ExpirationHours)).Unix(),
            Issuer:    j.Issuer,
