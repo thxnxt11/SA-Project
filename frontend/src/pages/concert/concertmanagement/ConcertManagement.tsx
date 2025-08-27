@@ -10,14 +10,10 @@ import dayjs from "dayjs"
 
 
 import {
-  getAllConcerts,
-  updateConcert,
-  deleteConcert,
-  addConcerts as createConcert,
-  addShowdate,
-  updateShowdate,
-  deleteShowdate,
+  Concerts,
+  Showdate,
 } from "../../../services/https/concert";
+
 
 
 
@@ -45,19 +41,19 @@ export default function ConcertManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const fetchConcerts = async () => {
-    try {
-      setLoading(true);
-      const rows = await getAllConcerts();
-      setConcerts(Array.isArray(rows) ? rows : []);
-    } catch (e: any) {
-      console.error(e);
-      message.error("โหลดรายชื่อคอนเสิร์ตไม่สำเร็จ");
-      setConcerts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchConcerts = async () => {
+  try {
+    setLoading(true);
+    const rows = await Concerts.getAll();   // returns .data already
+    setConcerts(Array.isArray(rows) ? rows : []);
+  } catch (e: any) {
+    console.error(e);
+    message.error("โหลดรายชื่อคอนเสิร์ตไม่สำเร็จ");
+    setConcerts([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchConcerts();
@@ -90,7 +86,7 @@ export default function ConcertManagement() {
     };
 
     try {
-      await updateConcert(editingConcert.ID, payload);
+      await Concerts.update(editingConcert.ID, payload);
       message.success("อัปเดตคอนเสิร์ตสำเร็จ");
       setIsModalOpen(false);
       setEditingConcert(null);
@@ -101,24 +97,37 @@ export default function ConcertManagement() {
     }
   };
 
-  const handleDelete = (id: number) =>
-    Modal.confirm({
-      title: "Are you sure that you gonna delete this concert data",
-      content: "after press this button cant be roll back",
-      okText: "delete",
-      okType: "danger",
-      cancelText: "cancel",
-      onOk: async () => {
-        try {
-          await deleteConcert(id);
-          message.success("delete suscessful");
-          fetchConcerts();
-        } catch (e: any) {
-          console.error(e);
-          message.error(e?.message || "delete unsuscessful");
+ const handleDelete = (id: number) =>
+  Modal.confirm({
+    title: "Are you sure that you gonna delete this concert data",
+    content: "after press this button cant be roll back",
+    okText: "delete",
+    okType: "danger",
+    cancelText: "cancel",
+    onOk: async () => {
+      try {
+        // best-effort: remove child showdates first if no cascade
+        const rec = concerts.find(c => c.ID === id) as any;
+        const items = rec?.show_dates ?? rec?.ShowDates ?? [];
+        if (Array.isArray(items) && items.length) {
+          await Promise.all(
+            items
+              .map((sd: any) => sd?.ID ?? sd?.id)
+              .filter(Boolean)
+              .map((sid: number | string) => Showdate.delete(sid))
+          );
         }
-      },
-    });
+
+        await Concerts.delete(id);
+        message.success("delete successful");
+        fetchConcerts();
+      } catch (e: any) {
+        console.error(e);
+        message.error(e?.message || "delete unsuccessful");
+      }
+    },
+  });
+
 
   const handleAddconcert = async (values: any) => {
   // user_id
@@ -147,7 +156,7 @@ export default function ConcertManagement() {
   } as const;
 
   try {
-    const created = await createConcert(concertPayload);
+    const created = await Concerts.add(concertPayload);
     const concertId = created?.ID ?? created?.id;
     if (!concertId) {
       message.error("Create concert succeeded but no ID returned");
@@ -159,11 +168,14 @@ export default function ConcertManagement() {
       let inx = [values.show_start_time,values.show_end_time];
       for (let i = 0 ; i < 2 ; i++)
       {
-        await addShowdate({
-        concert_id: Number(concertId),
-        venue_id: Number(values.venue_id),
-        show_date: inx[i] ? dayjs(inx[i]).toISOString() : undefined,
-      });
+        if(inx[i] != undefined)
+        {
+          await Showdate.add({
+          concert_id: Number(concertId),
+          venue_id: Number(values.venue_id),
+          show_date: inx[i] ? dayjs(inx[i]).toISOString() : undefined,  
+          });
+        }
         console.log("showdate  created ID :",i);
       }
 

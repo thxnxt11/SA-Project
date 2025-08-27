@@ -77,7 +77,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             }}
           >
             Concert Management
-            <h5>_________________________</h5>
+            ____________________
           </h1>
         )}
         <Menu
