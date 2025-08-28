@@ -97,7 +97,7 @@ const fetchConcerts = async () => {
     }
   };
 
- const handleDelete = (id: number) =>
+const handleDelete = (id: number) =>
   Modal.confirm({
     title: "Are you sure that you gonna delete this concert data",
     content: "after press this button cant be roll back",
@@ -106,19 +106,12 @@ const fetchConcerts = async () => {
     cancelText: "cancel",
     onOk: async () => {
       try {
-        // best-effort: remove child showdates first if no cascade
-        const rec = concerts.find(c => c.ID === id) as any;
-        const items = rec?.show_dates ?? rec?.ShowDates ?? [];
-        if (Array.isArray(items) && items.length) {
-          await Promise.all(
-            items
-              .map((sd: any) => sd?.ID ?? sd?.id)
-              .filter(Boolean)
-              .map((sid: number | string) => Showdate.delete(sid))
-          );
-        }
+ 
+        await Showdate.delete(id);
+
 
         await Concerts.delete(id);
+
         message.success("delete successful");
         fetchConcerts();
       } catch (e: any) {
@@ -127,6 +120,7 @@ const fetchConcerts = async () => {
       }
     },
   });
+
 
 
   const handleAddconcert = async (values: any) => {
@@ -251,17 +245,33 @@ const fetchConcerts = async () => {
     {
       title: "Actions",
       key: "actions",
-      render: (_: any, r: ConcertInterface) => (
-        <Space direction="vertical">
-          <Button size="small" onClick={() => openEdit(r)}>
-            Edit
-          </Button>
-          <Button danger size="small" onClick={() => handleDelete(r.ID)}>
-            Remove
-          </Button>
-        </Space>
-      ),
+      render: (_: any, r: ConcertInterface) => {
+        const uidStr = localStorage.getItem("user_id") ?? localStorage.getItem("id");
+        const currentUserId = uidStr ? Number(uidStr) : undefined;
+        const canEdit = currentUserId === r.user_id; 
+
+        return (
+          <Space direction="vertical">
+            <Button
+              size="small"
+              onClick={() => openEdit(r)}
+              disabled={!canEdit}
+            >
+              Edit
+            </Button>
+            <Button
+              danger
+              size="small"
+              onClick={() => handleDelete(r.ID)}
+              disabled={!canEdit}
+            >
+              Remove
+            </Button>
+          </Space>
+        );
+      },
     },
+
   ];
 
   return (

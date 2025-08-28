@@ -30,7 +30,7 @@ func AddShowdate(c *gin.Context) {
 func DeleteShowdate(c *gin.Context) {
 	db := connection.DB()
 
-	id, err := strconv.Atoi(c.Param("concert_id"))
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
 		return
@@ -54,7 +54,7 @@ func UpdateShowdate(c *gin.Context) {
     return
   }
 
-  // bind partial DTO (recommended)
+
   var req struct {
     VenueID  *uint      `json:"venue_id"`
     ShowDate *time.Time `json:"show_date" time_format:"2006-01-02T15:04:05Z07:00"`

@@ -161,13 +161,6 @@ export async function venueoption (): Promise<VenueOptions[]>{
 
 
 
-
-
-
-
-
-
-
 export async function addShowdate(data: Partial<ShowDatesInterface>) {
   const res = await axios.post(`${API_URL}/showdate`, data, { headers: authHeader() });
   return res.data;
