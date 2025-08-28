@@ -32,11 +32,13 @@ type ZoneWithSeatsDTO struct {
 }
 
 func (s *ZoneService) GetZonesAvailableByShowDateID(showDateID uint64) ([]ZoneWithSeatsDTO, error) {
+
+
 	var zones []entity.Zone
-	// โหลดโซนของ showdate นี้ พร้อมชนิดโซน และ SeatAvailable + Seat
+	// โหลดโซนของ showdate นี้ พร้อมชนิดโซนเท่านั้น (ไม่โหลด Seats เลย
+
 	if err := connection.DB().
 		Preload("ZoneType").
-		Preload("Seats.Seat").
 		Where("show_date_id = ?", showDateID).
 		Find(&zones).Error; err != nil {
 		return nil, err
@@ -57,59 +59,25 @@ func (s *ZoneService) GetZonesAvailableByShowDateID(showDateID uint64) ([]ZoneWi
 			ZoneType:  zoneType,
 		}
 
-		// Standing: ส่ง available_count (capacity - sold - holds)
-		if z.ZoneTypeID == 1 || zoneType == "standing"{
-			// นับสถานะจาก seat_available ถ้าไม่มีฟิลด์ SeatsSold/PendingHolds ใน zone
-			// (รองรับทั้งสองแบบ)
-			capacity := int(z.Capacity)
+		// ทุกโซนใช้ข้อมูลจากตารางโซนโดยตรง
+		capacity := int(z.Capacity)
+		sold := int(z.SeatSold)        // จำนวนที่ขายแล้วจากฟิลด์ในตารางโซน
+		holds := int(z.PendingHold)    // จำนวนที่กำลัง hold จากฟิลด์ในตารางโซน
 
-			var holds int64
-			_ = connection.DB().Model(&entity.SeatAvailable{}).
-				Where("zone_id = ? AND LOWER(seat_available_status) = ?", z.ID, "locked").
-				Count(&holds).Error
+		avail := capacity - sold - holds
+		if avail < 0 {
+			avail = 0
+		}
 
-			var sold int64
-			_ = connection.DB().Model(&entity.SeatAvailable{}).
-				Where("zone_id = ? AND LOWER(seat_available_status) = ?", z.ID, "sold").
-				Count(&sold).Error
+		dto.Capacity = &capacity
+		dto.SeatSold = &sold
+		dto.PendingHolds = &holds
+		dto.AvailableCount = &avail
 
-			// ถ้า model มี z.SeatsSold/z.PendingHolds ให้เอาค่านั้นมาก่อน
-			if z.SeatSold > 0 || z.PendingHold > 0 {
-				sold = int64(z.SeatSold)
-				holds = int64(z.PendingHold)
-			}
-
-			avail := capacity - int(sold) - int(holds)
-			if avail < 0 {
-				avail = 0
-			}
-
-			dto.Capacity = &capacity
-			tmpSold := int(sold)
-			tmpHolds := int(holds)
-			dto.SeatSold = &tmpSold
-			dto.PendingHolds = &tmpHolds
-			dto.AvailableCount = &avail
-
-		} else {
-			// Seating: list รายการ seat_available
-			seats := make([]SeatAvailableDTO, 0, len(z.Seats))
-			for _, sa := range z.Seats {
-				code := ""
-				if sa.Seat != nil {
-					code = strings.TrimSpace(sa.Seat.SeatCode)
-				}
-				status := strings.ToLower(strings.TrimSpace(sa.SeatAvailableStatus))
-				if status == "" {
-					status = "booked"
-				}
-				seats = append(seats, SeatAvailableDTO{
-					SeatID:              sa.SeatID,
-					SeatCode:            strings.ToUpper(code),
-					SeatAvailableStatus: status,
-				})
-			}
-			dto.SeatAvailable = seats
+		// ไม่ต้องส่ง SeatAvailable array สำหรับทุกโซน
+		// หรือถ้าต้องการส่ง empty array สำหรับ consistency
+		if zoneType != "standing" {
+			dto.SeatAvailable = make([]SeatAvailableDTO, 0)
 		}
 
 		out = append(out, dto)

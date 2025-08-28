@@ -42,14 +42,15 @@ const formatDateLong = (iso?: string): string => {
 };
 
 // คำนวณจำนวนที่นั่งว่างตาม service package
+// คำนวณจำนวนที่นั่งว่างตาม service package ที่อัพเดทแล้ว
 const calcAvailableSeats = (zone: ZoneInterface): number => {
-  // ใช้ available_count ที่ส่งมาจาก backend ถ้ามี
+  // ใช้ available_count ที่ส่งมาจาก backend โดยตรง (ทุกโซนจะมีค่านี้แล้ว)
   if (typeof zone.available_count === "number") {
     return zone.available_count;
   }
 
-  // fallback: ถ้าเป็น standing zone และมี capacity
-  if (zone.zone_type?.toLowerCase() === "standing" && zone.capacity) {
+  // fallback: คำนวณเองถ้า backend ยังไม่ส่ง available_count มา
+  if (zone.capacity) {
     const capacity = zone.capacity;
     const sold = zone.seat_sold || 0;
     const holds = zone.pending_holds || 0;
@@ -57,20 +58,8 @@ const calcAvailableSeats = (zone: ZoneInterface): number => {
     return Math.max(0, available);
   }
 
-  // fallback: ถ้าเป็น seating zone ให้นับจาก seat_available
-  const seatList = zone.seat_available || [];
-  if (!Array.isArray(seatList)) return 0;
-
-  // นับที่นั่งที่ available
-  const availableCount = seatList.reduce((acc, seat) => {
-    const status = seat.seatavailable_status?.toLowerCase();
-    if (status === "available") {
-      return acc + 1;
-    }
-    return acc;
-  }, 0);
-
-  return availableCount;
+  // fallback สุดท้าย: ถ้าไม่มีข้อมูลอะไรเลย
+  return 0;
 };
 
 // ดึงชื่อโซน + ราคา
@@ -84,7 +73,6 @@ const zoneNameText = (z: ZoneInterface): string => {
 
 // แก้ไขการดึง zone_type ให้ตรงกับ response จาก backend
 const zoneTypeText = (z: ZoneInterface): string => {
-  // ดึงจาก zone_type field ตรงๆ (จาก API response)
   if (z.zone_type) {
     return z.zone_type;
   }

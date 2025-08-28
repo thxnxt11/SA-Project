@@ -330,6 +330,38 @@ func (s *BookingService) ExpirePendingBookings() (int, error) {
     return cnt, nil
 }
 
+func RecalculateZoneCounters(db *gorm.DB, zoneID uint) error {
+	return db.Exec(`
+		UPDATE zones
+		SET
+		  seat_sold = (
+		    SELECT COUNT(*) FROM seat_availables
+		    WHERE zone_id = ? AND seat_available_status = 'booked'
+		  ),
+		  pending_hold = (
+		    SELECT COUNT(*) FROM seat_availables
+		    WHERE zone_id = ? AND seat_available_status = 'locked'
+		  )
+		WHERE id = ?;
+	`, zoneID, zoneID, zoneID).Error
+}
+
+func RecalculateAllZones(db *gorm.DB) error {
+	return db.Exec(`
+		UPDATE zones AS z
+		SET
+		  seat_sold = (
+		    SELECT COUNT(*) FROM seat_availables s
+		    WHERE s.zone_id = z.id AND s.seat_available_status = 'booked'
+		  ),
+		  pending_hold = (
+		    SELECT COUNT(*) FROM seat_availables s
+		    WHERE s.zone_id = z.id AND s.seat_available_status = 'hold'
+		  );
+	`).Error
+}
+
+
 // func อัปเดตสถานะ booking เป็น "paid" และอัปเดตที่นั่ง/โซน
 func (s *BookingService) OnPaymentPaid(bookingID uint) error {
     db := s.DB
@@ -369,15 +401,20 @@ func (s *BookingService) OnPaymentPaid(bookingID uint) error {
         qty = int(countSeats)
         // เปลี่ยนที่นั่งจาก hold -> booked
         if err := tx.Model(&entity.SeatAvailable{}).
-            Where("zone_id = ? AND seat_id IN (?)",
-                bk.ZoneID,
-                tx.Model(&entity.BookingSeat{}).Select("seat_id").Where("booking_id = ?", bookingID),
-            ).
-            Update("seat_available_status", "booked").Error; err != nil {
-            tx.Rollback()
-            return err
-        }
+        Where("zone_id = ? AND seat_id IN (?) AND seat_available_status = ?",
+            bk.ZoneID,
+            tx.Model(&entity.BookingSeat{}).Select("seat_id").Where("booking_id = ?", bookingID),
+            "locked",
+        ).
+        Update("seat_available_status", "booked").Error; err != nil {
+        tx.Rollback(); return err
     }
+    }
+
+    if err := RecalculateZoneCounters(tx, bk.ZoneID); err != nil {
+		tx.Rollback()
+		return err
+	}
 
     // อัปเดตโซน: pending_hold-- , seat_sold++
     if err := tx.Model(&entity.Zone{}).
@@ -399,6 +436,7 @@ func (s *BookingService) OnPaymentPaid(bookingID uint) error {
         tx.Rollback()
         return err
     }
+    
 
     return tx.Commit().Error
 }

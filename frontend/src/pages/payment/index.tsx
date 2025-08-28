@@ -24,25 +24,20 @@ import "./payment.css";
 import QRPromptPay from "./promptpay_qr";
 import { UploadModal } from "./upload";
 import Loader from "../../component/loader/loader";
-import { paymentAPI } from "../../services/https";
+import { paymentAPI, uploadAPI } from "../../services/https";
+import BankAccountModal from "../../component/payment/BankAccountModal";
 
 const { Title, Text } = Typography;
 
 interface RefundType {
   id: number;
-  refund_type: string; // เช่น "Refundable Ticket" / "Non Refundable Ticket"
-  refund_fee: number; // ค่าธรรมเนียมเพิ่ม
-}
-
-interface PaymentOption {
-  id: string;
-  name: string;
-  icon: React.ReactNode;
+  refund_type: string;
+  refund_fee: number;
 }
 
 interface PaymentMethod {
   id: number;
-  payment_method: string; // เช่น "PromptPay", "Bank Transfer", "TrueMoney"
+  payment_method: string; // e.g. "PromptPay", "Bank Transfer", "TrueMoney"
   account_name?: string;
   account_number?: string;
   bank_name?: string;
@@ -61,11 +56,8 @@ const Payment: React.FC = () => {
     unitPrice,
     discount,
     bookingId,
+    promotionID,
   } = (location.state as any) || {};
-
-  useEffect(() => {
-    console.log("Received state from bookingdetails:", location.state);
-  }, []);
 
   useEffect(() => {
     if (!location.state) {
@@ -73,39 +65,39 @@ const Payment: React.FC = () => {
     }
   }, [location.state, navigate]);
 
-  // ========= Refund Types from backend =========
+  // ===== Fetch data from backend =====
   const [refundTypes, setRefundTypes] = useState<RefundType[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [selectedRefundTypeId, setSelectedRefundTypeId] = useState<
     number | null
   >(null);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<
     number | null
   >(null);
 
-  const onGetInitialData = async () => {
-    try {
-      const [RefundtypesRes, PaymentMethodRes] = await Promise.all([
-        paymentAPI.getAllRefundTypes(),
-        paymentAPI.getAllPaymentMethods(),
-      ]);
-      if (RefundtypesRes?.status === 200 && PaymentMethodRes?.status === 200) {
-        setRefundTypes(RefundtypesRes.data);
-        setPaymentMethods(PaymentMethodRes.data);
-        // console.log("Refund types:", RefundtypesRes.data);
-        // if (RefundtypesRes.data.length > 0)
-        //   setSelectedRefundTypeId(RefundtypesRes.data[0].id); // default: อันแรก
-      } else {
-        message.open({
-          type: "error",
-          content: "ไม่สามารถดึงข้อมูลเริ่มต้นได้",
-        });
+  useEffect(() => {
+    (async () => {
+      try {
+        const [rtRes, pmRes] = await Promise.all([
+          paymentAPI.getAllRefundTypes(),
+          paymentAPI.getAllPaymentMethods(),
+        ]);
+        if (rtRes?.status === 200 && Array.isArray(rtRes.data)) {
+          setRefundTypes(rtRes.data);
+          if (rtRes.data.length > 0) setSelectedRefundTypeId(rtRes.data[0].id);
+        }
+        if (pmRes?.status === 200 && Array.isArray(pmRes.data)) {
+          setPaymentMethods(pmRes.data);
+          if (pmRes.data.length > 0)
+            setSelectedPaymentMethodId(pmRes.data[0].id);
+        }
+      } catch (e) {
+        console.error(e);
+        message.error("ไม่สามารถดึงข้อมูลเริ่มต้นได้");
       }
-    } catch (e) {
-      console.error(e);
-      message.error("เกิดข้อผิดพลาดในการดึงข้อมูลเริ่มต้น");
-    }
-  };
+    })();
+  }, []);
+
   const selectedRefundType = useMemo(
     () => refundTypes.find((r) => r.id === selectedRefundTypeId) || null,
     [refundTypes, selectedRefundTypeId]
@@ -115,57 +107,30 @@ const Payment: React.FC = () => {
       paymentMethods.find((pm) => pm.id === selectedPaymentMethodId) || null,
     [paymentMethods, selectedPaymentMethodId]
   );
-  useEffect(() => {
-    onGetInitialData();
-    return () => {};
-  }, []);
 
-  // ========= UI State อื่น ๆ =========
-  const [isQRModalVisible, setQRModalVisible] = useState(false);
-  const [loadingPayment, setLoadingPayment] = useState(false);
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [loadingUpload, setLoadingUpload] = useState(false);
-  const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
-
-  // ========= ราคา =========
+  // ===== Price =====
   const basePrice = unitPrice ?? 0;
   const qty = quantity ?? 1;
   const discountValue = discount ?? 0;
   const extraRefundFee = selectedRefundType?.refund_fee ?? 0;
 
-  const totalPrice = useMemo(() => {
-    return basePrice * qty - discountValue + extraRefundFee;
-  }, [basePrice, qty, discountValue, extraRefundFee]);
+  const totalPrice = useMemo(
+    () => basePrice * qty - discountValue + extraRefundFee,
+    [basePrice, qty, discountValue, extraRefundFee]
+  );
 
-  // ========= Payment channel (เดิม) =========
-  // const paymentOptions: PaymentMethod[] = [
-  //   {
-  //     id: "promptpay",
-  //     name: "Prompt Pay",
-  //     icon: <BankOutlined style={{ fontSize: 40, color: "#1890ff" }} />,
-  //   },
-  //   {
-  //     id: "truemoney",
-  //     name: "True Money Wallet",
-  //     icon: <WalletOutlined style={{ fontSize: 40, color: "#ff4d4f" }} />,
-  //   },
-  // ];
-
-  // ========= Timer =========
-  const PAY_TIMELEFT = 600; // 10 นาที
+  // ===== Timer =====
+  const PAY_TIMELEFT = 600; // 10 mins
   const countdownKey = `booking_start_time_${bookingId ?? "temp"}`;
   const [paymentTimeLeft, setPaymentTimeLeft] = useState(PAY_TIMELEFT);
 
   useEffect(() => {
     const storedStartTime = localStorage.getItem(countdownKey);
-    let startTime: number;
-
-    if (storedStartTime) {
-      startTime = parseInt(storedStartTime, 10);
-    } else {
-      startTime = Date.now();
+    let startTime = storedStartTime
+      ? parseInt(storedStartTime, 10)
+      : Date.now();
+    if (!storedStartTime)
       localStorage.setItem(countdownKey, startTime.toString());
-    }
 
     const timer = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -191,27 +156,81 @@ const Payment: React.FC = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
-  // ========= Handlers =========
+  // ===== Icons helper =====
+  const iconForRefundType = (label: string) => {
+    const lower = (label || "").toLowerCase();
+    if (lower.includes("non") && lower.includes("refundable"))
+      return <LuShieldX style={{ fontSize: 40 }} />;
+    return <LuShieldCheck style={{ fontSize: 40 }} />;
+  };
+
+  const iconForPayment = (name?: string) => {
+    const n = (name || "").toLowerCase();
+    if (n.includes("prompt") || n.includes("bank"))
+      return <BankOutlined style={{ fontSize: 40, color: "#1890ff" }} />;
+    if (n.includes("true"))
+      return <WalletOutlined style={{ fontSize: 40, color: "#ff4d4f" }} />;
+    return <CreditCardOutlined style={{ fontSize: 40 }} />;
+  };
+
+  // ===== UI states for modals =====
+  const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [isQRModalVisible, setQRModalVisible] = useState(false);
+  const [loadingPayment, setLoadingPayment] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [loadingUpload, setLoadingUpload] = useState(false);
+  const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
+  const [paymentId, setPaymentId] = useState<number | null>(null);
+  const bankInfo = selectedPaymentMethod
+    ? {
+        id: selectedPaymentMethod.id,
+        bank_name: selectedPaymentMethod.bank_name,
+        account_name: selectedPaymentMethod.account_name,
+        account_number: selectedPaymentMethod.account_number,
+        note: `หลังโอนกรุณาอัปโหลดสลิปภายใน ${formatTime(
+          paymentTimeLeft
+        )} นาทีเพื่อยืนยันรายการ`,
+        total_price: totalPrice,
+      }
+    : null;
+  // ===== Handlers =====
   const handleConfirmPayment = async () => {
-    if (!selectedPaymentMethod) {
+    if (!selectedPaymentMethodId) {
       message.warning("กรุณาเลือกช่องทางการชำระเงิน");
       return;
     }
+
     setLoadingPayment(true);
     try {
+      // เตรียม payload ให้ตรงกับ backend createpayment
       const payload = {
         booking_id: bookingId,
-        payment_method: selectedPaymentMethod?.payment_method,
-        amount: totalPrice,
-        refund_type_id: selectedRefundTypeId, // ส่งประเภทตั๋วที่เลือกไปด้วย
+        payment_method_id: selectedPaymentMethodId,
+        refund_type_id: selectedRefundTypeId ?? undefined,
+        promotion_id: promotionID ?? undefined,
+        base_price: basePrice,
+        discount: discountValue,
+        refund_fee: extraRefundFee,
+        total_price: totalPrice,
       };
-      const res = await paymentAPI.create(payload);
 
-      // ตัวอย่าง: ถ้าเป็น promptpay แสดง QR
-      if (selectedPaymentMethod?.payment_method === "promptpay") {
+      const res = await paymentAPI.create(payload);
+      const paymentID = res?.data?.payment_id?.ID ?? null;
+
+      setPaymentId(paymentID);
+      console.log("payment_id: ", paymentID);
+      const methodName = (
+        selectedPaymentMethod?.payment_method || ""
+      ).toLowerCase();
+      if (methodName.includes("prompt")) {
         setQRModalVisible(true);
-      } else if (selectedPaymentMethod?.payment_method === "truemoney") {
-        message.success("กำลังนำไปสู่ขั้นตอนชำระเงินผ่าน TrueMoney");
+      } else if (
+        methodName.includes("account number") ||
+        methodName.includes("bank")
+      ) {
+        setBankModalOpen(true);
+      } else {
+        message.success("เริ่มการชำระเงินเรียบร้อย");
       }
     } catch (e) {
       console.error(e);
@@ -221,19 +240,28 @@ const Payment: React.FC = () => {
     }
   };
 
-  const handleOpenUploadModal = () => setUploadModalOpen(true);
-  const handleCloseUploadModal = () => setUploadModalOpen(false);
-
-  const handleUploadReceipt = async (file: File) => {
+  const handleUploadAndUpdate = async (file: File) => {
     setLoadingUpload(true);
     try {
+      // 1) upload สลิป
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("booking_id", String(bookingId ?? ""));
+      const res = await uploadAPI.upload(formData);
+      const url: string = res?.data?.data?.url;
+      console.log("file path: ", url);
+      if (!paymentId) {
+        message.info("กำลังสร้างรายการชำระเงิน...");
+        return;
+      }
+      if (!url) {
+        message.warning("ยังไม่มีสลิปที่อัปโหลดสำเร็จ");
+        return;
+      }
+      // 2) update payment receipt
 
-      // await axios.post("/api/payments/upload-receipt", formData)
-      await new Promise((res) => setTimeout(res, 1200)); // mock delay
-      message.success("อัปโหลดสลิปสำเร็จ 🎉");
+      await paymentAPI.updateReceipt(paymentId, { receipt_url: url });
+
+      message.success("อัปโหลดและอัปเดต Payment Receipt สำเร็จ 🎉");
       setUploadModalOpen(false);
 
       setShowFullScreenLoader(true);
@@ -245,26 +273,45 @@ const Payment: React.FC = () => {
           replace: true,
         });
       }, 1000);
-    } catch (error) {
-      console.error("Upload error:", error);
-      message.error("อัปโหลดล้มเหลว กรุณาลองใหม่");
+    } catch (e) {
+      console.error(e);
+      message.error("อัปโหลดหรืออัปเดตล้มเหลว");
+    } finally {
       setLoadingUpload(false);
     }
   };
 
+  const handleOpenUploadModal = async () => {
+    setUploadModalOpen(true);
+    //     try {
+    // if (!paymentId) {
+    //   message.info("กำลังสร้างรายการชำระเงิน...");
+    //   return;
+    // }
+    // if (!receipturl) {
+    //   message.warning("ยังไม่มีสลิปที่อัปโหลดสำเร็จ");
+    //   return;
+    // }
+    // const payload = {
+    //   payment_id: paymentId,
+    //   receipt_url: receipturl,
+    // };
+    // const res = await paymentAPI.updateReceipt(payload.payment_id,payload.receipt_url);
+    //       console.log("Reciept path: ",res)
+    //       if (res?.status === 200) {
+    //         message.success("บันทึกหลักฐานการชำระเงินเรียบร้อย");
+    //       }
+    //     }catch (e) {
+    //         console.error(e);
+    //         message.error("ไม่สามารถบันทึกหลักฐานการชำระเงินได้");
+    //     }
+  };
+  const handleCloseUploadModal = () => setUploadModalOpen(false);
   const TextStyle = {
     fontSize: "18px",
     color: "#00306E",
     fontWeight: "bold",
   } as const;
-
-  // helper: map icon ตามชื่อประเภท
-  const iconForRefundType = (label: string) => {
-    const lower = (label || "").toLowerCase();
-    if (lower.includes("non") && lower.includes("refundable"))
-      return <LuShieldX style={{ fontSize: 40 }} />;
-    return <LuShieldCheck style={{ fontSize: 40 }} />;
-  };
 
   return (
     <>
@@ -272,7 +319,7 @@ const Payment: React.FC = () => {
       <div className="payment-container">
         <Row
           gutter={24}
-          style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}
+          style={{ padding: 20, maxWidth: 1200, margin: "0 auto" }}
         >
           <Col xs={24} lg={16}>
             <div className="timer-badge">
@@ -280,7 +327,7 @@ const Payment: React.FC = () => {
               <span>{formatTime(paymentTimeLeft)}</span>
             </div>
 
-            {/* Refund Type จาก Backend */}
+            {/* Refund Types */}
             <Card className="payment-section" style={{ marginBottom: 24 }}>
               <Title
                 level={4}
@@ -292,7 +339,6 @@ const Payment: React.FC = () => {
               >
                 <LuShieldCheck style={{ marginRight: 8 }} /> Ticket Type
               </Title>
-
               <Row gutter={16}>
                 {refundTypes.map((rt) => (
                   <Col xs={24} sm={12} key={rt.id}>
@@ -319,7 +365,9 @@ const Payment: React.FC = () => {
                             {rt.refund_type}
                           </Text>
                           <Text style={{ display: "block", opacity: 0.8 }}>
-                            Fee: {rt.refund_fee.toLocaleString()} THB
+                            {rt.id === 2
+                              ? `Fee: ${rt.refund_fee.toLocaleString()} THB`
+                              : "\u00A0"}
                           </Text>
                         </div>
                       </div>
@@ -329,7 +377,7 @@ const Payment: React.FC = () => {
               </Row>
             </Card>
 
-            {/* ช่องทางชำระเงิน */}
+            {/* Payment Methods (from API) */}
             <Card className="payment-section">
               <Title
                 level={4}
@@ -343,29 +391,29 @@ const Payment: React.FC = () => {
                 Channel
               </Title>
               <Row gutter={[16, 24]}>
-                {paymentOptions.map((option) => (
-                  <Col xs={24} sm={12} key={option.id}>
+                {paymentMethods.map((pm) => (
+                  <Col xs={24} sm={12} key={pm.id}>
                     <Card
                       className={`option-card ${
-                        selectedPaymentMethod === option.id
+                        selectedPaymentMethodId === pm.id
                           ? "selected"
                           : "unselected"
                       }`}
-                      onClick={() => setSelectedPaymentMethod(option.id)}
+                      onClick={() => setSelectedPaymentMethodId(pm.id)}
                       hoverable
                     >
                       <div className="option-content">
                         <Checkbox
-                          checked={selectedPaymentMethod === option.id}
+                          checked={selectedPaymentMethodId === pm.id}
                           className="option-checkbox"
                         />
                         <div className="option-info">
-                          {option.icon}
+                          {iconForPayment(pm.payment_method)}
                           <Text
                             strong
                             style={{ marginTop: 8, display: "block" }}
                           >
-                            {option.name}
+                            {pm.payment_method}
                           </Text>
                         </div>
                       </div>
@@ -376,6 +424,7 @@ const Payment: React.FC = () => {
             </Card>
           </Col>
 
+          {/* Summary */}
           <Col xs={24} lg={8}>
             <Card className="price-summary">
               <div className="summary-header">
@@ -471,11 +520,17 @@ const Payment: React.FC = () => {
         />
       </Modal>
 
+      <BankAccountModal
+        open={bankModalOpen}
+        onClose={() => setBankModalOpen(false)}
+        data={bankInfo}
+      />
+
       {/* Upload Slip Modal */}
       <UploadModal
         visible={uploadModalOpen}
         onClose={handleCloseUploadModal}
-        onUpload={handleUploadReceipt}
+        onUpload={handleUploadAndUpdate}
         loading={loadingUpload}
       />
 

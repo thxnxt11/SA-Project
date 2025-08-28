@@ -23,4 +23,5 @@ type Payment struct {
 	PaymentStatusID uint `json:"payment_status_id"`
 	PaymentStatus *PaymentStatus `gorm:"foreignKey:PaymentStatusID" json:"payment_status"`
 	PaidAt time.Time `json:"paid_at"`
+	ReceiptURL string `json:"receipt_url"`
 }

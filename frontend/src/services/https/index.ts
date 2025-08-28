@@ -147,4 +147,11 @@ export const paymentAPI = {
   create: (data: any) => Post(`${PUBLIC_API_URL}/payment`, data),
   getAllRefundTypes: () => Get(`${PUBLIC_API_URL}/refundtypes`),
   getAllPaymentMethods: () => Get(`${PUBLIC_API_URL}/paymentmethods`),
+  updateReceipt: (id: number, data: { receipt_url: string }) =>
+    Update(`${PUBLIC_API_URL}/payment/${id}/receipt`, data),
 };
+
+export const uploadAPI = {
+  upload: (data: FormData) =>
+    axios.post(`${PUBLIC_API_URL}/upload`, data)
+}

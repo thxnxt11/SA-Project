@@ -15,6 +15,9 @@ func main() {
 	// connect DB
 	connection.ConnectionDB()
 	connection.SetupDatabase()
+	if err := services.RecalculateAllZones(connection.DB()); err != nil {
+        panic(fmt.Sprintf("failed to recalc zone counters: %v", err))
+    }
 
 	// setup gin
 	r := gin.Default()
@@ -63,6 +66,8 @@ func main() {
 		api.POST("/promotion/validate", promotionCtl.ValidatePromotionCode)
 		api.GET("/refundtypes", booking.GetRefundTypes)
 		api.GET("/paymentmethods", booking.GetAllPaymentMethods)
+		api.POST("/payment", booking.CreatePayment)
+		api.PUT("/payment/:id/receipt", booking.UpdatePaymentReceipt)
 		
 	}
 	r.Static("/uploads", "./uploads")

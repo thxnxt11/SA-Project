@@ -149,22 +149,42 @@ func SetupDatabase() {
       BankName: "Bangkok Bank(BBL)",
    })
 
+   // payment status
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "pending payment",
+   })
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "paided",
+   })
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "cancelled",
+   })
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "expired",        
+   })
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "refunded",
+   })
+
 
    SeedSeatAvailable(DB())
 
    // sql := `
 	// 	UPDATE seat_availables
-	// 	SET seat_available_status = 'Booked'
+	// 	SET seat_available_status = 'available'
 	// 	WHERE rowid IN (
 	// 		SELECT rowid
 	// 		FROM seat_availables
 	// 		WHERE zone_id = ?
-	// 		LIMIT 10
 	// 	)
 	// `
 	// result := db.Exec(sql,2 )
+   // res := db.Exec(sql,4 )
    // if result.Error != nil {
 	// 	panic(result.Error)
+	// }
+   // if res.Error != nil {
+	// 	panic(res.Error)
 	// }
 
 

@@ -18,7 +18,7 @@ import {
   type UploadProps,
 } from "antd";
 import dayjs from "dayjs";
-import { concertAPI, promotionAPI } from "../../../services/https";
+import { concertAPI, promotionAPI, uploadAPI } from "../../../services/https";
 import { PlusOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
@@ -152,34 +152,31 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("http://localhost:8000/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await uploadAPI.upload(formData);
+      const result = res.data;
 
-      if (!res.ok) {
-        const raw = await res.text();
-        console.error(`Upload error ${res.status}: ${raw}`);
-        messageApi.error(
-          `อัปโหลดรูปภาพไม่สำเร็จ: ${res.status} ${res.statusText}`
-        );
-        return false;
-      }
-
-      const result = await res.json();
       if (!result?.success) {
         messageApi.error(result?.error || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
         return false;
       }
 
-      const uploadedUrl: string = result.data.url; // path บนเซิร์ฟเวอร์ (ไม่ใช่ absolute)
+      const uploadedUrl: string = result.data.url; // path บนเซิร์ฟเวอร์
       setPosterToForm(uploadedUrl);
       setPosterPreview(`http://localhost:8000${uploadedUrl}`);
       messageApi.success("อัปโหลดรูปภาพสำเร็จ!");
       return true;
-    } catch (error) {
-      messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
-      console.error("Upload error:", error);
+    } catch (error: any) {
+      if (error.response) {
+        messageApi.error(
+          `อัปโหลดรูปภาพไม่สำเร็จ: ${error.response?.status ?? ""} ${
+            error.response?.statusText ?? ""
+          }`
+        );
+        console.error("Upload error:", error.response?.data || error.message);
+      } else {
+        messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
+        console.error("Upload error:", error);
+      }
       return false;
     } finally {
       setLoading(false);

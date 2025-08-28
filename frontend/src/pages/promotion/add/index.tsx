@@ -17,7 +17,7 @@ import {
   Upload,
 } from "antd";
 import type { UploadFile, UploadProps } from "antd";
-import { promotionAPI, concertAPI } from "../../../services/https";
+import { promotionAPI, concertAPI, uploadAPI } from "../../../services/https";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../hook/authContext";
 
@@ -71,48 +71,47 @@ const AddPromotion: React.FC = () => {
     form.setFieldsValue({ concert: undefined, code: undefined }); // reset fields
   };
 
-  const handleFileUpload = async (file: File) => {
-    setLoading(true); // Use general loading for now, could be specific uploadLoading
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+const handleFileUpload = async (file: File) => {
+  setLoading(true);
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
 
-      const response = await fetch("http://localhost:8000/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-        // อ่านข้อความตอบกลับดิบๆ เพื่อช่วยในการ debug
-        const errorText = await response.text();
-        console.error(
-          `HTTP error! Status: ${response.status}, Response: ${errorText}`
-        );
-        messageApi.error(
-          `อัปโหลดรูปภาพไม่สำเร็จ: ${response.status} ${response.statusText}`
-        );
-        return false;
-      }
+    // ✅ เรียกผ่าน service
+    const res = await uploadAPI.upload(formData);
+    const data = res?.data;
 
-      const result = await response.json();
+    // รองรับทั้งสองรูปแบบ response: { success, data:{url} } หรือ { url }
+    const success = data?.success ?? Boolean(data?.data?.url || data?.url);
+    const uploadedUrl = data?.data?.url ?? data?.url ?? "";
 
-      if (result.success) {
-        const uploadedUrl = result.data.url;
-        setPosterUrl(uploadedUrl);
-        form.setFieldsValue({ poster_url: uploadedUrl });
-        messageApi.success("อัปโหลดรูปภาพสำเร็จ!");
-        return true;
-      } else {
-        messageApi.error(result.error || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
-        return false;
-      }
-    } catch (error) {
-      messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
-      console.error("Upload error:", error);
-      return false;
-    } finally {
-      setLoading(false);
+    if (success && uploadedUrl) {
+      setPosterUrl(uploadedUrl);
+      form.setFieldsValue({ poster_url: uploadedUrl });
+      messageApi.success("อัปโหลดรูปภาพสำเร็จ!");
+      return true;
     }
-  };
+
+    messageApi.error(data?.error || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
+    return false;
+  } catch (err: any) {
+    if (err.response) {
+      messageApi.error(
+        `อัปโหลดรูปภาพไม่สำเร็จ: ${err.response?.status ?? ""} ${
+          err.response?.statusText ?? ""
+        }`
+      );
+      console.error("Upload error:", err.response?.data || err.message);
+    } else {
+      messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
+      console.error("Upload error:", err);
+    }
+    return false;
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Ant Design Upload onChange handler
   const handleAntdUploadChange: UploadProps["onChange"] = ({

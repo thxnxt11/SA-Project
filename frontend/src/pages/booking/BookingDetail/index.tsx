@@ -30,7 +30,7 @@ const BookingDetail: React.FC = () => {
     unitPrice,
     concertInfo,
     bookingData,
-    bookingId
+    bookingId,
   } = location.state || {};
 
   useEffect(() => {
@@ -52,6 +52,7 @@ const BookingDetail: React.FC = () => {
     amount: number;
     message: string;
     code: string;
+    promtionID?: number;
   } | null>(null);
 
   // Initialize member form with mock data
@@ -62,14 +63,24 @@ const BookingDetail: React.FC = () => {
   const [remainingTime, setRemainingTime] = useState(COUNTDOWN_SECONDS);
 
   useEffect(() => {
-    const storedStartTime = localStorage.getItem("booking_start_time");
-    let startTime: number;
+    const key = `booking_start_time_${bookingId}`;
+    const now = Date.now();
 
-    if (storedStartTime) {
-      startTime = parseInt(storedStartTime, 10);
+    const storedStart = localStorage.getItem(key);
+    let startTime = storedStart ? parseInt(storedStart, 10) : NaN;
+
+    // ถ้าไม่มีค่า หรือค่าเก่าเกินเวลาแล้ว → รีเซ็ตเริ่มใหม่
+    if (
+      !storedStart ||
+      isNaN(startTime) ||
+      (now - startTime) / 1000 >= COUNTDOWN_SECONDS
+    ) {
+      startTime = now;
+      localStorage.setItem(key, String(startTime));
+      setRemainingTime(COUNTDOWN_SECONDS);
     } else {
-      startTime = Date.now();
-      localStorage.setItem("booking_start_time", startTime.toString());
+      const elapsed = Math.floor((now - startTime) / 1000);
+      setRemainingTime(Math.max(COUNTDOWN_SECONDS - elapsed, 0));
     }
 
     const timer = setInterval(() => {
@@ -78,16 +89,17 @@ const BookingDetail: React.FC = () => {
 
       if (timeLeft <= 0) {
         clearInterval(timer);
-        localStorage.removeItem("booking_start_time"); // เคลียร์เมื่อหมดเวลา
+        localStorage.removeItem(key);
         setRemainingTime(0);
-        navigate(`/concert/${concertInfo?.ID}/selectzone`); // หมดเวลา -> กลับไปเลือกที่นั่ง
+        navigate(`/concert/${concertInfo?.ID}/selectzone`, { replace: true });
       } else {
         setRemainingTime(timeLeft);
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+    // ใส่ dependency ให้ครบเพื่อความปลอดภัย
+  }, [bookingId, concertInfo?.ID, COUNTDOWN_SECONDS, navigate]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -108,17 +120,20 @@ const BookingDetail: React.FC = () => {
       const res = await promotionAPI.validateCode(payload);
       if (res?.data?.valid) {
         const pct = res.data.data.discount_percent ?? 0;
+        const promotionID = res?.data?.data?.promotion_id;
         const amount = Math.round((unitPrice * quantity * pct) / 100);
         setAppliedDiscount({
           amount,
           message: `Applied ${pct}% discount`,
           code: res.data.data.code,
+          promtionID: promotionID,
         });
       } else {
         setAppliedDiscount({
           amount: 0,
           message: res?.data?.error || "The discount code is invalid",
           code: "",
+          promtionID: undefined,
         });
       }
     } catch (e) {
@@ -126,6 +141,7 @@ const BookingDetail: React.FC = () => {
         amount: 0,
         message: "Cannot validate the code",
         code: "",
+        promtionID: undefined,
       });
     }
   };
@@ -140,12 +156,11 @@ const BookingDetail: React.FC = () => {
   };
   const memberData = memberForm.getFieldsValue();
   const hasNavigated = useRef(false);
-  
+
   const handleConfirm = () => {
     if (hasNavigated.current) return;
     hasNavigated.current = true;
-    
-    
+
     const bookingInfo = {
       showDate,
       showTime,
@@ -154,6 +169,7 @@ const BookingDetail: React.FC = () => {
       quantity: quantity,
       unitPrice: unitPrice,
       discount: appliedDiscount?.amount || 0,
+      promotionID: appliedDiscount?.promtionID,
       member: memberData,
       bookingData,
       bookingId,
