@@ -79,6 +79,7 @@ func main() {
 		router.POST("/showdate", concert.AddShowdate)
 		router.PUT("/showdate/:id", concert.UpdateShowdate)
 		router.DELETE("/showdate/:id", concert.DeleteShowdate)
+		router.DELETE("/showdateid/:id",concert.DeleteShowdatebyid)
 
 	}
 

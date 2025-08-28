@@ -20,7 +20,7 @@ const { Header } = Layout;
 const { useBreakpoint } = Grid;
 
 const Navbar: React.FC = () => {
-  const [open, setOpen] = useState(false);
+  const [,setOpen] = useState(false);
   const screens = useBreakpoint();
   const isMobile = !screens.md;
   const navigate = useNavigate();

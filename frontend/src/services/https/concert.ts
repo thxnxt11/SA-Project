@@ -151,6 +151,11 @@ export const Showdate = {
     const r = await Delete(`${API_URL}/showdate/${id}`);
     return r?.data;
   },
+
+  deletebyid: async (id: number | string) =>{
+    const r = await Delete(`${API_URL}/showdateid/${id}`);
+    return r?.data;
+  }
 };
 
 
@@ -160,22 +165,5 @@ export async function venueoption (): Promise<VenueOptions[]>{
 }
 
 
-
-export async function addShowdate(data: Partial<ShowDatesInterface>) {
-  const res = await axios.post(`${API_URL}/showdate`, data, { headers: authHeader() });
-  return res.data;
-}
-
-
-export async function updateShowdate(id: string | number, data: Partial<ShowDatesInterface>) {
-  const res = await axios.put(`${API_URL}/showdate/${id}`, data, { headers: authHeader() });
-  return res.data;
-}
-
-
-export async function deleteShowdate(id: string | number) {
-  const res = await axios.delete(`${API_URL}/showdate/${id}`, { headers: authHeader() });
-  return res.data;
-}
 
 

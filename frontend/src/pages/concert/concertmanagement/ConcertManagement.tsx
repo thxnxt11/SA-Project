@@ -71,31 +71,63 @@ const fetchConcerts = async () => {
     setEditingConcert(null);   
   }
 
-  const handleEditFinish = async (values: any) => {
-    if (!editingConcert) return;
+const handleEditFinish = async (values: any) => {
+  if (!editingConcert) return;
 
-    const payload = {
-      ...editingConcert, // keep fields not in the form
-      ...values,
-      onsale_date: values.onsale_date
-      ? values.onsale_date.toDate().toISOString()  
+
+  const payload = {
+    ...editingConcert,
+    ...values,
+    onsale_date: values.onsale_date
+      ? values.onsale_date.toDate().toISOString()
       : editingConcert.onsale_date,
-      offsale_date: values.offsale_date
+    offsale_date: values.offsale_date
       ? values.offsale_date.toDate().toISOString()
       : editingConcert.offsale_date,
-    };
-
-    try {
-      await Concerts.update(editingConcert.ID, payload);
-      message.success("อัปเดตคอนเสิร์ตสำเร็จ");
-      setIsModalOpen(false);
-      setEditingConcert(null);
-      fetchConcerts();
-    } catch (e: any) {
-      console.error("Update failed:", e);
-      message.error(e?.message || "อัปเดตไม่สำเร็จ");
-    }
   };
+
+  const venueId = Number(values.venue_id);
+  const newSlots = [
+    values.date1, values.date2, values.date3,values.date4, values.date5, values.date6, values.date7,];
+  const oldRows = editingConcert?.ShowDates ?? [];
+
+  try {
+    await Concerts.update(editingConcert.ID, payload);
+
+   
+    for (let i = 0; i < Math.max(newSlots.length, oldRows.length); i++) {
+      const picked = newSlots[i];       
+      const old = oldRows[i];             
+
+      if (picked) {
+        const iso = picked.toDate().toISOString();
+
+        if (old?.ID) {
+   
+          await Showdate.deletebyid(old.ID);
+        }
+        await Showdate.add({
+          concert_id: Number(editingConcert.ID),
+          venue_id: venueId,
+          show_date: iso,
+        });
+      } else if (old?.ID) {
+  
+        await Showdate.deletebyid(old.ID);
+      }
+
+    }
+
+    message.success("อัปเดตคอนเสิร์ตสำเร็จ");
+    setIsModalOpen(false);
+    setEditingConcert(null);
+    fetchConcerts();
+  } catch (e: any) {
+    console.error("Update failed:", e);
+    message.error(e?.message || "อัปเดตไม่สำเร็จ");
+  }
+};
+
 
 const handleDelete = (id: number) =>
   Modal.confirm({
@@ -158,9 +190,9 @@ const handleDelete = (id: number) =>
     }
 
     
-    if (values.show_start_time) {
-      let inx = [values.show_start_time,values.show_end_time];
-      for (let i = 0 ; i < 2 ; i++)
+    if (values.date1) {
+      let inx = [values.date1,values.date2,values.date3,values.date4,values.date5,values.date6,values.date7];
+      for (let i = 0 ; i < inx.length ; i++)
       {
         if(inx[i] != undefined)
         {

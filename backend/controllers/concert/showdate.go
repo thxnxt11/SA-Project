@@ -44,11 +44,28 @@ func DeleteShowdate(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "showdate deleted"})
 }
 
+func DeleteShowdatebyid(c *gin.Context) {
+	db := connection.DB()
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	if err := db.Where("id = ?", id).Delete(&entity.ShowDate{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Delete failed"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "showdate deleted"})
+}
+
 
 func UpdateShowdate(c *gin.Context) {
   db := connection.DB()
 
-  cid, err := strconv.Atoi(c.Param("concert_id"))
+  cid, err := strconv.Atoi(c.Param("id"))
   if err != nil || cid <= 0 {
     c.JSON(http.StatusBadRequest, gin.H{"error": "invalid concert id"})
     return

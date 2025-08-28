@@ -23,6 +23,7 @@ const AddConcertForm: React.FC<AddConcertFormProps> = ({ initialValues, onFinish
         ...initialValues,
         onsale_date: initialValues?.onsale_date ? dayjs(initialValues.onsale_date) : undefined,
         offsale_date: initialValues?.offsale_date ? dayjs(initialValues.offsale_date) : undefined,
+
       }}
     >
       <Form.Item label="Concert Name" name="concert_name" rules={[{ required: true }]}>
@@ -49,18 +50,30 @@ const AddConcertForm: React.FC<AddConcertFormProps> = ({ initialValues, onFinish
       </Form.Item>
 
       <Card size="small" style={{ marginTop: 8, marginBottom: 16 }} title="Show time">
-              <Form.Item
-                label="Start time"
-                name="show_start_time"
-                rules={[{ required: true, message: "Please select start time" }]}
-              >
-                <DatePicker showTime={{ format: "HH:mm" }} style={{ width: "100%" }} format="YYYY-MM-DD HH:mm" />
-              </Form.Item>
+      {[
+        { label: "showdate (required)", name: "date1", required: true, msg: "must be at least 1 showdate" },
+        { label: "showdate (optional)", name: "date2" },
+        { label: "showdate (optional)", name: "date3" },
+        { label: "showdate (optional)", name: "date4" },
+        { label: "showdate (optional)", name: "date5" },
+        { label: "showdate (optional)", name: "date6" },
+        { label: "showdate (optional)", name: "date7" },
+      ].map((f) => (
+        <Form.Item
+          key={f.name}
+          label={f.label}
+          name={f.name}
+          rules={f.required ? [{ required: true, message: f.msg || "required" }] : []}
+        >
+          <DatePicker
+            showTime={{ format: "HH:mm" }}
+            style={{ width: "100%" }}
+            format="YYYY-MM-DD HH:mm"
+          />
+        </Form.Item>
+      ))}
+    </Card>
 
-              <Form.Item label="End time" name="show_end_time">
-                <DatePicker showTime={{ format: "HH:mm" }} style={{ width: "100%" }} format="YYYY-MM-DD HH:mm" />
-              </Form.Item>
-            </Card>
 
 
       <Form.Item>
