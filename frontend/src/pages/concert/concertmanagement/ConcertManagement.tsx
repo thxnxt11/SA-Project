@@ -74,7 +74,6 @@ const fetchConcerts = async () => {
 const handleEditFinish = async (values: any) => {
   if (!editingConcert) return;
 
-
   const payload = {
     ...editingConcert,
     ...values,
@@ -86,36 +85,21 @@ const handleEditFinish = async (values: any) => {
       : editingConcert.offsale_date,
   };
 
-  const venueId = Number(values.venue_id);
-  const newSlots = [
-    values.date1, values.date2, values.date3,values.date4, values.date5, values.date6, values.date7,];
-  const oldRows = editingConcert?.ShowDates ?? [];
+  const newDates = [
+    values.date1, values.date2, values.date3,
+    values.date4, values.date5, values.date6, values.date7,
+  ].filter(Boolean);
 
   try {
     await Concerts.update(editingConcert.ID, payload);
+    await Showdate.delete(editingConcert.ID);
 
-   
-    for (let i = 0; i < Math.max(newSlots.length, oldRows.length); i++) {
-      const picked = newSlots[i];       
-      const old = oldRows[i];             
-
-      if (picked) {
-        const iso = picked.toDate().toISOString();
-
-        if (old?.ID) {
-   
-          await Showdate.deletebyid(old.ID);
-        }
-        await Showdate.add({
-          concert_id: Number(editingConcert.ID),
-          venue_id: venueId,
-          show_date: iso,
-        });
-      } else if (old?.ID) {
-  
-        await Showdate.deletebyid(old.ID);
-      }
-
+    for (const d of newDates) {
+      await Showdate.add({
+        concert_id: Number(editingConcert.ID),
+        venue_id: Number(values.venue_id),
+        show_date: d.toDate().toISOString(),
+      });
     }
 
     message.success("อัปเดตคอนเสิร์ตสำเร็จ");
@@ -127,6 +111,7 @@ const handleEditFinish = async (values: any) => {
     message.error(e?.message || "อัปเดตไม่สำเร็จ");
   }
 };
+
 
 
 const handleDelete = (id: number) =>
