@@ -6,26 +6,28 @@ import { useAuth } from "../../hook/authContext";
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
 
   const onFinish = async (values: any) => {
     try {
       const result = await login(values.email, values.password);
       console.log("result from login():", result);
+      console.log("user from useAuth():", user);
 
       message.success("Signed in!");
+
 
       const redirectTo =
         location.state?.from?.pathname ||
         new URLSearchParams(location.search).get("redirect");
 
       if (redirectTo && redirectTo !== "/signin") {
+        // ถ้ามี redirect URL และไม่ใช่หน้า signin เอง ให้ไปที่นั่น
         console.log("redirecting to:", redirectTo);
         navigate(redirectTo, { replace: true });
         return; // สำคัญ! ต้อง return เพื่อไม่ให้รันโค้ดต่อ
       }
 
-      // ถ้าไม่มี redirect URL ให้ใช้ logic เดิมตาม role
       const role =
         result?.user?.role ??
         result?.role ??
@@ -35,6 +37,8 @@ const SignIn: React.FC = () => {
         result?.user?.role_id ??
         result?.role_id ??
         localStorage.getItem("role_id");
+
+      
 
       const rid = Number(roleIdRaw);
       const rname = String(role || "").toLowerCase();

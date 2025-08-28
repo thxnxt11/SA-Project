@@ -185,8 +185,8 @@ const handleDelete = (id: number) =>
   }
 };
 
-
   const columns = [
+    
     // { title: "ID", dataIndex: "ID", key: "ID" },
     { title: "Concert Name", dataIndex: "concert_name", key: "concert_name" },
     { title: "Artist", dataIndex: "artist", key: "artist" },
@@ -279,20 +279,23 @@ const handleDelete = (id: number) =>
 
       <Button
         size="large"
-        style={{ color: "white", backgroundColor: "#00306E", position: "relative", left: 1110, margin: 20 }}
+        style={{ color: "white", backgroundColor: "#00306E", position: "fixed", left: 1380, margin: 20 }}
         onClick={openAdd} 
     
       >
         Add data
       </Button>
-      <Table
-        dataSource={concerts}
-        columns={columns as any}
-        rowKey="ID"
-        bordered
-        loading={loading}
-        pagination={{ pageSize: 50 }}
-      />
+      <div style={{ marginTop: 80, marginLeft: 20 }}>
+        <Table
+          
+          dataSource={concerts}
+          columns={columns as any}
+          rowKey="ID"
+          bordered
+          loading={loading}
+          pagination={{ pageSize: 50 }}
+        />
+      </div>
 
       <Modal
         
