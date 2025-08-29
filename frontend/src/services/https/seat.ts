@@ -1,8 +1,5 @@
 import axios from "axios";
 import type { AxiosResponse, AxiosError } from "axios";
-import type { ConcertInterface } from "../../interface/concert";
-import type { ShowDatesInterface } from "../../interface/showdate";
-import type { VenueOptions } from "../../interface/venue";
 import type { ZoneInterface } from "../../interface/zone";
 
 const API_URL = "http://localhost:8000/organizer";
