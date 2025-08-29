@@ -9,6 +9,7 @@ import (
 	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/controllers/booking"
 	"github.com/yourname/went-back/controllers/concert"
+	"github.com/yourname/went-back/controllers/zone"
 	"github.com/yourname/went-back/controllers/promotion"
 	"github.com/yourname/went-back/controllers/user"
 )
@@ -80,6 +81,15 @@ func main() {
 		router.PUT("/showdate/:id", concert.UpdateShowdate)
 		router.DELETE("/showdate/:id", concert.DeleteShowdate)
 		router.DELETE("/showdateid/:id",concert.DeleteShowdatebyid)
+
+		router.GET("/zoneconcert/:user_id", zone.GetConcertsByUserID)
+		router.GET("/zoneshowdate/:id", zone.GetShowDatesByConcertID)
+		router.GET("/zonetype", zone.ListZoneTypes)
+
+		router.GET("/zone/:id", zone.GetZonesByShowDateID)
+		router.PUT("/zone/:id", zone.UpdateZone)
+		router.POST("/zone", zone.AddZone)
+		router.DELETE("/zone/:id",zone.DeleteZone)
 
 	}
 

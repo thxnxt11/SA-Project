@@ -63,10 +63,10 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         onClick: () => navigate("/organizer/concerts"),
       },
       {
-        key: "/organizer/chart",
+        key: "/organizer/seatmanagement",
         icon: <MdEventSeat style={{ fontSize: 20 }} />,
         label: <span title="จัดการผังที่นั่ง">จัดการผังที่นั่ง</span>,
-        onClick: () => navigate("/organizer/chart"),
+        onClick: () => navigate("/organizer/seatmanagement"),
       },
       {
         key: "/organizer/promotion",
