@@ -31,7 +31,7 @@ type ShowDatePick = { id?: number; ID?: number; show_date?: string; ShowDate?: s
 type Option = { value: number; label: string };
 
 export default function ZoneBrowser() {
-  const [userId, setUserId] = useState<string>("");
+  const [, setUserId] = useState<string>("");
   const [concerts, setConcerts] = useState<ConcertPick[]>([]);
   const [concertId, setConcertId] = useState<number>();
   const [showdates, setShowdates] = useState<ShowDatePick[]>([]);
