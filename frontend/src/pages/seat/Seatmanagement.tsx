@@ -1,15 +1,15 @@
 // src/pages/zones/ZoneBrowser.tsx
-import React, { useEffect, useMemo, useState } from "react";
-import { Card, Col, Row, Select, Space, Table, Modal, Button, message } from "antd";
-import axios from "axios";
-
-import { Seat } from "../../services/https/seat";
-import { venueoption } from "../../services/https/concert";
-import type { ZoneInterface } from "../../interface/zone";
+import { useEffect, useMemo, useState } from "react";
+import { Card, Col, Row, Select, Space, Table, Modal, Button, message, Form } from "antd";
 import SidebarLayout from "../../component/layout/SidebarLayout";
+import type { ZoneInterface } from "../../interface/zone";
+import { Seat, Get } from "../../services/https/seat";
+import { venueoption } from "../../services/https/concert";
 
-// ⬇️ you'll need this form file from earlier (or your own)
 import AddZoneForm from "./add/seat";
+import EditZoneForm from "./edit/seat";
+
+const API_ORG = "http://localhost:8000/organizer";
 
 const normalizeId = (x: any) => x?.id ?? x?.ID;
 
@@ -30,30 +30,28 @@ type ConcertPick = { id?: number; ID?: number; concert_name?: string; ConcertNam
 type ShowDatePick = { id?: number; ID?: number; show_date?: string; ShowDate?: string };
 type Option = { value: number; label: string };
 
-const API_ORG = "http://localhost:8000/organizer";
-
-const ZoneBrowser: React.FC = () => {
+export default function ZoneBrowser() {
   const [userId, setUserId] = useState<string>("");
   const [concerts, setConcerts] = useState<ConcertPick[]>([]);
-  const [concertId, setConcertId] = useState<number | undefined>();
-
+  const [concertId, setConcertId] = useState<number>();
   const [showdates, setShowdates] = useState<ShowDatePick[]>([]);
-  const [showdateId, setShowdateId] = useState<number | undefined>();
-
+  const [showdateId, setShowdateId] = useState<number>();
   const [zones, setZones] = useState<ZoneInterface[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // add modal state + picklists
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingZone, setEditingZone] = useState<ZoneInterface | null>(null);
+
   const [zoneTypeOptions, setZoneTypeOptions] = useState<Option[]>([]);
   const [venueOptions, setVenueOptions] = useState<Option[]>([]);
+  const [editForm] = Form.useForm();
 
-  // read user_id once and auto-load concerts
   useEffect(() => {
     const uid = localStorage.getItem("user_id") ?? localStorage.getItem("id") ?? "";
     if (uid) {
       setUserId(uid);
-      onLoadConcerts(uid);
+      fetchConcerts(uid);
     }
   }, []);
 
@@ -61,8 +59,7 @@ const ZoneBrowser: React.FC = () => {
     () =>
       concerts.map((c) => {
         const id = normalizeId(c);
-        const label = c.concert_name ?? c.ConcertName ?? `Concert #${id ?? ""}`;
-        return { value: id, label };
+        return { value: id, label: c.concert_name ?? c.ConcertName ?? `Concert #${id}` };
       }),
     [concerts]
   );
@@ -71,205 +68,179 @@ const ZoneBrowser: React.FC = () => {
     () =>
       showdates.map((s) => {
         const id = normalizeId(s);
-        const iso = s.show_date ?? s.ShowDate;
-        return { value: id, label: fmtDate(iso) };
+        return { value: id, label: fmtDate(s.show_date ?? s.ShowDate) };
       }),
     [showdates]
   );
 
-  const onLoadConcerts = async (uidOverride?: string) => {
-    const uid = uidOverride ?? userId;
-    if (!uid) return;
-
+  const fetchConcerts = async (uid: string) => {
     try {
       setLoading(true);
       const rows = await Seat.getconbyuser(uid);
       setConcerts(Array.isArray(rows) ? rows : []);
-      // reset downstream
-      setConcertId(undefined);
-      setShowdates([]);
-      setShowdateId(undefined);
-      setZones([]);
     } catch (e: any) {
-      console.error(e);
       message.error(e?.message || "Load concerts failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const onConcertChange = async (cidRaw: number | string | null) => {
-    const cid = cidRaw ? Number(cidRaw) : undefined;
-    setConcertId(cid);
-    setShowdates([]);
-    setShowdateId(undefined);
-    setZones([]);
-    if (!cid) return;
+  const fetchShowdates = async (cid: number) => {
     try {
       setLoading(true);
       const rows = await Seat.getshowbycon(cid);
       setShowdates(Array.isArray(rows) ? rows : []);
     } catch (e: any) {
-      console.error(e);
       message.error(e?.message || "Load showdates failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // single place to fetch zones (GET by showdate id)
-  const fetchZones = async (sid?: number, cid?: number) => {
-    const finalSid = sid ?? showdateId;
-    const finalCid = cid ?? concertId;
-    if (!finalSid || !finalCid) {
-      setZones([]);
-      return;
-    }
+  const fetchZones = async (sid: number) => {
     try {
       setLoading(true);
-      const rows = await Seat.getzonebyshow(finalSid);
+      const rows = await Seat.getzonebyshow(sid);
       setZones(Array.isArray(rows) ? rows : []);
     } catch (e: any) {
-      console.error(e);
       message.error(e?.message || "Load zones failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const onShowdateChange = (sidRaw: number | string | null) => {
-    const sid = sidRaw ? Number(sidRaw) : undefined;
-    setShowdateId(sid);
-    if (sid && concertId) fetchZones(sid, concertId);
+  const fetchPicklists = async () => {
+    const venues = await venueoption();
+    const vOpts: Option[] = (venues || []).map((v: any) => ({
+      value: v.value ?? v.id ?? v.ID ?? Number(v.venue_id),
+      label: v.label ?? v.venue_name,
+    }));
+    setVenueOptions(vOpts);
+
+    const zt = await Get(`${API_ORG}/zonetype`);
+    const zRows = zt?.data || [];
+    const ztOpts: Option[] = (zRows || []).map((z: any) => ({
+      value: z.id ?? z.ID,
+      label: z.zone_type,
+    }));
+    setZoneTypeOptions(ztOpts);
   };
-
-  useEffect(() => {
-    fetchZones();
-  }, [concertId, showdateId]);
-
-  // --- Actions ---
-  const onEditZone = (zone: ZoneInterface) => {
-    console.log("edit zone clicked:", zone);
-  };
-
-  const handleDeleteZone = (zoneId: number) =>
-    Modal.confirm({
-      title: "Are you sure you want to delete this zone?",
-      content: "After deleting, this action cannot be undone.",
-      okText: "Delete",
-      okType: "danger",
-      cancelText: "Cancel",
-      onOk: async () => {
-        try {
-          // Seat.delete should point to DELETE /organizer/zone/:id
-          await Seat.delete(zoneId);
-          message.success("Delete successful");
-          await fetchZones();
-        } catch (e: any) {
-          console.error(e);
-          message.error(e?.message || "Delete unsuccessful");
-        }
-      },
-    });
-
 
   const openAdd = async () => {
     if (!showdateId) {
       message.warning("Select a showdate first");
       return;
     }
-    try {
-      setLoading(true);
-
-      const zt = await axios.get(`${API_ORG}/zonetype`);
-      const ztOpts: Option[] = Array.isArray(zt.data)
-        ? zt.data.map((z: any) => ({ value: z.id ?? z.ID, label: z.zone_type }))
-        : [];
-      setZoneTypeOptions(ztOpts);
-
-
-      const venues = await venueoption();
-      const vOpts: Option[] = Array.isArray(venues)
-        ? venues.map((v: any) => ({
-            value: v.value ?? v.id ?? v.ID ?? Number(v.venue_id),
-            label: v.label ?? v.venue_name,
-          }))
-        : [];
-      setVenueOptions(vOpts);
-
-      setIsAddOpen(true);
-    } catch (e: any) {
-      console.error(e);
-      message.error(e?.message || "Load picklists failed");
-    } finally {
-      setLoading(false);
-    }
+    await fetchPicklists();
+    setIsAddOpen(true);
   };
 
-  // 🔹 create zone (seat_sold / pending_hold = 0, showdate_id from selection)
   const handleAddZone = async (values: any) => {
-    if (!showdateId) {
-      message.error("Missing showdate_id (select showdate first)");
-      return;
-    }
-
-    const payload = {
-      showdate_id: Number(showdateId),
-      venue_id: Number(values.venue_id),
-      zonetype_id: Number(values.zonetype_id),
-      zone_name: values.zone_name,
-      zone_price: values.zone_price != null ? Number(values.zone_price) : undefined,
-      capacity: values.capacity != null ? Number(values.capacity) : undefined,
-      seat_sold: 0,
-      pending_hold: 0,
-    } as const;
-
     try {
-      // Seat.add must call POST /organizer/zone with these fields
-      const created = await Seat.add(payload);
-      const newId = created?.ID ?? created?.id;
-      if (!newId) {
-        message.warning("Zone created but no ID returned");
-      } else {
-        message.success("Zone created");
-      }
+      await Seat.add(values);
+      message.success("Zone created");
       setIsAddOpen(false);
-      await fetchZones();
+      if (showdateId) fetchZones(showdateId);
     } catch (e: any) {
-      console.error("Create failed:", e);
       message.error(e?.message || "Create failed");
     }
   };
 
+  const openEdit = async (zone: ZoneInterface) => {
+    await fetchPicklists();
+    setEditingZone(zone);
+    editForm.setFieldsValue({
+      
+      venue_id: (zone as any).venue_id ?? (zone as any).venue?.id,
+      zonetype_id: (zone as any).zonetype_id,
+      zone_name: (zone as any).zone_name,
+      zone_price: (zone as any).zone_price ?? (zone as any).zonePrice,
+      capacity: (zone as any).capacity,
+    });
+    setIsEditOpen(true);
+  };
+
+const handleSaveEdit = async () => {
+  try {
+    if (!showdateId) {
+      message.error("Select a showdate first");
+      return;
+    }
+
+    const values = await editForm.validateFields();
+    const id = editingZone ? Number(normalizeId(editingZone)) : undefined;
+    if (!id) return;
+
+    const payload = {
+      showdate_id: Number(showdateId),                  
+      venue_id: Number(values.venue_id),
+      zonetype_id: Number(values.zonetype_id),
+      zone_name: String(values.zone_name).trim(),     
+      zone_price: values.zone_price != null ? Number(values.zone_price) : undefined,
+      capacity: values.capacity != null ? Number(values.capacity) : undefined,
+      ...(values.seat_sold != null ? { seat_sold: Number(values.seat_sold) } : {}),
+      ...(values.pending_hold != null ? { pending_hold: Number(values.pending_hold) } : {}),
+    };
+
+    await Seat.update(id, payload);
+    message.success("Zone updated");
+    setIsEditOpen(false);
+    setEditingZone(null);
+    await fetchZones(Number(showdateId));
+  } catch (e: any) {
+    if (!e?.errorFields) message.error(e?.message || "Update failed");
+  }
+};
+
+  const handleDelete = (zoneId: number) =>
+    Modal.confirm({
+      title: "Delete zone?",
+      content: "This action cannot be undone.",
+      okText: "Delete",
+      okType: "danger",
+      onOk: async () => {
+        try {
+          await Seat.delete(zoneId);
+          message.success("Zone deleted");
+          if (showdateId) fetchZones(showdateId);
+        } catch (e: any) {
+          message.error(e?.message || "Delete failed");
+        }
+      },
+    });
+
+  const nf = new Intl.NumberFormat(); // simple number fmt
+
   const columns = [
     { title: "ID", key: "ID", render: (_: any, r: ZoneInterface) => normalizeId(r), width: 90 },
-    { title: "ShowDateID", dataIndex: "showdate_id", key: "showdate_id" },
+    { title: "ShowDateID", dataIndex: "showdate_id", key: "showdate_id", width: 110 },
     { title: "Zone Name", dataIndex: "zone_name", key: "zone_name" },
-    {
-      title: "Zone Type",
-      key: "zone_type",
-      render: (_: any, r: ZoneInterface) =>
-        r.zone_type?.zone_type ??
-        (r as any).ZoneType?.zone_type ??
-        `#${(r as any).zonetype_id ?? "—"}`,
-    },
-    { title: "Zone Type ID", dataIndex: "zonetype_id", key: "zonetype_id" },
-    {
-      title: "Price",
-      key: "zone_price",
-      render: (_: any, r: ZoneInterface) =>
-        (r as any).zone_price ?? (r as any).zonePrice ?? "—",
-    },
-    { title: "Capacity", dataIndex: "capacity", key: "capacity" },
-    { title: "Sold", dataIndex: "seat_sold", key: "seat_sold" },
-    { title: "Pending", dataIndex: "pending_hold", key: "pending_hold" },
     {
       title: "Venue",
       key: "venue",
       render: (_: any, r: ZoneInterface) =>
         (r as any).venue?.venue_name ??
-        `#${(r as any).venue_id ?? normalizeId((r as any).venue) ?? "—"}`,
+        `#${(r as any).venue_id ?? (r as any).venue?.id ?? "—"}`,
     },
+    {
+      title: "Zone Type",
+      key: "zone_type",
+      render: (_: any, r: ZoneInterface) =>
+        (r as any).zone_type?.zone_type ??
+        (r as any).ZoneType?.zone_type ??
+        `#${(r as any).zonetype_id ?? "—"}`,
+    },
+    {
+      title: "Zone Price",
+      key: "zone_price",
+      render: (_: any, r: ZoneInterface) => {
+        const p = (r as any).zone_price ?? (r as any).zonePrice;
+        return p != null ? nf.format(Number(p)) : "—";
+      },
+    },
+    { title: "Capacity", dataIndex: "capacity", key: "capacity", render: (v: any) => (v != null ? nf.format(v) : "—") },
+    { title: "Sold", dataIndex: "seat_sold", key: "seat_sold", render: (v: any) => (v != null ? nf.format(v) : 0) },
+    { title: "Pending", dataIndex: "pending_hold", key: "pending_hold", render: (v: any) => (v != null ? nf.format(v) : 0) },
     {
       title: "Actions",
       key: "actions",
@@ -278,12 +249,8 @@ const ZoneBrowser: React.FC = () => {
         const id = normalizeId(r);
         return (
           <Space>
-            <Button size="small" onClick={() => onEditZone(r)}>
-              Edit
-            </Button>
-            <Button danger size="small" onClick={() => id && handleDeleteZone(Number(id))}>
-              Delete
-            </Button>
+            <Button size="small" onClick={() => openEdit(r)}>Edit</Button>
+            <Button danger size="small" onClick={() => handleDelete(Number(id))}>Delete</Button>
           </Space>
         );
       },
@@ -293,35 +260,37 @@ const ZoneBrowser: React.FC = () => {
   return (
     <SidebarLayout>
       <Card>
-        <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
+        <Row justify="space-between" style={{ marginBottom: 12 }}>
           <Col>
-            <Space wrap>
+            <Space>
               <Select
                 style={{ minWidth: 240 }}
-                placeholder="Select concert (by user)"
+                placeholder="Select concert"
                 options={concertOptions}
-                value={concertId ?? null}
-                onChange={onConcertChange}
-                disabled={!userId || loading}
-                allowClear
+                value={concertId}
+                onChange={(cid) => {
+                  setConcertId(Number(cid));
+                  setShowdateId(undefined);
+                  setZones([]);
+                  fetchShowdates(Number(cid));
+                }}
               />
-
               <Select
                 style={{ minWidth: 220 }}
                 placeholder="Select showdate"
                 options={showdateOptions}
-                value={showdateId ?? null}
-                onChange={onShowdateChange}
-                disabled={!concertId || loading}
-                allowClear
+                value={showdateId}
+                onChange={(sid) => {
+                  setShowdateId(Number(sid));
+                  fetchZones(Number(sid));
+                }}
+                disabled={!concertId}
               />
             </Space>
           </Col>
-
-          {/* ➕ Add button (top-right) */}
           <Col>
-            <Button type="primary" onClick={openAdd} disabled={!showdateId} loading={loading}>
-              Add
+            <Button type="primary" onClick={openAdd} disabled={!showdateId}>
+              Add Zone
             </Button>
           </Col>
         </Row>
@@ -336,23 +305,32 @@ const ZoneBrowser: React.FC = () => {
         />
       </Card>
 
-      {/* Add Zone Modal */}
+      <Modal open={isAddOpen} onCancel={() => setIsAddOpen(false)} footer={null} destroyOnClose>
+        <AddZoneForm
+          showdateId={showdateId!}
+          venueOptions={venueOptions}
+          zoneTypeOptions={zoneTypeOptions}
+          onFinish={handleAddZone}
+        />
+      </Modal>
+
       <Modal
-        title="Add Zone"
-        open={isAddOpen}
-        onCancel={() => setIsAddOpen(false)}
-        footer={null}
+        open={isEditOpen}
+        onCancel={() => {
+          setIsEditOpen(false);
+          setEditingZone(null);
+        }}
+        onOk={handleSaveEdit}
+        okText="Save"
         destroyOnHidden
       >
-        <AddZoneForm
-          showdateId={Number(showdateId)}
-          zoneTypeOptions={zoneTypeOptions}
+        <EditZoneForm
+          form={editForm}
           venueOptions={venueOptions}
-          onFinish={handleAddZone}
+          zoneTypeOptions={zoneTypeOptions}
+          initialValues={editingZone ?? undefined}
         />
       </Modal>
     </SidebarLayout>
   );
-};
-
-export default ZoneBrowser;
+}

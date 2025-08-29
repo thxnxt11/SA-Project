@@ -1,47 +1,31 @@
-// src/pages/zones/AddZoneForm.tsx
+// src/pages/zones/EditZoneForm.tsx
 import React from "react";
-import { Form, Input, InputNumber, Select, Button } from "antd";
+import { Form, Input, InputNumber, Select } from "antd";
+import type { ZoneInterface } from "../../../interface/zone";
 
-type Option = { value: number; label: string };
+type Option = { value: number | string; label: string };
 
-interface AddZoneFormProps {
-  // selected showdate from your ZoneBrowser (required)
-  showdateId: number;
+export interface EditZoneFormProps {
+  venueOptions: Option[];
+  zoneTypeOptions: Option[];
+  initialValues?: Partial<ZoneInterface>;
 
-  // options you fetch in parent (e.g. /organizer/zonetype and /organizer/venues/option)
-  zoneTypeOptions?: Option[];
-  venueOptions?: Option[];
-
-  // optional defaults
-  initialValues?: {
-    venue_id?: number;
-    zonetype_id?: number;
-    zone_name?: string;
-    zone_price?: number;
-    capacity?: number;
-  };
-
-  // parent will do the POST to /organizer/zone
-  onFinish: (values: any) => void;
+  form: ReturnType<typeof Form.useForm>[0];
 }
 
-const AddZoneForm: React.FC<AddZoneFormProps> = ({
-  showdateId,
-  zoneTypeOptions = [],
-  venueOptions = [],
+const EditZoneForm: React.FC<EditZoneFormProps> = ({
+  venueOptions,
+  zoneTypeOptions,
   initialValues,
-  onFinish,
+  form,
 }) => {
-  const [form] = Form.useForm();
 
-  const handleSubmit = (values: any) => {
-    const payload = {
-      ...values,
-      showdate_id: showdateId, // <- injected here
-      seat_sold: 0,
-      pending_hold: 0,
-    };
-    onFinish(payload);
+  const formInitial = {
+    ...initialValues,
+    venue_id:
+      (initialValues as any)?.venue_id ??
+      (initialValues as any)?.venue?.id ??
+      undefined,
   };
 
   return (
@@ -49,8 +33,7 @@ const AddZoneForm: React.FC<AddZoneFormProps> = ({
       layout="vertical"
       form={form}
       requiredMark={false}
-      onFinish={handleSubmit}
-      initialValues={initialValues}
+      initialValues={formInitial}
     >
       <Form.Item
         label="Venue"
@@ -101,14 +84,8 @@ const AddZoneForm: React.FC<AddZoneFormProps> = ({
       >
         <InputNumber style={{ width: "100%" }} min={0} />
       </Form.Item>
-
-      <Form.Item>
-        <Button type="primary" htmlType="submit" block>
-          Add Zone
-        </Button>
-      </Form.Item>
     </Form>
   );
 };
 
-export default AddZoneForm;
+export default EditZoneForm;

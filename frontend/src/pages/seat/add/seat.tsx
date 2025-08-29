@@ -1,34 +1,28 @@
 // src/pages/zones/AddZoneForm.tsx
 import React from "react";
 import { Form, Input, InputNumber, Select, Button } from "antd";
+import type { ZoneInterface } from "../../../interface/zone";
 
-type Option = { value: number; label: string };
+type Option = { value: number | string; label: string };
 
 interface AddZoneFormProps {
-  // selected showdate from your ZoneBrowser (required)
-  showdateId: number;
+
+  showdateId: number | string;
 
 
-  zoneTypeOptions?: Option[];
-  venueOptions?: Option[];
+  venueOptions: Option[];
+  zoneTypeOptions: Option[];
 
-  // optional defaults
-  initialValues?: {
-    venue_id?: number;
-    zonetype_id?: number;
-    zone_name?: string;
-    zone_price?: number;
-    capacity?: number;
-  };
+  initialValues?: Partial<ZoneInterface>;
 
-  // parent will do the POST to /organizer/zone
+
   onFinish: (values: any) => void;
 }
 
 const AddZoneForm: React.FC<AddZoneFormProps> = ({
   showdateId,
-  zoneTypeOptions = [],
-  venueOptions = [],
+  venueOptions,
+  zoneTypeOptions,
   initialValues,
   onFinish,
 }) => {
@@ -37,9 +31,9 @@ const AddZoneForm: React.FC<AddZoneFormProps> = ({
   const handleSubmit = (values: any) => {
     const payload = {
       ...values,
-      showdate_id: showdateId, // <- injected here
-      seat_sold: 0,
-      pending_hold: 0,
+      showdate_id: showdateId,        // inject showdateId
+      seat_sold: values?.seat_sold ?? 0,
+      pending_hold: values?.pending_hold ?? 0,
     };
     onFinish(payload);
   };
@@ -104,7 +98,7 @@ const AddZoneForm: React.FC<AddZoneFormProps> = ({
 
       <Form.Item>
         <Button type="primary" htmlType="submit" block>
-          Sumit
+          Add Zone
         </Button>
       </Form.Item>
     </Form>
