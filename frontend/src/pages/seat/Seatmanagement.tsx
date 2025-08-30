@@ -48,7 +48,9 @@ export default function ZoneBrowser() {
   const [editForm] = Form.useForm();
 
   useEffect(() => {
-    const uid = localStorage.getItem("user_id") ?? localStorage.getItem("id") ?? "";
+    const uStr = localStorage.getItem("user") ?? localStorage.getItem("User");
+    const user = uStr ? JSON.parse(uStr) : null;
+    const uid = user.user_id
     if (uid) {
       setUserId(uid);
       fetchConcerts(uid);

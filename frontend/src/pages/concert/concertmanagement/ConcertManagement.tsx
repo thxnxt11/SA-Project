@@ -48,7 +48,7 @@ const fetchConcerts = async () => {
     setConcerts(Array.isArray(rows) ? rows : []);
   } catch (e: any) {
     console.error(e);
-    message.error("โหลดรายชื่อคอนเสิร์ตไม่สำเร็จ");
+    message.error("cant load concerts list :(");
     setConcerts([]);
   } finally {
     setLoading(false);
@@ -142,8 +142,11 @@ const handleDelete = (id: number) =>
 
   const handleAddconcert = async (values: any) => {
   // user_id
-  const uidStr = localStorage.getItem("user_id") ?? localStorage.getItem("id");
-  const user_id = uidStr ? Number(uidStr) : undefined;
+  const uStr = localStorage.getItem("user") ?? localStorage.getItem("User");
+  const user = uStr ? JSON.parse(uStr) : null;
+  const uid = user.user_id
+  console.log("user_id =  ",uid);
+  const user_id = uid ? Number(uid) : undefined;
   if (!user_id) {
     message.error("Missing user_id (please sign in again)");
     return;
