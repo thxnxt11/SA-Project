@@ -1,7 +1,8 @@
 // src/pages/zones/AddZoneForm.tsx
 import React from "react";
-import { Form, Input, InputNumber, Select, Button } from "antd";
+import { Form, Input, InputNumber, Select, Button, Modal } from "antd";
 import type { ZoneInterface } from "../../../interface/zone";
+import { useEffect } from "react";
 
 type Option = { value: number | string; label: string };
 
@@ -37,6 +38,21 @@ const AddZoneForm: React.FC<AddZoneFormProps> = ({
     };
     onFinish(payload);
   };
+
+  const zonetime = Form.useWatch("zonetype_id", form);// if zonetype = seat set capactiy = 0
+    useEffect(() => {
+    if (zonetime === 2) {
+      form.setFieldsValue({ capacity: 0 });
+      Modal.warning({
+        title : "you select zone type = seat",
+        content : "if you select zone type as seat you can manage later using thrid button count from left",
+        okText : "ok"
+      })
+      
+    }
+    }, [zonetime, form]);
+
+
 
   return (
     <Form
@@ -87,13 +103,14 @@ const AddZoneForm: React.FC<AddZoneFormProps> = ({
       >
         <InputNumber style={{ width: "100%" }} min={0} />
       </Form.Item>
-
+      
       <Form.Item
         label="Capacity"
         name="capacity"
-        rules={[{ required: true, message: "capacity is required" }]}
+      
+        rules={[{ required: true, message: "capacity is required" },]}
       >
-        <InputNumber style={{ width: "100%" }} min={0} />
+        <InputNumber style={{ width: "100%" }} min={0} disabled = {zonetime === 2} />
       </Form.Item>
 
       <Form.Item>

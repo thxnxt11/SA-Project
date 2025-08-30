@@ -209,7 +209,8 @@ const handleSaveEdit = async () => {
       },
     });
 
-  const nf = new Intl.NumberFormat(); // simple number fmt
+  const nf = new Intl.NumberFormat(); 
+  const zonetime = Form.useWatch("zonetype_id");
 
   const columns = [
     { title: "ID", key: "ID", render: (_: any, r: ZoneInterface) => normalizeId(r), width: 90 },
@@ -251,6 +252,7 @@ const handleSaveEdit = async () => {
           <Space>
             <Button size="small" onClick={() => openEdit(r)}>Edit</Button>
             <Button danger size="small" onClick={() => handleDelete(Number(id))}>Delete</Button>
+            <Button danger size="small" disabled = {zonetime === 2}>seat</Button>
           </Space>
         );
       },
@@ -331,6 +333,8 @@ const handleSaveEdit = async () => {
           initialValues={editingZone ?? undefined}
         />
       </Modal>
+
+      
     </SidebarLayout>
   );
 }
