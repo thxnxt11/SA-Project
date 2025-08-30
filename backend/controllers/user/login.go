@@ -94,6 +94,8 @@ func SignIn(c *gin.Context) {
 	var user entity.User
 	if err := connection.DB().
 		Preload("Role").
+		Preload("Department").
+		Preload("Position").
 		Where("email = ?", payload.Email).
 		First(&user).Error; err != nil {
 
@@ -111,13 +113,42 @@ func SignIn(c *gin.Context) {
 		return
 	}
 
+	var deptID *uint
+	if user.DepartmentID != 0 {
+		deptID = &user.DepartmentID
+	}
+
+	var posID *uint
+	if user.PositionID != 0 {
+		posID = &user.PositionID
+	}
+
+	var deptName *string
+	if user.Department != nil && user.Department.Department != "" {
+		deptName = &user.Department.Department
+	}
+
+	var posName *string
+	if user.Position != nil && user.Position.Position != "" {
+		posName = &user.Position.Position
+	}
 	// issue JWT
 	jwtWrapper := services.JwtWrapper{
 		SecretKey:       "SvNQpBN8y3qlVrsGAYYWoJJk56LtzFHx",
 		Issuer:          "AuthService",
 		ExpirationHours: 24,
 	}
-	token, err := jwtWrapper.GenerateToken(user.Email, user.FirstName, user.LastName, user.ID, user.Phonenum)
+	token, err := jwtWrapper.GenerateToken(
+		user.Email,
+		user.FirstName,
+		user.LastName,
+		user.ID,
+		deptID,   
+		deptName, 
+		posID,    
+		posName,  
+		user.Phonenum,    
+	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error signing token"})
 		return
@@ -128,6 +159,14 @@ func SignIn(c *gin.Context) {
 	if user.Role != nil {
 		roleName = user.Role.Role
 	}
+	deptNameStr := ""
+	if user.Department != nil {
+		deptNameStr = user.Department.Department
+	}
+	posNameStr := ""
+	if user.Position != nil {
+		posNameStr = user.Position.Position
+	}
 
 	// Create user object without sensitive data
 	userResponse := gin.H{
@@ -135,6 +174,10 @@ func SignIn(c *gin.Context) {
 		"email":     user.Email,
 		"firstname": user.FirstName, // assuming these fields exist
 		"lastname":  user.LastName,  // assuming these fields exist
+		"department_id": user.DepartmentID,
+		"department": deptNameStr,
+		"position_id": user.PositionID,
+		"position": posNameStr,
 		"phonenum":  user.Phonenum,
 		"role":      roleName,
 		"role_id":   user.RoleID,

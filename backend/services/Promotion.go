@@ -17,15 +17,15 @@ type PromotionService struct {
 
 type ValidatePromotionInput struct {
     Code      string `json:"code" binding:"required"`        // รหัสโปรโมชั่นที่ผู้ใช้กรอก
-    Target    string `json:"target" binding:"required"`      // "ticket" | "product"
+    Target    string `json:"target" binding:"required"`      // "ticket" | "product" สำหรับเช็คว่า code ที่กรอกมาใช้กับคอนเสิร์ตได้หรือไม่
     ConcertID uint   `json:"concert_id,omitempty"`           // ถ้าใช้กับคอนเสิร์ต ให้ส่งมาด้วย
 }
 
 type ValidatePromotionResult struct {
     PromotionID     uint   `json:"promotion_id"`
     Code            string `json:"code"`
-    Type            string `json:"type"`              // "code" | "concert"
-    DiscountPercent int    `json:"discount_percent"`  // จาก Promotion.Discount
+    Type            string `json:"type"`              
+    DiscountPercent int    `json:"discount_percent"`  
     AppliesTo       string `json:"applies_to"`        // "product" | "ticket,product"
     ConcertID       uint   `json:"concert_id,omitempty"`
     Name            string `json:"promotion_name"`

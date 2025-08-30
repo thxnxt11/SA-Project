@@ -164,6 +164,7 @@ const BookingDetail: React.FC = () => {
     const bookingInfo = {
       showDate,
       showTime,
+      show:showDate+ " "+showTime,
       zone: zone,
       seatNo: seatNo,
       quantity: quantity,

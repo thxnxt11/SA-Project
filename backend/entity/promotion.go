@@ -17,7 +17,7 @@ type Promotion struct {
 	StartDate time.Time `json:"start_date"`
 	EndDate   time.Time `json:"end_date"`
 	Limit int `json:"limit"`
-	UsedCount int `json:"used_count"`
+	UsedCount int `gorm:"default:0" json:"used_count"`
 	Status string `gorm:"type:text" json:"promotion_status"` //ENUM('active', 'inactive')
 	UserID uint `json:"user_id"`
 	User *User `gorm:"foreignKey:UserID;references:ID" json:"created_by"`

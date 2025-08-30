@@ -12,6 +12,7 @@ import Payment from "../pages/payment";
 
 import RequireAuth from "../hook/RequireAuth";
 import PublicRoute from "./publicRoutes";
+import ETicketCard from "../pages/e-ticket";
 
 export default function MemberRoutes() {
   return (
@@ -71,6 +72,14 @@ export default function MemberRoutes() {
           </RequireAuth>
         }
       />
+      {/* <Route
+        path="/e-ticket/:uuid"
+        element={
+          <RequireAuth>
+            <ETicketCard />
+          </RequireAuth>
+        }
+      /> */}
 
       {/* 404 fallback for public */}
       <Route path="*" element={<Navigate to="/concerts" replace />} />

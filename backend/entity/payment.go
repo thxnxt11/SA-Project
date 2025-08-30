@@ -8,7 +8,7 @@ import (
 
 type Payment struct {
 	gorm.Model
-	BookingID uint `json:"booking_id"`
+	BookingID uint `gorm:"uniqueIndex" json:"booking_id"`
 	Booking *Booking `gorm:"foreignKey:BookingID" json:"booking"`
 	PromotionID uint `json:"promotion_id"`
 	Promotion *Promotion `gorm:"foreignKey:PromotionID" json:"promotion"`

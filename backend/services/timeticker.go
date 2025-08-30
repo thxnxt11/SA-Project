@@ -1,4 +1,3 @@
-// services/booking_worker.go
 package services
 
 import (

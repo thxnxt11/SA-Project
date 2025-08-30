@@ -41,10 +41,9 @@ const formatDateLong = (iso?: string): string => {
     .toUpperCase();
 };
 
-// คำนวณจำนวนที่นั่งว่างตาม service package
-// คำนวณจำนวนที่นั่งว่างตาม service package ที่อัพเดทแล้ว
+// คำนวณจำนวนที่นั่งว่างตาม service 
 const calcAvailableSeats = (zone: ZoneInterface): number => {
-  // ใช้ available_count ที่ส่งมาจาก backend โดยตรง (ทุกโซนจะมีค่านี้แล้ว)
+  // ใช้ available_count ที่ส่งมาจาก backend โดยตรง 
   if (typeof zone.available_count === "number") {
     return zone.available_count;
   }
@@ -66,7 +65,6 @@ const calcAvailableSeats = (zone: ZoneInterface): number => {
 const zonePriceNumber = (z: ZoneInterface): number => Number(z.zone_price ?? 0);
 
 const zoneNameText = (z: ZoneInterface): string => {
-  // ลองดึงจากหลายๆ field ที่เป็นไปได้
   if (z.zone_name) return z.zone_name;
   return "Zone";
 };

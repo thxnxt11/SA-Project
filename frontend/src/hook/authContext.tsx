@@ -24,7 +24,7 @@ type LoginResult = {
 type AuthContextType = {
   user: User | null;
   token: string | null;
-  authReady: boolean; // ✅ บอกว่า hydrate เสร็จหรือยัง
+  authReady: boolean; // 
   login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
 };

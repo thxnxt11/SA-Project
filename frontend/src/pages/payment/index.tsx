@@ -26,7 +26,9 @@ import { UploadModal } from "./upload";
 import Loader from "../../component/loader/loader";
 import { paymentAPI, uploadAPI } from "../../services/https";
 import BankAccountModal from "../../component/payment/BankAccountModal";
+import ETicketSuccess from "../e-ticket";
 
+// Types
 const { Title, Text } = Typography;
 
 interface RefundType {
@@ -37,19 +39,34 @@ interface RefundType {
 
 interface PaymentMethod {
   id: number;
-  payment_method: string; // e.g. "PromptPay", "Bank Transfer", "TrueMoney"
+  payment_method: string;
   account_name?: string;
   account_number?: string;
   bank_name?: string;
 }
 
+interface Ticket {
+  uuid: string;
+  concertName: string;
+  venueName: string;
+  showTimeISO: string;
+  bookingCode: string;
+  zoneType: string;
+  zone: string;
+  seatLabel?: string;
+  queueNo?: number;
+  priceTHB: number;
+  buyerName: string;
+}
+
 const Payment: React.FC = () => {
+  // ── Routing state
   const location = useLocation();
   const navigate = useNavigate();
-
   const {
     showDate,
     showTime,
+    show,
     zone,
     seatNo,
     quantity,
@@ -60,14 +77,12 @@ const Payment: React.FC = () => {
   } = (location.state as any) || {};
 
   useEffect(() => {
-    if (!location.state) {
-      navigate("/concerts", { replace: true });
-    }
+    if (!location.state) navigate("/concerts", { replace: true });
   }, [location.state, navigate]);
 
-  // ===== Fetch data from backend =====
   const [refundTypes, setRefundTypes] = useState<RefundType[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  // ── Selections
   const [selectedRefundTypeId, setSelectedRefundTypeId] = useState<
     number | null
   >(null);
@@ -75,21 +90,63 @@ const Payment: React.FC = () => {
     number | null
   >(null);
 
+  const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [isQRModalVisible, setQRModalVisible] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
+  const [showETicketSuccess, setShowETicketSuccess] = useState(false);
+  const [ticketsData, setTicketsData] = useState<Ticket[]>([]);
+  // ── Loading flags
+  const [loadingPayment, setLoadingPayment] = useState(false);
+  const [loadingUpload, setLoadingUpload] = useState(false);
+
+  const [paymentId, setPaymentId] = useState<number | null>(null);
+
+  const mockTickets: Ticket[] = [
+    {
+      uuid: "mock-uuid-1",
+      concertName: "2025 aespa LIVE TOUR - SYNK : aeXIS LINE - in BANGKOK",
+      venueName: "Impact Arena",
+      showTimeISO: show,
+      bookingCode: String(bookingId ?? "XXXXX"),
+      zoneType: seatNo ? "SEAT" : "STANDING",
+      zone: zone || "ZONE E",
+      seatLabel: "E10",
+      priceTHB: unitPrice ?? 6500,
+      buyerName: "John Doe",
+    },
+    {
+      uuid: "mock-uuid-2",
+      concertName: "2025 aespa LIVE TOUR - SYNK : aeXIS LINE - in BANGKOK",
+      venueName: "Impact Arena",
+      showTimeISO: show,
+      bookingCode: String(bookingId ?? "XXXXX"),
+      zoneType: seatNo ? "SEAT" : "STANDING",
+      zone: zone || "ZONE E",
+      seatLabel: "E11",
+      priceTHB: unitPrice ?? 6500,
+      buyerName: "John Doe",
+    },
+  ];
+  useEffect(() => {
+    console.log("Received state from book:", location.state);
+  }, []);
   useEffect(() => {
     (async () => {
       try {
-        const [rtRes, pmRes] = await Promise.all([
+        const [refundRes, paymethodRes] = await Promise.all([
           paymentAPI.getAllRefundTypes(),
           paymentAPI.getAllPaymentMethods(),
         ]);
-        if (rtRes?.status === 200 && Array.isArray(rtRes.data)) {
-          setRefundTypes(rtRes.data);
-          if (rtRes.data.length > 0) setSelectedRefundTypeId(rtRes.data[0].id);
+        if (refundRes?.status === 200 && Array.isArray(refundRes.data)) {
+          setRefundTypes(refundRes.data);
+          if (refundRes.data.length > 0)
+            setSelectedRefundTypeId(refundRes.data[0].id);
         }
-        if (pmRes?.status === 200 && Array.isArray(pmRes.data)) {
-          setPaymentMethods(pmRes.data);
-          if (pmRes.data.length > 0)
-            setSelectedPaymentMethodId(pmRes.data[0].id);
+        if (paymethodRes?.status === 200 && Array.isArray(paymethodRes.data)) {
+          setPaymentMethods(paymethodRes.data);
+          if (paymethodRes.data.length > 0)
+            setSelectedPaymentMethodId(paymethodRes.data[0].id);
         }
       } catch (e) {
         console.error(e);
@@ -108,7 +165,6 @@ const Payment: React.FC = () => {
     [paymentMethods, selectedPaymentMethodId]
   );
 
-  // ===== Price =====
   const basePrice = unitPrice ?? 0;
   const qty = quantity ?? 1;
   const discountValue = discount ?? 0;
@@ -119,7 +175,7 @@ const Payment: React.FC = () => {
     [basePrice, qty, discountValue, extraRefundFee]
   );
 
-  // ===== Timer =====
+  // Countdown for payment
   const PAY_TIMELEFT = 600; // 10 mins
   const countdownKey = `booking_start_time_${bookingId ?? "temp"}`;
   const [paymentTimeLeft, setPaymentTimeLeft] = useState(PAY_TIMELEFT);
@@ -156,31 +212,26 @@ const Payment: React.FC = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
-  // ===== Icons helper =====
   const iconForRefundType = (label: string) => {
     const lower = (label || "").toLowerCase();
-    if (lower.includes("non") && lower.includes("refundable"))
+    if (lower.includes("non") && lower.includes("refundable")) {
       return <LuShieldX style={{ fontSize: 40 }} />;
+    }
     return <LuShieldCheck style={{ fontSize: 40 }} />;
   };
 
   const iconForPayment = (name?: string) => {
     const n = (name || "").toLowerCase();
-    if (n.includes("prompt") || n.includes("bank"))
+    if (n.includes("prompt") || n.includes("bank")) {
       return <BankOutlined style={{ fontSize: 40, color: "#1890ff" }} />;
-    if (n.includes("true"))
+    }
+    if (n.includes("true")) {
       return <WalletOutlined style={{ fontSize: 40, color: "#ff4d4f" }} />;
+    }
     return <CreditCardOutlined style={{ fontSize: 40 }} />;
   };
 
-  // ===== UI states for modals =====
-  const [bankModalOpen, setBankModalOpen] = useState(false);
-  const [isQRModalVisible, setQRModalVisible] = useState(false);
-  const [loadingPayment, setLoadingPayment] = useState(false);
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [loadingUpload, setLoadingUpload] = useState(false);
-  const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
-  const [paymentId, setPaymentId] = useState<number | null>(null);
+  // Bank modal data
   const bankInfo = selectedPaymentMethod
     ? {
         id: selectedPaymentMethod.id,
@@ -193,7 +244,8 @@ const Payment: React.FC = () => {
         total_price: totalPrice,
       }
     : null;
-  // ===== Handlers =====
+
+  // Handlers
   const handleConfirmPayment = async () => {
     if (!selectedPaymentMethodId) {
       message.warning("กรุณาเลือกช่องทางการชำระเงิน");
@@ -202,7 +254,6 @@ const Payment: React.FC = () => {
 
     setLoadingPayment(true);
     try {
-      // เตรียม payload ให้ตรงกับ backend createpayment
       const payload = {
         booking_id: bookingId,
         payment_method_id: selectedPaymentMethodId,
@@ -216,9 +267,8 @@ const Payment: React.FC = () => {
 
       const res = await paymentAPI.create(payload);
       const paymentID = res?.data?.payment_id?.ID ?? null;
-
       setPaymentId(paymentID);
-      console.log("payment_id: ", paymentID);
+
       const methodName = (
         selectedPaymentMethod?.payment_method || ""
       ).toLowerCase();
@@ -248,7 +298,6 @@ const Payment: React.FC = () => {
       formData.append("file", file);
       const res = await uploadAPI.upload(formData);
       const url: string = res?.data?.data?.url;
-      console.log("file path: ", url);
       if (!paymentId) {
         message.info("กำลังสร้างรายการชำระเงิน...");
         return;
@@ -257,22 +306,23 @@ const Payment: React.FC = () => {
         message.warning("ยังไม่มีสลิปที่อัปโหลดสำเร็จ");
         return;
       }
-      // 2) update payment receipt
 
+      // 2) update receipt
       await paymentAPI.updateReceipt(paymentId, { receipt_url: url });
 
       message.success("อัปโหลดและอัปเดต Payment Receipt สำเร็จ 🎉");
       setUploadModalOpen(false);
 
-      setShowFullScreenLoader(true);
       setTimeout(() => {
         setShowFullScreenLoader(false);
         localStorage.removeItem(countdownKey);
-        navigate("/e-ticket", {
-          state: { bookingId, showDate, showTime, zone, seatNo, quantity: qty },
-          replace: true,
-        });
+        //   navigate("/e-ticket", {
+        //     state: { bookingId, showDate, showTime, zone, seatNo, quantity: qty },
+        //     replace: true,
+        //   });
       }, 1000);
+      setTicketsData(mockTickets);
+      setShowETicketSuccess(true);
     } catch (e) {
       console.error(e);
       message.error("อัปโหลดหรืออัปเดตล้มเหลว");
@@ -281,32 +331,11 @@ const Payment: React.FC = () => {
     }
   };
 
-  const handleOpenUploadModal = async () => {
-    setUploadModalOpen(true);
-    //     try {
-    // if (!paymentId) {
-    //   message.info("กำลังสร้างรายการชำระเงิน...");
-    //   return;
-    // }
-    // if (!receipturl) {
-    //   message.warning("ยังไม่มีสลิปที่อัปโหลดสำเร็จ");
-    //   return;
-    // }
-    // const payload = {
-    //   payment_id: paymentId,
-    //   receipt_url: receipturl,
-    // };
-    // const res = await paymentAPI.updateReceipt(payload.payment_id,payload.receipt_url);
-    //       console.log("Reciept path: ",res)
-    //       if (res?.status === 200) {
-    //         message.success("บันทึกหลักฐานการชำระเงินเรียบร้อย");
-    //       }
-    //     }catch (e) {
-    //         console.error(e);
-    //         message.error("ไม่สามารถบันทึกหลักฐานการชำระเงินได้");
-    //     }
-  };
+  const handleOpenUploadModal = () => setUploadModalOpen(true);
   const handleCloseUploadModal = () => setUploadModalOpen(false);
+  const handleCloseTicket = () => {
+    navigate("/concerts");
+  };
   const TextStyle = {
     fontSize: "18px",
     color: "#00306E",
@@ -316,11 +345,13 @@ const Payment: React.FC = () => {
   return (
     <>
       <Navbar />
+
       <div className="payment-container">
         <Row
           gutter={24}
           style={{ padding: 20, maxWidth: 1200, margin: "0 auto" }}
         >
+          {/* Left: options */}
           <Col xs={24} lg={16}>
             <div className="timer-badge">
               <ClockCircleOutlined />
@@ -339,6 +370,7 @@ const Payment: React.FC = () => {
               >
                 <LuShieldCheck style={{ marginRight: 8 }} /> Ticket Type
               </Title>
+
               <Row gutter={16}>
                 {refundTypes.map((rt) => (
                   <Col xs={24} sm={12} key={rt.id}>
@@ -377,7 +409,7 @@ const Payment: React.FC = () => {
               </Row>
             </Card>
 
-            {/* Payment Methods (from API) */}
+            {/* Payment Methods */}
             <Card className="payment-section">
               <Title
                 level={4}
@@ -390,6 +422,7 @@ const Payment: React.FC = () => {
                 <CreditCardOutlined style={{ marginRight: 8 }} /> Payment
                 Channel
               </Title>
+
               <Row gutter={[16, 24]}>
                 {paymentMethods.map((pm) => (
                   <Col xs={24} sm={12} key={pm.id}>
@@ -424,7 +457,7 @@ const Payment: React.FC = () => {
             </Card>
           </Col>
 
-          {/* Summary */}
+          {/* Right: summary */}
           <Col xs={24} lg={8}>
             <Card className="price-summary">
               <div className="summary-header">
@@ -520,6 +553,7 @@ const Payment: React.FC = () => {
         />
       </Modal>
 
+      {/* Bank Account Modal */}
       <BankAccountModal
         open={bankModalOpen}
         onClose={() => setBankModalOpen(false)}
@@ -535,6 +569,12 @@ const Payment: React.FC = () => {
       />
 
       {showFullScreenLoader && <Loader />}
+
+      <ETicketSuccess
+        open={showETicketSuccess}
+        tickets={ticketsData}
+        onClose={handleCloseTicket}
+      />
     </>
   );
 };

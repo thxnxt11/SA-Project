@@ -12,30 +12,28 @@ type ZoneService struct {
 }
 
 func NewZoneService() *ZoneService { return &ZoneService{} }
-// ใช้ DTO เดิมที่มีอยู่:
+
 type SeatAvailableDTO struct {
 	SeatID             uint   `json:"seat_id"`
 	SeatCode           string `json:"seat_code"`
-	SeatAvailableStatus string `json:"seatavailable_status"` // normalized: available/locked/sold
+	SeatAvailableStatus string `json:"seatavailable_status"` 
 }
 
 type ZoneWithSeatsDTO struct {
 	ID             uint                `json:"id"`
 	ZoneName       string              `json:"zone_name"`
 	ZonePrice      float32             `json:"zone_price"`
-	ZoneType       string              `json:"zone_type"` // standing | seating | ...
+	ZoneType       string              `json:"zone_type"` 
 	Capacity       *int                `json:"capacity,omitempty"`
 	PendingHolds   *int                `json:"pending_holds,omitempty"`
 	SeatSold       *int                `json:"seat_sold,omitempty"`
 	AvailableCount *int                `json:"available_count,omitempty"`
-	SeatAvailable  []SeatAvailableDTO  `json:"seat_available,omitempty"` // เฉพาะ Seating
 }
 
 func (s *ZoneService) GetZonesAvailableByShowDateID(showDateID uint64) ([]ZoneWithSeatsDTO, error) {
 
 
 	var zones []entity.Zone
-	// โหลดโซนของ showdate นี้ พร้อมชนิดโซนเท่านั้น (ไม่โหลด Seats เลย
 
 	if err := connection.DB().
 		Preload("ZoneType").
@@ -59,10 +57,9 @@ func (s *ZoneService) GetZonesAvailableByShowDateID(showDateID uint64) ([]ZoneWi
 			ZoneType:  zoneType,
 		}
 
-		// ทุกโซนใช้ข้อมูลจากตารางโซนโดยตรง
 		capacity := int(z.Capacity)
 		sold := int(z.SeatSold)        // จำนวนที่ขายแล้วจากฟิลด์ในตารางโซน
-		holds := int(z.PendingHold)    // จำนวนที่กำลัง hold จากฟิลด์ในตารางโซน
+		holds := int(z.PendingHold)    // จำนวนที่กำลัง locked จากฟิลด์ในตารางโซน
 
 		avail := capacity - sold - holds
 		if avail < 0 {
@@ -73,12 +70,6 @@ func (s *ZoneService) GetZonesAvailableByShowDateID(showDateID uint64) ([]ZoneWi
 		dto.SeatSold = &sold
 		dto.PendingHolds = &holds
 		dto.AvailableCount = &avail
-
-		// ไม่ต้องส่ง SeatAvailable array สำหรับทุกโซน
-		// หรือถ้าต้องการส่ง empty array สำหรับ consistency
-		if zoneType != "standing" {
-			dto.SeatAvailable = make([]SeatAvailableDTO, 0)
-		}
 
 		out = append(out, dto)
 	}

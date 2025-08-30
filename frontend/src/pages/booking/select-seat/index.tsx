@@ -12,8 +12,8 @@ import {
   message,
   Spin,
 } from "antd";
-import { FaCircleCheck } from "react-icons/fa6"; // ✅ เลือก
-import { RxCrossCircled } from "react-icons/rx"; // ❌ จองแล้ว
+import { FaCircleCheck } from "react-icons/fa6";
+import { RxCrossCircled } from "react-icons/rx";
 import { TbTicket } from "react-icons/tb";
 import { useLocation, useNavigate } from "react-router-dom";
 import Loader from "../../../component/loader/loader";
@@ -23,6 +23,7 @@ import type { bookingInterface } from "../../../interface/booking";
 
 type SeatFromAPI = {
   id: number;
+  seatid: number;
   code: string;
   row: string;
   number: number;
@@ -32,6 +33,7 @@ type SeatFromAPI = {
 type SeatCell = {
   id: string; // unique สำหรับ key
   seatId: number;
+  seatAvailableId: number;
   seatNumber: string;
   code: string; // รหัสที่นั่ง เช่น "A1", "B2"
   status: "available" | "booked" | "locked";
@@ -60,8 +62,9 @@ const buildSeatGrid = (items: SeatFromAPI[]): SeatRow[] => {
     const status = normalizeStatus(it.status);
 
     return {
-      id: `${it.id}-${it.code}`,
-      seatId: it.id,
+      id: `${it.seatid}-${it.code}`,
+      seatId: it.seatid,
+      seatAvailableId: it.id,
       seatNumber: it.number.toString(),
       code: it.code, // เก็บ code สำหรับแสดงใน selectedSeats
       status,
@@ -76,6 +79,7 @@ const buildSeatGrid = (items: SeatFromAPI[]): SeatRow[] => {
     map.get(c.row)!.push({
       id: c.id,
       seatId: c.seatId,
+      seatAvailableId: c.seatAvailableId,
       seatNumber: c.seatNumber,
       code: c.code,
       status: c.status,
@@ -96,8 +100,16 @@ const SelectSeat: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { showDate, showTime, zoneName, zonePrice, zoneType, zoneId ,concertInfo} =
-    location.state || {};
+  const {
+    showDate,
+    showTime,
+    zoneName,
+    zonePrice,
+    zoneType,
+    zoneId,
+    concertInfo,
+    concertId,
+  } = location.state || {};
 
   // Standing zone: เริ่มเลือกไว้ 1 ใบแบบเหมารวม
   const [selectedSeats, setSelectedSeats] = useState<string[]>(() => {
@@ -170,35 +182,14 @@ const SelectSeat: React.FC = () => {
       });
     }
   };
-
   const [loadingBooking, setLoadingBooking] = useState(false);
   const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
-
-  // const handleBooking = () => {
-  //   setLoadingBooking(true);
-  //   setTimeout(() => {
-  //     setLoadingBooking(false);
-  //     setShowFullScreenLoader(true);
-  //     setTimeout(() => {
-  //       navigate("/bookingdetail", {
-  //         state: {
-  //           showDate,
-  //           showTime,
-  //           zone: zoneName,
-  //           seatNo: displaySeatNo,
-  //           quantity: displayQuantity,
-  //           unitPrice: zonePrice,
-  //         },
-  //       });
-  //     }, 1200);
-  //   }, 1200);
-  // };
 
   //แปลง seatcode เป็น seatId
   const codeToId = useMemo(() => {
     const m = new Map<string, number>();
     seatRows.forEach((row) =>
-      row.seats.forEach((s) => m.set(s.code, s.seatId))
+      row.seats.forEach((s) => m.set(s.code, s.seatAvailableId))
     );
     return m;
   }, [seatRows]);
@@ -244,15 +235,23 @@ const SelectSeat: React.FC = () => {
       if (!isStanding) {
         payload.seat_ids = seatIds;
       }
-
       setLoadingBooking(true);
       const res = await bookingAPI.create(payload);
+
+      const isCreated = res?.status === 201 || res?.status === 200;
+      if (!isCreated) {
+        message.error("ที่นั่งที่คุณเลือกได้ถูกจองไปแล้ว");
+        navigate(`/concert/${concertId}/selectzone`);
+        return;
+      }
+
       message.success("Booking successful!");
 
       setShowFullScreenLoader(true);
 
       const bookingData = res?.data?.data ?? res?.data ?? null;
-      const bookingId = bookingData?.ID
+      const bookingId = bookingData?.ID;
+
       setTimeout(() => {
         navigate("/bookingdetail", {
           state: {
@@ -268,7 +267,7 @@ const SelectSeat: React.FC = () => {
           },
         });
       }, 1500);
-    } catch (err : any) {
+    } catch (err: any) {
       console.error("Create booking error:", err?.response || err);
       const msg =
         err?.response?.data?.error ||

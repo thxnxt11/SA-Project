@@ -20,12 +20,13 @@ func SeedSeats(venueID uint, rows []string, perRow int) {
     }
 }
 
-func SeedSeatAvailable(db *gorm.DB) {
-	// สมมติ Zone 1, ShowDate 1
-	zoneID := uint(8)
-
+func SeedSeatAvailable(db *gorm.DB, zoneID uint, limit int) {
 	var seats []entity.Seat
 	db.Find(&seats)
+
+	if len(seats) > limit {
+		seats = seats[:limit]
+	}
 
 	var seatAvailables []entity.SeatAvailable
 	for _, seat := range seats {
@@ -44,5 +45,5 @@ func SeedSeatAvailable(db *gorm.DB) {
 		log.Fatalf("SeedSeatAvailable error: %v", err)
 	}
 
-	fmt.Println("✅ SeatAvailable created")
+	fmt.Printf("✅ SeatAvailable created for zone %d (%d records)\n", zoneID, len(seatAvailables))
 }

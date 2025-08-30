@@ -15,11 +15,12 @@ import (
 )
 
 type SeatDTO struct {
-	ID     uint   `json:"id"`     // seat_id
+    ID uint `json:"id"`
+	SeatID     uint   `json:"seatid"`     // seat_id
 	Code   string `json:"code"`   // เช่น "A10"
 	Row    string `json:"row"`    // เช่น "A"
 	Number int    `json:"number"` // 10
-	Status string `json:"status"` // "available" | "booked"
+	Status string `json:"status"` // "available" | "booked" | "locked"
 }
 
 type BookingService struct {
@@ -33,7 +34,7 @@ func NewBookingService() *BookingService {
 	}
 }
 
-// Business Logic: แปลง seat code เป็น row และ number
+// แปลง seat code เป็น row และ number
 func (s *BookingService) splitSeatCode(code string) (row string, number int) {
 	code = strings.TrimSpace(code)
 	if code == "" {
@@ -49,9 +50,9 @@ func (s *BookingService) splitSeatCode(code string) (row string, number int) {
 	return strings.ToUpper(code), 0
 }
 
-// Business Logic: แปลง entity เป็น DTO
+// แปลง entity เป็น DTO
 func (s *BookingService) convertToSeatDTO(seats []entity.SeatAvailable) []SeatDTO {
-	out := make([]SeatDTO, 0, len(seats))
+	res := make([]SeatDTO, 0, len(seats))
 	for _, r := range seats {
 		code := ""
 		if r.Seat != nil {
@@ -60,18 +61,19 @@ func (s *BookingService) convertToSeatDTO(seats []entity.SeatAvailable) []SeatDT
 		row, num := s.splitSeatCode(code)
 		status := r.SeatAvailableStatus
 
-		out = append(out, SeatDTO{
-			ID:     r.SeatID,
+		res = append(res, SeatDTO{
+            ID: r.ID,
+			SeatID:     r.SeatID,
 			Code:   strings.ToUpper(strings.TrimSpace(code)),
 			Row:    row,
 			Number: num,
 			Status: status,
 		})
 	}
-	return out
+	return res
 }
 
-// Business Logic: เรียงลำดับที่นั่ง
+//  เรียงลำดับที่นั่ง
 func (s *BookingService) sortSeats(seats []SeatDTO) {
 	sort.Slice(seats, func(i, j int) bool {
 		if seats[i].Row == seats[j].Row {
@@ -81,7 +83,7 @@ func (s *BookingService) sortSeats(seats []SeatDTO) {
 	})
 }
 
-// Main Business Logic: ดึงข้อมูลที่นั่งตาม Zone ID
+// Main: ดึงข้อมูลที่นั่งตาม Zone ID
 func (s *BookingService) GetSeatsByZoneID(zoneID uint64) ([]SeatDTO, error) {
 	var seats []entity.SeatAvailable
 	
@@ -96,11 +98,12 @@ func (s *BookingService) GetSeatsByZoneID(zoneID uint64) ([]SeatDTO, error) {
 	// แปลงเป็น DTO
 	result := s.convertToSeatDTO(seats)
 	
-	// เรียงลำดับ
+	// เรียงลำดับก่อนส่งให้ frontend
 	s.sortSeats(result)
 
 	return result, nil
 }
+
 var (
 	ErrSeatNotFound     = errors.New("seat not found in this zone/showdate")
 	ErrSeatAlreadyTaken = errors.New("one or more seats are not available")
@@ -110,14 +113,14 @@ type CreateBookingInput struct {
 	UserID          uint
 	ShowDateID      uint
 	ZoneID          uint
-	SeatIDs         []uint // ถ้า seating ให้ส่ง seat_ids; ถ้า standing ปล่อยว่าง
+	SeatIDs         []uint 
 	QueueNumber     int
 	TotalPrice      int
-	BookingStatusID uint   // เช่น 1=pending
-	HoldMinutes     int    // ถ้าต้องการหมดอายุ (เช่น 15 นาที)
+	BookingStatusID uint   
+	HoldMinutes     int    
 }
 
-// services/booking_service.go (เฉพาะ CreateBooking ส่วนที่แก้/เพิ่ม)
+// สร้าง booking 
 func (s *BookingService) CreateBooking(in CreateBookingInput) (*entity.Booking, error) {
     db := s.DB
     if db == nil {
@@ -132,6 +135,7 @@ func (s *BookingService) CreateBooking(in CreateBookingInput) (*entity.Booking, 
         }
     }()
 
+    //คำนวณ expired time(เวลาที่จะคืนที่นั่งให้กับระบบหากไม่มีการชำระเงิน)
     now := time.Now()
     exp := now
     if in.HoldMinutes > 0 {
@@ -140,98 +144,99 @@ func (s *BookingService) CreateBooking(in CreateBookingInput) (*entity.Booking, 
 		exp = now.Add(2 * time.Minute) // default 15 นาที (test 2 นาที)
 	}
 
-    // ---- 0) LOCK โซนเสมอเพื่อคุม PendingHold/Capacity ----
+    //LOCK โซนเสมอเพื่อคุม PendingHold/Capacity ----
     var zone entity.Zone
-    if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+    if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}). //lock entity zone เพื่อรอให้อัพเดตเสร็จ
         First(&zone, in.ZoneID).Error; err != nil {
-        tx.Rollback()
+        tx.Rollback() //ถ้า error ให้ rollback
         return nil, err
     }
 
-    // ---- 1) คิดจำนวน ticket ที่จะถือครองชั่วคราว ----
-    // standing => 1, seating => len(seatIDs)
-    qty := 1
-    isStanding := len(in.SeatIDs) == 0
+    // ถ้าเป็น standing zone quantity = 1
+    quantity := 1
+    isStanding := len(in.SeatIDs) == 0  // standing zone = ไม่มีการเลือก seat แต่ใช้เป็น queue แทน
     if !isStanding {
-        qty = len(in.SeatIDs)
+        quantity = len(in.SeatIDs) //ถ้าเป็น seating zone ให้นับจำนวน seatIDs ที่ส่งเข้ามา
     }
 
-    // ---- 2) ตรวจ Capacity ----
-    // ต้อง seatsold + pendinghold + qty <= capacity
-    if zone.SeatSold + zone.PendingHold + qty > zone.Capacity {
+    // ---- check Capacity ----
+    // seatsold + pendinghold + quantity <= capacity 
+    // เพราะว่าถ้าตัวเลขที่ขายไปแล้ว + รอการดำเนินการ + ที่เข้ามาใหม่ มากกว่า ความจุที่รับ จะทำให้เกิดที่นั่งที่ไม่มีอยู่จริง
+    // PendingHold คือ filed ที่บอกว่า ณ ตอนนี้ มีที่นั่งหรือคิวไหนที่ยังรอการดำเนินการการชำระเงินอยู่
+    // SeatSold คือ filed ที่บอกว่า ณ ตอนนี้ ที่นั่งหรือคิวนั้นถูก booked ไปกี่ที่เเล้ว
+    if zone.SeatSold + zone.PendingHold + quantity > zone.Capacity {
         tx.Rollback()
         return nil, errors.New("zone capacity exceeded")
     }
 
-    // ---- 3) ถ้า seating ต้อง lock/ตรวจ seat availability ----
+    //  ถ้าเป็น seating zone จำเป็นต้อง lock และ ตรวจ seat availability 
     if !isStanding {
         var seats []entity.SeatAvailable
         if err := tx.
             Clauses(clause.Locking{Strength: "UPDATE"}). // lock records ไม่อ่านมีการอ่านหรือแก้ไขซ้ำ ป้องกันการเลือกที่นั่งซ้ำ
-            Where("zone_id = ? AND seat_id IN (?)", in.ZoneID, in.SeatIDs).
+            Where("id IN (?)", in.SeatIDs).
             Find(&seats).Error; err != nil {
             tx.Rollback()
             return nil, err
         }
-        if len(seats) != len(in.SeatIDs) {
+        if len(seats) != len(in.SeatIDs) { //เช็คว่าที่ query ไปนั้น == seat_id ที่ส่งมั้ย
             tx.Rollback()
             return nil, ErrSeatNotFound
         }
-        for _, sa := range seats {
+        // วนลูปเพื่อตรวจสอบ seatId ที่ส่งมานั้น สถานะเป็น available มั้ย (ป้องกันการจองซ้ำ)
+        for _, sa := range seats { 
             if strings.ToLower(sa.SeatAvailableStatus) != "available" { // ไม่ใช่ available
                 tx.Rollback()
-                return nil, ErrSeatAlreadyTaken
+                return nil, ErrSeatAlreadyTaken // ส่ง error ไปว่า ที่นั่งที่เลือกมานั้น มีคนเลือกไปแล้ว 
             }
         }
-        // Mark as locked
+        // ถ้า seatId ที่ส่งมานั้น สถานะ available ทุกที่นั่ง ให้เป็นสถานะในตาราง seat available เป็น locked และรอการชำระเงิน
         if err := tx.Model(&entity.SeatAvailable{}).
-            Where("zone_id = ? AND seat_id IN (?)", in.ZoneID, in.SeatIDs).
+            Where("id IN (?)", in.SeatIDs).
             Update("seat_available_status", "locked").Error; err != nil {
             tx.Rollback()
             return nil, err
         }
     }
-
-    // ---- 4) อัปเดต PendingHold ของโซน ----
+    
+    // Update PendingHold ของโซนนั้น ให้เพิ่มตาม quantity
     if err := tx.Model(&entity.Zone{}).
         Where("id = ?", in.ZoneID).
-        UpdateColumn("pending_hold", gorm.Expr("pending_hold + ?", qty)).Error; err != nil {
+        UpdateColumn("pending_hold", gorm.Expr("pending_hold + ?", quantity)).Error; err != nil {
         tx.Rollback()
         return nil, err
     }
 
-    // ---- 5) คำนวณ queue_number (เฉพาะ standing) ----
+    //คำนวณ queue_number (เฉพาะ standing zone) 
+    
     queueNumber := 0
-    if isStanding {
-        // zone ถูก LOCK ตั้งแต่ต้น → ใช้ค่าใหม่หลังอัปเดตหรือก่อนอัปเดตก็ได้
-        // แนะนำให้คำนวณจากค่าเก่าก่อนเพิ่ม (เพื่อให้ "หมายเลขคิวแรก" = SeatSold+PendingHold+1)
-        // ถ้าต้องการจากค่าใหม่หลังเพิ่ม ให้ query zone อีกครั้งแล้วใช้ zone.SeatSold + zone.PendingHold
-        // ที่นี่จะใช้ค่าก่อนเพิ่ม +1 เพื่อเป็นลำดับถัดไป:
-        queueNumber = int(zone.SeatSold + zone.PendingHold + 1)
+    if isStanding { // เฉพาะ standing zone
+        //เช็ค SeatSold + PendingHold เพื่อให้ queue กับคนที่กด booking ได้ก่อนจึงบวก PendingHold ด้วย
+        queueNumber = int(zone.SeatSold + zone.PendingHold + 1) 
     }
 
-    // ---- 6) สร้าง booking ----
+    // Create booking record
     b := entity.Booking{
         UserID:          in.UserID,
         ShowDateID:      in.ShowDateID,
         ZoneID:          in.ZoneID,
         QueueNumber:     queueNumber,
         TotalPrice:      in.TotalPrice,
-        BookingStatusID: in.BookingStatusID, // pending
+        BookingStatusID: 1, // frontend ส่ง 1 == pending ก็จริงแต่ให้ชัวร์เลยทำที่ service อีกรอบ
         BookingDate:     now,
         ExpiredDate:     exp,
     }
-    if err := tx.Create(&b).Error; err != nil {
+    if err := tx.Create(&b).Error; err != nil {// create record
         tx.Rollback()
         return nil, err
     }
 
-    // ---- 7) ถ้า seating → บันทึก booking_seats ----
+    // ถ้า seating zone → บันทึก booking_seats ด้วย 
     if !isStanding {
         for _, sid := range in.SeatIDs {
             bs := entity.BookingSeat{
                 BookingID: b.ID,
-                SeatAvailableID:    sid,
+                SeatAvailableID:    sid, 
             }
             if err := tx.Create(&bs).Error; err != nil {
                 tx.Rollback()
@@ -250,10 +255,7 @@ func (s *BookingService) CreateBooking(in CreateBookingInput) (*entity.Booking, 
         Preload("User").
         Preload("ShowDate").
         Preload("Zone").
-        // Preload("Zone.Seats").
-        // Preload("Zone.Seats.Seat").
         Preload("BookingStatus").
-        // ต้องมี field BookingSeats []BookingSeat ใน entity.Booking ด้วยหากจะใช้บรรทัดล่าง
         // Preload("BookingSeats.Seat").
         First(&out, b.ID).Error; err != nil {
         return nil, err
@@ -267,7 +269,6 @@ func (s *BookingService) ExpirePendingBookings() (int, error) {
     if db == nil {
         db = connection.DB()
     }
-
     // status 1 = pending, 4 = expired
     var toExpire []entity.Booking
     if err := db.
@@ -287,11 +288,11 @@ func (s *BookingService) ExpirePendingBookings() (int, error) {
         }
 
         // นับจำนวนที่ต้องปล่อย
-        qty := 1
+        quantity := 1
         var countSeats int64
         if err := tx.Model(&entity.BookingSeat{}).
             Where("booking_id = ?", bk.ID).Count(&countSeats).Error; err == nil && countSeats > 0 {
-            qty = int(countSeats)
+            quantity = int(countSeats)
             // ปลดที่นั่ง locked -> available
             if err := tx.Model(&entity.SeatAvailable{}).
                 Where("zone_id = ? AND seat_id IN (?)",
@@ -307,7 +308,7 @@ func (s *BookingService) ExpirePendingBookings() (int, error) {
         // pending_hold--
         if err := tx.Model(&entity.Zone{}).
             Where("id = ?", bk.ZoneID).
-            UpdateColumn("pending_hold", gorm.Expr("CASE WHEN pending_hold >= ? THEN pending_hold - ? ELSE 0 END", qty, qty)).
+            UpdateColumn("pending_hold", gorm.Expr("CASE WHEN pending_hold >= ? THEN pending_hold - ? ELSE 0 END", quantity, quantity)).
             Error; err != nil {
             tx.Rollback()
             continue
@@ -388,8 +389,8 @@ func (s *BookingService) OnPaymentPaid(bookingID uint) error {
         return err
     }
 
-    // จำนวนที่เกี่ยวข้อง
-    qty := 1 // ตัวแปรที่บอกถึง จำนวนตั๋วที่จองแล้วต้องอัปเดตสถานะ
+    
+    quantity := 1 // ตัวแปรที่บอกถึง จำนวนตั๋วที่จองแล้วต้องอัปเดตสถานะ
     var countSeats int64
     if err := tx.Model(&entity.BookingSeat{}).
         Where("booking_id = ?", bookingID).
@@ -398,8 +399,8 @@ func (s *BookingService) OnPaymentPaid(bookingID uint) error {
         return err
     }
     if countSeats > 0 {
-        qty = int(countSeats)
-        // เปลี่ยนที่นั่งจาก hold -> booked
+        quantity = int(countSeats)
+        // เปลี่ยนที่นั่งจาก locked -> booked
         if err := tx.Model(&entity.SeatAvailable{}).
         Where("zone_id = ? AND seat_id IN (?) AND seat_available_status = ?",
             bk.ZoneID,
@@ -411,21 +412,20 @@ func (s *BookingService) OnPaymentPaid(bookingID uint) error {
     }
     }
 
-    if err := RecalculateZoneCounters(tx, bk.ZoneID); err != nil {
-		tx.Rollback()
-		return err
-	}
-
     // อัปเดตโซน: pending_hold-- , seat_sold++
     if err := tx.Model(&entity.Zone{}).
         Where("id = ?", bk.ZoneID).
         Updates(map[string]interface{}{
-            "pending_hold": gorm.Expr("CASE WHEN pending_hold >= ? THEN pending_hold - ? ELSE 0 END", qty, qty),
-            "seat_sold":    gorm.Expr("seat_sold + ?", qty),
+            "pending_hold": gorm.Expr("CASE WHEN pending_hold >= ? THEN pending_hold - ? ELSE 0 END", quantity, quantity),
+            "seat_sold":    gorm.Expr("seat_sold + ?", quantity),
         }).Error; err != nil {
         tx.Rollback()
         return err
     }
+    if err := RecalculateZoneCounters(tx, bk.ZoneID); err != nil {
+		tx.Rollback()
+		return err
+	}
 
     // (ถ้าคุณมี BookingStatusID สำหรับ 'paid') อัปเดต booking ด้วย
     // e.g., 2 = paid

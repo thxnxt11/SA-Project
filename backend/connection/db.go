@@ -89,9 +89,6 @@ func SetupDatabase() {
 
    //promotion type
    db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
-      PromotionType: "Early Bird",
-   })
-   db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
       PromotionType: "Code",
    })
    db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
@@ -167,7 +164,10 @@ func SetupDatabase() {
    })
 
 
-   SeedSeatAvailable(DB())
+   // SeedSeatAvailable(db, 2, 195)
+   // SeedSeatAvailable(db, 4, 195)
+   // SeedSeatAvailable(db, 6, 195)
+   // SeedSeatAvailable(db, 8, 195)
 
    // sql := `
 	// 	UPDATE seat_availables
@@ -187,6 +187,4 @@ func SetupDatabase() {
 	// 	panic(res.Error)
 	// }
 
-
-   
 }

@@ -43,22 +43,38 @@ func zeroIfNil(u *uint) uint {
 }
 
 func (s *PaymentService) CreatePayment(in CreatePaymentInput) (*entity.Payment, error) {
+	tx := s.DB.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+	
+	// ใช้ defer เพื่อจัดการ rollback อัตโนมัติ
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	var booking entity.Booking
-	if err := s.DB.First(&booking, in.BookingID).Error; err != nil {
+	if err := tx.First(&booking, in.BookingID).Error; err != nil {
+		tx.Rollback()
 		return nil, errors.New("booking not found")
 	}
 	if booking.BookingStatusID == 4 {
+		tx.Rollback()
 		return nil, errors.New("cannot create payment: booking already expired")
 	}
 
 	var method entity.PaymentMethod
-	if err := s.DB.First(&method, in.PaymentMethodID).Error; err != nil {
+	if err := tx.First(&method, in.PaymentMethodID).Error; err != nil {
+		tx.Rollback()
 		return nil, errors.New("payment method not found")
 	}
 
 	if in.RefundTypeID != nil && in.RefundFee == 0 {
 		var refundType entity.RefundType
-		if err := s.DB.First(&refundType, *in.RefundTypeID).Error; err != nil {
+		if err := tx.First(&refundType, *in.RefundTypeID).Error; err != nil {
+			tx.Rollback()
 			return nil, errors.New("refund type not found")
 		}
 		in.RefundFee = refundType.RefundFee
@@ -83,12 +99,36 @@ func (s *PaymentService) CreatePayment(in CreatePaymentInput) (*entity.Payment, 
 		TotalPrice:      totalPrice,
 		PaymentMethodID: in.PaymentMethodID,
 		PaymentStatusID: statusID,
-
 	}
-	if err := s.DB.Create(&pay).Error; err != nil {
+	
+	if err := tx.Create(&pay).Error; err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 
+	if in.PromotionID != nil && *in.PromotionID > 0 {
+		result := tx.Model(&entity.Promotion{}).
+			Where("id = ?", *in.PromotionID).
+			UpdateColumn("used_count", gorm.Expr("used_count + ?", 1))
+		
+		if result.Error != nil {
+			tx.Rollback()
+			return nil, result.Error
+		}
+		
+		// ตรวจสอบว่า promotion มีอยู่จริงหรือไม่
+		if result.RowsAffected == 0 {
+			tx.Rollback()
+			return nil, errors.New("promotion not found")
+		}
+	}
+
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	// ดึงข้อมูล payment พร้อม preload (ใช้ s.DB ปกติ เพราะ tx ถูก commit แล้ว)
 	var createdpayment entity.Payment
 	if err := s.DB.
 		Preload("Booking").
