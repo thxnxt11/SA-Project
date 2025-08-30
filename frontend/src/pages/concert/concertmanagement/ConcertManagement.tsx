@@ -265,12 +265,12 @@ const handleDelete = (id: number) =>
       render: (_: any, r: ConcertInterface) => {
         const uidStr = localStorage.getItem("user_id") ?? localStorage.getItem("id");
 
-        // be defensive about types
+ 
         const currentUserId = uidStr ? Number(uidStr) : NaN;
         const ownerId = Number(r.user_id);
         const canEdit = Number.isFinite(currentUserId) && currentUserId === ownerId;
 
-        if (!canEdit) return null; // <-- hide completely if not the owner
+        if (!canEdit) return null; 
 
         return (
           <Space direction="vertical">
