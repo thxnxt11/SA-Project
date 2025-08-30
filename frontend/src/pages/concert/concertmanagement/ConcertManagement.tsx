@@ -264,26 +264,18 @@ const handleDelete = (id: number) =>
       key: "actions",
       render: (_: any, r: ConcertInterface) => {
         const uidStr = localStorage.getItem("user_id") ?? localStorage.getItem("id");
-        const currentUserId = uidStr ? Number(uidStr) : undefined;
-        const canEdit = currentUserId === r.user_id; 
+
+        // be defensive about types
+        const currentUserId = uidStr ? Number(uidStr) : NaN;
+        const ownerId = Number(r.user_id);
+        const canEdit = Number.isFinite(currentUserId) && currentUserId === ownerId;
+
+        if (!canEdit) return null; // <-- hide completely if not the owner
 
         return (
           <Space direction="vertical">
-            <Button
-              size="small"
-              onClick={() => openEdit(r)}
-              disabled={!canEdit}
-            >
-              Edit
-            </Button>
-            <Button
-              danger
-              size="small"
-              onClick={() => handleDelete(r.ID)}
-              disabled={!canEdit}
-            >
-              Remove
-            </Button>
+            <Button size="small" onClick={() => openEdit(r)}>Edit</Button>
+            <Button danger size="small" onClick={() => handleDelete(r.ID)}>Remove</Button>
           </Space>
         );
       },
