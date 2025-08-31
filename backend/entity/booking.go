@@ -2,6 +2,7 @@ package entity
 
 import (
 	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -19,4 +20,5 @@ type Booking struct {
 	BookingStatus *BookingStatus `gorm:"foreignKey:BookingStatusID" json:"booking_status"`
 	BookingDate time.Time `json:"booking_date"`
 	ExpiredDate time.Time `json:"expired_date"`
+	BookingCode string `gorm:"uniqueIndex;size:10" json:"booking_code"`
 }

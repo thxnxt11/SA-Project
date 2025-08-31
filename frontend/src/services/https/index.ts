@@ -120,8 +120,9 @@ export const promotionAPI = {
     Update(`${ORGANIZER_API_URL}/promotion/${id}`, data),
   delete: (id: number) => Delete(`${ORGANIZER_API_URL}/promotion/${id}`),
   getAllTypes: () => Get(`${PUBLIC_API_URL}/promotions`, false),
-  validateCode: (data: {code: string; target: string; concert_id?: number }) =>
+  validateCode: (data: { code: string; target: string; concert_id?: number }) =>
     Post(`${PUBLIC_API_URL}/promotion/validate`, data, false),
+  getConcertByuserId: (user_id: number | string | undefined) => Get(`${PUBLIC_API_URL}/concert/${user_id}/user`),
 };
 
 // Concert APIs
@@ -149,6 +150,8 @@ export const paymentAPI = {
   getAllPaymentMethods: () => Get(`${PUBLIC_API_URL}/paymentmethods`),
   updateReceipt: (id: number, data: { receipt_url: string }) =>
     Update(`${PUBLIC_API_URL}/payment/${id}/receipt`, data),
+  getETicketByBookingId: (booking_id: number | string | undefined) =>
+    Get(`${PUBLIC_API_URL}/e-tickets/booking/${booking_id}`),
 };
 
 export const uploadAPI = {

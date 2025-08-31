@@ -4,11 +4,16 @@ package booking
 import (
 	"net/http"
 	"strconv"
-	"github.com/yourname/went-back/connection"
+
 	"github.com/gin-gonic/gin"
+	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/entity"
-    "github.com/yourname/went-back/services"
+	"github.com/yourname/went-back/services"
 )
+type pickconcert struct {
+	ID          uint   `json:"id"`
+	ConcertName string `json:"concert_name"`
+}
 
 func GetAllConcerts(c *gin.Context) {
     concerts, err := services.GetAllConcert()
@@ -42,27 +47,28 @@ func GetConcertByID(c *gin.Context) {
     c.JSON(http.StatusOK, concert)
 }
 
-// func GetZonesAvailableByShowDate(c *gin.Context) {
-//     idStr := c.Param("id")
-//     id, err := strconv.ParseUint(idStr, 10, 64)
-//     if err != nil {
-//         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid showdate ID"})
-//         return
-//     }
+func GetConcertsByUserID(c *gin.Context) {
+    uidStr := c.Param("id")
+    uid, err := strconv.Atoi(uidStr)
+    if err != nil || uid <= 0 {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_id"})
+        return
+    }
 
-//     var zones []entity.Zone
-//     if err := connection.DB().
-//         Preload("ZoneType").
-//         Preload("Venue").
-//         Preload("Seats").              // โหลดที่นั่งที่สัมพันธ์กับ Zone
-//         Preload("Seats.Seat").         // โหลดข้อมูล seat จริง ๆ
-//         Where("show_date_id = ?", id).
-//         Find(&zones).Error; err != nil {
-//         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-//         return
-//     }
+    var rows []pickconcert
+    tx := connection.DB().
+        Model(&entity.Concert{}).
+        Select("id, concert_name").
+        Where("user_id = ?", uid).
+        Find(&rows)
 
-//     c.JSON(http.StatusOK, zones)
-// }
+    if tx.Error != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": tx.Error.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, rows)
+}
+
 
 

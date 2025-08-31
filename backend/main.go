@@ -53,6 +53,8 @@ func main() {
 	services.StartExpiryWorker(svc) // เริ่ม worker เพื่อลบ Booking ที่หมดเวลา
 
 	promotionCtl := promotion.NewPromotionController()
+
+	eTicketCtl := booking.NewEticketController()
 	// API routes
 	api := r.Group("/api")
 	{
@@ -68,6 +70,8 @@ func main() {
 		api.GET("/paymentmethods", booking.GetAllPaymentMethods)
 		api.POST("/payment", booking.CreatePayment)
 		api.PUT("/payment/:id/receipt", booking.UpdatePaymentReceipt)
+		api.GET("/concert/:id/user",booking.GetConcertsByUserID)
+		api.GET("/e-tickets/booking/:booking_id",eTicketCtl.GetETicketByBookingID)
 		
 	}
 	r.Static("/uploads", "./uploads")

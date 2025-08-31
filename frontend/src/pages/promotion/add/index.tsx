@@ -17,7 +17,7 @@ import {
   Upload,
 } from "antd";
 import type { UploadFile, UploadProps } from "antd";
-import { promotionAPI, concertAPI, uploadAPI } from "../../../services/https";
+import { promotionAPI, uploadAPI } from "../../../services/https";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../hook/authContext";
 
@@ -39,7 +39,7 @@ const AddPromotion: React.FC = () => {
     try {
       const [typesRes, concertsRes] = await Promise.all([
         promotionAPI.getAllTypes(),
-        concertAPI.getAll(),
+        promotionAPI.getConcertByuserId(user?.id),
       ]);
       if (typesRes.status === 200 && concertsRes.status === 200) {
         setPromotionTypes(typesRes.data);

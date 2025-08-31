@@ -2,12 +2,15 @@ package services
 
 import (
 	"errors"
+	"fmt"
+	"math/rand"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/entity"
 	"gorm.io/gorm"
@@ -120,6 +123,10 @@ type CreateBookingInput struct {
 	HoldMinutes     int    
 }
 
+func GenerateBookingCode() string {
+    return fmt.Sprintf("BK%06d", rand.Intn(1000000))
+}
+
 // สร้าง booking 
 func (s *BookingService) CreateBooking(in CreateBookingInput) (*entity.Booking, error) {
     db := s.DB
@@ -134,6 +141,16 @@ func (s *BookingService) CreateBooking(in CreateBookingInput) (*entity.Booking, 
             panic(r)
         }
     }()
+
+    var code string
+    for {
+        code = GenerateBookingCode()
+        var count int64
+        tx.Model(&entity.Booking{}).Where("booking_code = ?", code).Count(&count)
+        if count == 0 {
+            break
+        }
+    }
 
     //คำนวณ expired time(เวลาที่จะคืนที่นั่งให้กับระบบหากไม่มีการชำระเงิน)
     now := time.Now()
@@ -223,6 +240,7 @@ func (s *BookingService) CreateBooking(in CreateBookingInput) (*entity.Booking, 
         QueueNumber:     queueNumber,
         TotalPrice:      in.TotalPrice,
         BookingStatusID: 1, // frontend ส่ง 1 == pending ก็จริงแต่ให้ชัวร์เลยทำที่ service อีกรอบ
+        BookingCode:     code,
         BookingDate:     now,
         ExpiredDate:     exp,
     }
@@ -236,7 +254,8 @@ func (s *BookingService) CreateBooking(in CreateBookingInput) (*entity.Booking, 
         for _, sid := range in.SeatIDs {
             bs := entity.BookingSeat{
                 BookingID: b.ID,
-                SeatAvailableID:    sid, 
+                SeatAvailableID:    sid,
+                TicketUUID: uuid.New().String(), 
             }
             if err := tx.Create(&bs).Error; err != nil {
                 tx.Rollback()

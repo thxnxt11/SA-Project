@@ -13,23 +13,29 @@ import { QRCodeCanvas } from "qrcode.react";
 const { Title, Text } = Typography;
 
 export type Ticket = {
-  uuid: string;
+  uuid: string; // seating = TicketUUID, standing = BookingCode (จาก backend)
   concertName: string;
   venueName: string;
   showTimeISO: string; // ISO string
   bookingCode: string; // เช่น BK2025xxxx
   zoneType: "SEAT" | "STANDING" | string;
   zone: string; // เช่น ZONE E
-  seatLabel?: string; // เช่น E10 (standing เว้นไว้)
-  priceTHB: number; // 6500
-  buyerName: string;
+  seatLabel?: string; // เช่น E10 (standing จะไม่มี)
+  queueNumber?: number; // standing ใช้ค่านี้แทน seat
+  priceTHB: number; // เช่น 6500
 };
 
-type Props = {
+type SuccessProps = {
   open: boolean;
   tickets: Ticket[]; // ถ้า >1 จะใช้ Carousel
   onClose: () => void;
 };
+
+// type ViewerProps = {
+//   open: boolean;
+//   ticket: Ticket; // แสดงทีละใบ
+//   onClose: () => void;
+// };
 
 const cardWrap: React.CSSProperties = {
   width: 320,
@@ -73,6 +79,8 @@ const fontStyle = {
 };
 
 const TicketCard: React.FC<{ t: Ticket }> = ({ t }) => {
+  const zt = (t.zoneType || "").trim().toLowerCase();
+  const isSeat = zt.startsWith("seat");
   const url = `${window.location.origin}/e-ticket/${t.uuid}`;
 
   return (
@@ -151,10 +159,14 @@ const TicketCard: React.FC<{ t: Ticket }> = ({ t }) => {
             </div>
             <div style={{ textAlign: "right" }}>
               <Text type="secondary" style={fontStyle}>
-                {t.zoneType.toUpperCase() === "SEAT" ? "Seat" : "Queue"}
+                {isSeat ? "Seat" : "Queue"}
               </Text>
               <div>
-                <Text strong>{t.seatLabel ?? "-"}</Text>
+                <Text strong>
+                  <Text strong>
+                    {isSeat ? t.seatLabel ?? "-" : t.queueNumber ?? "-"}
+                  </Text>
+                </Text>
               </div>
             </div>
           </div>
@@ -187,7 +199,12 @@ const TicketCard: React.FC<{ t: Ticket }> = ({ t }) => {
   );
 };
 
-const ETicketSuccess: React.FC<Props> = ({ open, tickets, onClose }) => {
+// Component สำหรับหลังชำระเงิน (มี Carousel)
+const ETicketSuccess: React.FC<SuccessProps> = ({
+  open,
+  tickets,
+  onClose,
+}) => {
   const sliderRef = useRef<CarouselRef>(null);
 
   useEffect(() => {
@@ -201,7 +218,7 @@ const ETicketSuccess: React.FC<Props> = ({ open, tickets, onClose }) => {
     }
   }, [open]);
 
-  const multiple = tickets.length > 1;
+  const multiple = tickets && tickets.length > 1;
 
   return (
     <Modal
@@ -228,7 +245,9 @@ const ETicketSuccess: React.FC<Props> = ({ open, tickets, onClose }) => {
       }
     >
       <div style={{ padding: "8px 0 4px" }}>
-        {multiple ? (
+        {!tickets || tickets.length === 0 ? (
+          <Text type="secondary">No tickets.</Text>
+        ) : multiple ? (
           <div style={{ width: 360, margin: "0 auto", position: "relative" }}>
             {/* Custom Navigation Buttons */}
             <div
@@ -294,4 +313,43 @@ const ETicketSuccess: React.FC<Props> = ({ open, tickets, onClose }) => {
   );
 };
 
+// Component สำหรับหน้า My E-Ticket (แสดงทีละใบ)
+// const ETicketViewer: React.FC<ViewerProps> = ({
+//   open,
+//   ticket,
+//   onClose,
+// }) => {
+//   return (
+//     <Modal
+//       open={open}
+//       onCancel={onClose}
+//       footer={
+//         <div style={{ display: "flex", justifyContent: "center" }}>
+//           <Button type="primary" onClick={onClose} style={{ minWidth: 160 }}>
+//             Close
+//           </Button>
+//         </div>
+//       }
+//       centered
+//       width={560}
+//       closable
+//       maskClosable={false}
+//       styles={{ body: { paddingTop: 8, paddingBottom: 8 } }}
+//       title={
+//         <div style={{ textAlign: "center" }}>
+//           <Title level={4} style={{ margin: 0 }}>
+//             E-Ticket
+//           </Title>
+//         </div>
+//       }
+//     >
+//       <div style={{ padding: "8px 0 4px" }}>
+//         <TicketCard t={ticket} />
+//       </div>
+//     </Modal>
+//   );
+// };
+
 export default ETicketSuccess;
+// export default ETicketViewer;
+

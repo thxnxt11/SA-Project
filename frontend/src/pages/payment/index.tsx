@@ -24,11 +24,11 @@ import "./payment.css";
 import QRPromptPay from "./promptpay_qr";
 import { UploadModal } from "./upload";
 import Loader from "../../component/loader/loader";
-import { paymentAPI, uploadAPI } from "../../services/https";
+import { paymentAPI, uploadAPI } from "../../services/https"; // 👈 เพิ่ม eticketAPI
 import BankAccountModal from "../../component/payment/BankAccountModal";
-import ETicketSuccess from "../e-ticket";
+import  ETicketSuccess  from "../e-ticket";
+import type { Ticket } from "../e-ticket"; // 👈 ใช้ type จาก e-ticket
 
-// Types
 const { Title, Text } = Typography;
 
 interface RefundType {
@@ -45,28 +45,12 @@ interface PaymentMethod {
   bank_name?: string;
 }
 
-interface Ticket {
-  uuid: string;
-  concertName: string;
-  venueName: string;
-  showTimeISO: string;
-  bookingCode: string;
-  zoneType: string;
-  zone: string;
-  seatLabel?: string;
-  queueNo?: number;
-  priceTHB: number;
-  buyerName: string;
-}
-
 const Payment: React.FC = () => {
   // ── Routing state
   const location = useLocation();
   const navigate = useNavigate();
   const {
-    showDate,
-    showTime,
-    show,
+    // show,
     zone,
     seatNo,
     quantity,
@@ -99,38 +83,8 @@ const Payment: React.FC = () => {
   // ── Loading flags
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [loadingUpload, setLoadingUpload] = useState(false);
-
   const [paymentId, setPaymentId] = useState<number | null>(null);
 
-  const mockTickets: Ticket[] = [
-    {
-      uuid: "mock-uuid-1",
-      concertName: "2025 aespa LIVE TOUR - SYNK : aeXIS LINE - in BANGKOK",
-      venueName: "Impact Arena",
-      showTimeISO: show,
-      bookingCode: String(bookingId ?? "XXXXX"),
-      zoneType: seatNo ? "SEAT" : "STANDING",
-      zone: zone || "ZONE E",
-      seatLabel: "E10",
-      priceTHB: unitPrice ?? 6500,
-      buyerName: "John Doe",
-    },
-    {
-      uuid: "mock-uuid-2",
-      concertName: "2025 aespa LIVE TOUR - SYNK : aeXIS LINE - in BANGKOK",
-      venueName: "Impact Arena",
-      showTimeISO: show,
-      bookingCode: String(bookingId ?? "XXXXX"),
-      zoneType: seatNo ? "SEAT" : "STANDING",
-      zone: zone || "ZONE E",
-      seatLabel: "E11",
-      priceTHB: unitPrice ?? 6500,
-      buyerName: "John Doe",
-    },
-  ];
-  useEffect(() => {
-    console.log("Received state from book:", location.state);
-  }, []);
   useEffect(() => {
     (async () => {
       try {
@@ -266,8 +220,14 @@ const Payment: React.FC = () => {
       };
 
       const res = await paymentAPI.create(payload);
-      const paymentID = res?.data?.payment_id?.ID ?? null;
-      setPaymentId(paymentID);
+      // รองรับทั้งรูปแบบที่ backend ส่ง id ตรงและห่อใน object
+      const newPaymentId =
+        res?.data?.payment_id?.ID ??
+        res?.data?.payment_id ??
+        res?.data?.id ??
+        null;
+
+      setPaymentId(newPaymentId);
 
       const methodName = (
         selectedPaymentMethod?.payment_method || ""
@@ -290,6 +250,28 @@ const Payment: React.FC = () => {
     }
   };
 
+  const fetchETickets = async (bkId: number): Promise<Ticket[]> => {
+    const res = await paymentAPI.getETicketByBookingId(bkId);
+    const list = Array.isArray(res?.data) ? res.data : res?.data?.data;
+    if (!Array.isArray(list)) return [];
+
+    // map snake_case -> camelCase ให้ตรงกับ Ticket
+    return list.map((it: any): Ticket => {
+      return {
+        uuid: it.uuid, // standing = booking_code, seating = ticket_uuid
+        concertName: it.concert_name,
+        venueName: it.venue_name,
+        showTimeISO: it.show_time_iso,
+        bookingCode: it.booking_code,
+        zoneType: it.zone_type,
+        zone: it.zone,
+        seatLabel: it.seat_label ?? undefined,
+        queueNumber: it.queue_number ?? undefined, // คอมโพเนนต์ ETicketSuccess รองรับ field นี้
+        priceTHB: it.price,
+      };
+    });
+  };
+
   const handleUploadAndUpdate = async (file: File) => {
     setLoadingUpload(true);
     try {
@@ -298,6 +280,7 @@ const Payment: React.FC = () => {
       formData.append("file", file);
       const res = await uploadAPI.upload(formData);
       const url: string = res?.data?.data?.url;
+
       if (!paymentId) {
         message.info("กำลังสร้างรายการชำระเงิน...");
         return;
@@ -310,19 +293,29 @@ const Payment: React.FC = () => {
       // 2) update receipt
       await paymentAPI.updateReceipt(paymentId, { receipt_url: url });
 
-      message.success("อัปโหลดและอัปเดต Payment Receipt สำเร็จ 🎉");
+      // 3) ดึง e-tickets จาก bookingId
+      if (!bookingId) {
+        message.warning("ไม่พบหมายเลขการจอง");
+        return;
+      }
+
+      const tickets = await fetchETickets(Number(bookingId));
+      if (tickets.length === 0) {
+        message.warning("ยังไม่สามารถออก e-ticket ได้ กรุณาลองใหม่อีกครั้ง");
+        return;
+      }
+
+      setTicketsData(tickets);
+      setShowETicketSuccess(true);
       setUploadModalOpen(false);
 
+      // เคลียร์ state countdown
       setTimeout(() => {
         setShowFullScreenLoader(false);
         localStorage.removeItem(countdownKey);
-        //   navigate("/e-ticket", {
-        //     state: { bookingId, showDate, showTime, zone, seatNo, quantity: qty },
-        //     replace: true,
-        //   });
-      }, 1000);
-      setTicketsData(mockTickets);
-      setShowETicketSuccess(true);
+      }, 300);
+
+      message.success("อัปโหลดและออก E-Ticket สำเร็จ 🎉");
     } catch (e) {
       console.error(e);
       message.error("อัปโหลดหรืออัปเดตล้มเหลว");
