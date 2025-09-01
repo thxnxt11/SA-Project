@@ -29,7 +29,7 @@ const AddZoneForm: React.FC<AddZoneFormProps> = ({
 }) => {
   const [form] = Form.useForm();
 
-  const handleSubmit = (values: any) => {
+const handleSubmit = (values: any) => {
     const payload = {
       ...values,
       showdate_id: showdateId,        // inject showdateId
@@ -39,17 +39,17 @@ const AddZoneForm: React.FC<AddZoneFormProps> = ({
     onFinish(payload);
   };
 
-  const zonetime = Form.useWatch("zonetype_id", form);// if zonetype = seat set capactiy = 0
-    useEffect(() => {
+const zonetime = Form.useWatch("zonetype_id", form);// if zonetype = seat set capactiy = 0
+  useEffect(() => {
     if (zonetime === 2) {
       form.setFieldsValue({ capacity: 0 });
       Modal.warning({
         title : "you select zone type = seat",
         content : "if you select zone type as seat you can manage later using thrid button count from left",
         okText : "ok"
-      })
+        })
       
-    }
+      }
     }, [zonetime, form]);
 
 

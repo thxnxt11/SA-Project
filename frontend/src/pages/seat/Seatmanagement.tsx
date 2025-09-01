@@ -8,6 +8,7 @@ import { venueoption } from "../../services/https/concert";
 
 import AddZoneForm from "./add/seat";
 import EditZoneForm from "./edit/seat";
+import SeatSelector from "./editseat/seat";
 
 const API_ORG = "http://localhost:8000/organizer";
 
@@ -47,10 +48,14 @@ export default function ZoneBrowser() {
   const [venueOptions, setVenueOptions] = useState<Option[]>([]);
   const [editForm] = Form.useForm();
 
+  // seat modal state
+  const [isSeatOpen, setIsSeatOpen] = useState(false);
+  const [seatZoneId, setSeatZoneId] = useState<number | null>(null);
+
   useEffect(() => {
     const uStr = localStorage.getItem("user") ?? localStorage.getItem("User");
     const user = uStr ? JSON.parse(uStr) : null;
-    const uid = user.user_id
+    const uid = user?.user_id;
     if (uid) {
       setUserId(uid);
       fetchConcerts(uid);
@@ -152,7 +157,6 @@ export default function ZoneBrowser() {
     await fetchPicklists();
     setEditingZone(zone);
     editForm.setFieldsValue({
-      
       venue_id: (zone as any).venue_id ?? (zone as any).venue?.id,
       zonetype_id: (zone as any).zonetype_id,
       zone_name: (zone as any).zone_name,
@@ -162,37 +166,37 @@ export default function ZoneBrowser() {
     setIsEditOpen(true);
   };
 
-const handleSaveEdit = async () => {
-  try {
-    if (!showdateId) {
-      message.error("Select a showdate first");
-      return;
+  const handleSaveEdit = async () => {
+    try {
+      if (!showdateId) {
+        message.error("Select a showdate first");
+        return;
+      }
+
+      const values = await editForm.validateFields();
+      const id = editingZone ? Number(normalizeId(editingZone)) : undefined;
+      if (!id) return;
+
+      const payload = {
+        showdate_id: Number(showdateId),
+        venue_id: Number(values.venue_id),
+        zonetype_id: Number(values.zonetype_id),
+        zone_name: String(values.zone_name).trim(),
+        zone_price: values.zone_price != null ? Number(values.zone_price) : undefined,
+        capacity: values.capacity != null ? Number(values.capacity) : undefined,
+        ...(values.seat_sold != null ? { seat_sold: Number(values.seat_sold) } : {}),
+        ...(values.pending_hold != null ? { pending_hold: Number(values.pending_hold) } : {}),
+      };
+
+      await Seat.update(id, payload);
+      message.success("Zone updated");
+      setIsEditOpen(false);
+      setEditingZone(null);
+      await fetchZones(Number(showdateId));
+    } catch (e: any) {
+      if (!e?.errorFields) message.error(e?.message || "Update failed");
     }
-
-    const values = await editForm.validateFields();
-    const id = editingZone ? Number(normalizeId(editingZone)) : undefined;
-    if (!id) return;
-
-    const payload = {
-      showdate_id: Number(showdateId),                  
-      venue_id: Number(values.venue_id),
-      zonetype_id: Number(values.zonetype_id),
-      zone_name: String(values.zone_name).trim(),     
-      zone_price: values.zone_price != null ? Number(values.zone_price) : undefined,
-      capacity: values.capacity != null ? Number(values.capacity) : undefined,
-      ...(values.seat_sold != null ? { seat_sold: Number(values.seat_sold) } : {}),
-      ...(values.pending_hold != null ? { pending_hold: Number(values.pending_hold) } : {}),
-    };
-
-    await Seat.update(id, payload);
-    message.success("Zone updated");
-    setIsEditOpen(false);
-    setEditingZone(null);
-    await fetchZones(Number(showdateId));
-  } catch (e: any) {
-    if (!e?.errorFields) message.error(e?.message || "Update failed");
-  }
-};
+  };
 
   const handleDelete = (zoneId: number) =>
     Modal.confirm({
@@ -211,8 +215,37 @@ const handleSaveEdit = async () => {
       },
     });
 
-  const nf = new Intl.NumberFormat(); 
-  const zonetime = Form.useWatch("zonetype_id");
+  const nf = new Intl.NumberFormat();
+
+  const getZoneTypeId = (r: any): number | undefined =>
+    r?.zonetype_id ??
+    r?.zone_type_id ??
+    r?.zoneTypeId ??
+    r?.zone_type?.id ??
+    r?.ZoneType?.id ??
+    undefined;
+
+  const getZoneTypeName = (r: any): string | undefined => {
+    const nameFromRow = r?.zone_type?.zone_type ?? r?.ZoneType?.zone_type;
+    if (nameFromRow) return String(nameFromRow);
+    const id = getZoneTypeId(r);
+    if (id == null) return undefined;
+    const opt = (zoneTypeOptions || []).find((o) => Number(o.value) === Number(id));
+    return opt?.label;
+  };
+
+  const openSeat = (zone: ZoneInterface) => {
+    const id = Number(normalizeId(zone));
+    if (!id) {
+      message.error("Invalid zone");
+      return;
+    }
+    setEditingZone(zone);
+    setSeatZoneId(id);
+    setIsSeatOpen(true);
+  };
+
+  
 
   const columns = [
     { title: "ID", key: "ID", render: (_: any, r: ZoneInterface) => normalizeId(r), width: 90 },
@@ -241,20 +274,46 @@ const handleSaveEdit = async () => {
         return p != null ? nf.format(Number(p)) : "—";
       },
     },
-    { title: "Capacity", dataIndex: "capacity", key: "capacity", render: (v: any) => (v != null ? nf.format(v) : "—") },
-    { title: "Sold", dataIndex: "seat_sold", key: "seat_sold", render: (v: any) => (v != null ? nf.format(v) : 0) },
-    { title: "Pending", dataIndex: "pending_hold", key: "pending_hold", render: (v: any) => (v != null ? nf.format(v) : 0) },
+    {
+      title: "Capacity",
+      dataIndex: "capacity",
+      key: "capacity",
+      render: (v: any) => (v != null ? nf.format(v) : "—"),
+    },
+    {
+      title: "Sold",
+      dataIndex: "seat_sold",
+      key: "seat_sold",
+      render: (v: any) => (v != null ? nf.format(v) : 0),
+    },
+    {
+      title: "Pending",
+      dataIndex: "pending_hold",
+      key: "pending_hold",
+      render: (v: any) => (v != null ? nf.format(v) : 0),
+    },
     {
       title: "Actions",
       key: "actions",
       fixed: "right" as const,
       render: (_: any, r: ZoneInterface) => {
         const id = normalizeId(r);
+        const ztName = getZoneTypeName(r)?.toLowerCase();
+        const isStanding = ztName === "standing";
+
         return (
           <Space>
-            <Button size="small" onClick={() => openEdit(r)}>Edit</Button>
-            <Button danger size="small" onClick={() => handleDelete(Number(id))}>Delete</Button>
-            <Button danger size="small" disabled = {zonetime === 2}>seat</Button>
+            <Button size="small" onClick={() => openEdit(r)}>
+              Edit
+            </Button>
+            <Button danger size="small" onClick={() => handleDelete(Number(id))}>
+              Delete
+            </Button>
+            {!isStanding && (
+              <Button size="small" onClick={() => openSeat(r)}>
+                Seat
+              </Button>
+            )}
           </Space>
         );
       },
@@ -309,6 +368,7 @@ const handleSaveEdit = async () => {
         />
       </Card>
 
+
       <Modal open={isAddOpen} onCancel={() => setIsAddOpen(false)} footer={null} destroyOnClose>
         <AddZoneForm
           showdateId={showdateId!}
@@ -317,6 +377,7 @@ const handleSaveEdit = async () => {
           onFinish={handleAddZone}
         />
       </Modal>
+
 
       <Modal
         open={isEditOpen}
@@ -336,7 +397,21 @@ const handleSaveEdit = async () => {
         />
       </Modal>
 
+      {/* Seat Manage */}
+      <Modal
+        open={isSeatOpen}
+        title={`Manage seats — ${editingZone?.zone_name ?? (seatZoneId ? `Zone #${seatZoneId}` : "")}`}
+        onCancel={() => {
+          setIsSeatOpen(false);
+        }}
+        
+        footer={null}
+        destroyOnHidden
+        width={920}
+      >
+      <SeatSelector></SeatSelector>
       
+      </Modal>
     </SidebarLayout>
   );
 }

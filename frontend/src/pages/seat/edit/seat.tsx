@@ -1,4 +1,4 @@
-// src/pages/zones/EditZoneForm.tsx
+// EditZoneForm.tsx
 import React from "react";
 import { Form, Input, InputNumber, Select } from "antd";
 import type { ZoneInterface } from "../../../interface/zone";
@@ -9,7 +9,6 @@ export interface EditZoneFormProps {
   venueOptions: Option[];
   zoneTypeOptions: Option[];
   initialValues?: Partial<ZoneInterface>;
-
   form: ReturnType<typeof Form.useForm>[0];
 }
 
@@ -19,7 +18,6 @@ const EditZoneForm: React.FC<EditZoneFormProps> = ({
   initialValues,
   form,
 }) => {
-
   const formInitial = {
     ...initialValues,
     venue_id:
@@ -28,24 +26,16 @@ const EditZoneForm: React.FC<EditZoneFormProps> = ({
       undefined,
   };
 
+  const selectedZoneTypeId = Form.useWatch("zonetype_id", form);
+
   return (
-    <Form
-      layout="vertical"
-      form={form}
-      requiredMark={false}
-      initialValues={formInitial}
-    >
+    <Form layout="vertical" form={form} requiredMark={false} initialValues={formInitial}>
       <Form.Item
         label="Venue"
         name="venue_id"
         rules={[{ required: true, message: "Please select a venue" }]}
       >
-        <Select
-          options={venueOptions}
-          placeholder="Select venue"
-          showSearch
-          optionFilterProp="label"
-        />
+        <Select options={venueOptions} placeholder="Select venue" showSearch optionFilterProp="label" />
       </Form.Item>
 
       <Form.Item
@@ -56,17 +46,9 @@ const EditZoneForm: React.FC<EditZoneFormProps> = ({
         <Input placeholder="VIP A, Standing, etc." />
       </Form.Item>
 
-      <Form.Item
-        label="Zone type"
-        name="zonetype_id"
-        rules={[{ required: true, message: "Please select zone type" }]}
-      >
-        <Select
-          options={zoneTypeOptions}
-          placeholder="Select zone type"
-          showSearch
-          optionFilterProp="label"
-        />
+
+      <Form.Item name="zonetype_id" preserve noStyle>
+      <input type="hidden" />
       </Form.Item>
 
       <Form.Item
@@ -82,7 +64,10 @@ const EditZoneForm: React.FC<EditZoneFormProps> = ({
         name="capacity"
         rules={[{ required: true, message: "capacity is required" }]}
       >
-        <InputNumber style={{ width: "100%" }} min={0} />
+        <InputNumber style={{ width: "100%" }} min={0} disabled={selectedZoneTypeId === 2} />
+        {selectedZoneTypeId == 2 &&(
+          <p> capacity cant be change here if zone type is seat</p>
+        )}
       </Form.Item>
     </Form>
   );
