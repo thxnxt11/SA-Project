@@ -1,7 +1,7 @@
 import React from "react";
 import { Table, Typography, Card } from "antd";
 
-const { Title } = Typography;
+const { Title,Text } = Typography;
 
 const columns = [
   {
@@ -65,8 +65,9 @@ const data = [
 
 const CheckWarehouse: React.FC = () => {
   return (
-    <Card style={{ background: "#fff", padding: 10 }}>
-      <Title level={3}>🔔 Low Stock</Title>
+    <Card style={{ background: "#fff", padding: 0 }}>
+      <h1 style={{fontSize: 28, fontWeight : "Bold"}} >🔔 Low Stock</h1>
+      <Text type = "secondary" style={{marginLeft:24}}> สินค้าใกล้หมด</Text>
 
       <Table
         columns={columns}

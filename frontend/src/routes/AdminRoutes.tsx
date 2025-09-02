@@ -11,7 +11,6 @@ import Dashboard from "../pages/warehouse";
 import CreateWarehouse from "../pages/warehouse/create";
 import EditWarehouse from "../pages/warehouse/edit";
 import CheckWarehouse from "../pages/warehouse/balance";
-import Notification from "../pages/warehouse/notification";
 
 import ShoppingPage from "../pages/shoppy"
 import ProductDetailPage from "../pages/shoppy/detail"
@@ -44,10 +43,6 @@ const AdminRoutes: RouteObject = {
         {
           path: "balance",
           element: <CheckWarehouse />,
-        },
-        {
-          path: "notification",
-          element: <Notification />,
         },
       ],
     },

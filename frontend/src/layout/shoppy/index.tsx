@@ -56,6 +56,7 @@ const NavbarShop: React.FC = () => {
       >
       {/* {loco+text} */}
       <div style={{ display: "flex", alignItems: "center" }}>
+        
         <img src={logo} alt="logo" style={{ width: 40, marginRight: 12 }} />
         <a
           href="/shoppy"
@@ -117,14 +118,17 @@ const NavbarShop: React.FC = () => {
             gap: 8,
             padding: "0 16px",
             height: 50,
+            fontWeight: "bold",
+            borderRadius: 15,
           }}
           href="/login"
-          >
+        >
           <FaUserCircle />
-          NongMos eiei
+          Admin NongMos
         </Button>
       </div>
     </Header>
+
     <Content
           style={{
             margin: "24px 16px",

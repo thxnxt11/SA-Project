@@ -6,4 +6,5 @@ import (
 
 type PaymentMedthod struct {
    gorm.Model
+   Method   string   `json:"promotion_id"`
 }

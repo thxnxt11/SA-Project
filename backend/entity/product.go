@@ -1,16 +1,19 @@
 package entity
 
-import (
-   //"time"
-   "gorm.io/gorm"
+import  (
+    "gorm.io/gorm"
 )
-
 type Product struct {
    gorm.Model
    ProductName 		string    	`json:"product_name"`
-   CatagoryID     	string    	`json:"catagory_id"`
-   Catagory 			*Catagory  		`gorm:"foreignKey: catagory_id" json:"catagory"`
-   ProductDetail	uint8     	`json:"product_detail"`
-   ProductPrice  	string    	`json:"product_price"`
-   ProductPictrue 	string 		`json:"product_pictrue"`
+   CategoryID     	uint    	`json:"category_id"`
+   Category 		*Category  	`gorm:"foreignKey: category_id" json:"category"`
+   ProductDetail	string     	`json:"product_detail"`
+   ProductPrice  	float32    	`json:"product_price"`
+   Minimum  	    uint  	    `json:"minimum"`
+   Sales    	    uint    	`json:"sales"`
+   Total            uint     	`json:"total"`
+   ConcertID        uint        `json:"concert_id"`
+   Concert 		    *Concert  	`gorm:"foreignKey: concert_id" json:"concert"`
+   Variants         []Variant   `gorm:"foreignKey:ProductID" json:"variants"`
 }

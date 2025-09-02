@@ -12,26 +12,17 @@ import {
   Checkbox,
   Divider,
   Input,
+  Space,
 } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import type { CartItem } from "../../../interface/cartitem";
 
 const { Title } = Typography;
 
-interface CartItem {
-  id: number;
-  name: string;
-  color: string;
-  size: string;
-  price: number;
-  quantity: number;
-}
-
-
-
 const initialCart: CartItem[] = [
-  { id: 1, name: "ONCE T-Shirt", color: "Red", size: "M", price: 1399, quantity: 1 },
-  { id: 2, name: "Light Stick", color: "White", size: " ", price: 1600, quantity: 2 },
+  { id: 1, name: "Saja Boys Heartthrob Officially Licensed T-Shirt", color: "Red", size: "M", price: 1390 , quantity: 1 , picture: "https://m.media-amazon.com/images/I/B1pppR4gVKL._CLa%7C2140%2C2000%7CB1LreszsvuL.png%7C0%2C0%2C2140%2C2000%2B0.0%2C0.0%2C2140.0%2C2000.0_AC_SX466_.png"},
+  { id: 2, name: "HUNTR/X Heartthrob Officially Licensed T-Shirt", color: "White", size: "L", price: 2690 , quantity: 1 , picture: "https://m.media-amazon.com/images/I/B1pppR4gVKL._CLa%7C2140%2C2000%7CA15fChs1PML.png%7C0%2C0%2C2140%2C2000%2B0.0%2C0.0%2C2140.0%2C2000.0_AC_SX466_.png"},
 ];
 
 const CartPages: React.FC = () => {
@@ -87,8 +78,6 @@ const CartPages: React.FC = () => {
 
   const isAllSelected = selectedRowKeys.length === cartItems.length && cartItems.length > 0;
 
-  
-
   const rowSelection = {
     selectedRowKeys,
     onChange: (selectedKeys: React.Key[]) => {
@@ -111,9 +100,9 @@ const CartPages: React.FC = () => {
   );
 };
   return (
-    <Card style={{ width:"70%", margin: "40px auto", padding: 12 }}>
-      <Row gutter={20}>
-        <Col span={17}>
+    <div style={{ width:"60%", margin: "20px auto", padding: 12, minHeight:"80vh" }}>
+      <Row gutter={80}>
+        <Col span={15}>
           {/* ✅ Card บนสุด: เลือกทั้งหมด + เคลียร์ตะกร้า */}
           <Card style={{ marginBottom:12 ,padding:1}}>
             <Row justify="space-between" align="middle">
@@ -144,91 +133,88 @@ const CartPages: React.FC = () => {
           {/* Table รายการสินค้า */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {cartItems.map((item) => (
-<Card key={item.id} style={{ marginBottom: 12 }}>
-  <Row gutter={16} style={{ alignItems: "stretch" }}>
-    {/* ✅ Checkbox เลือกรายการ */}
-    <Col span={1}>
-      <Checkbox
-        checked={selectedRowKeys.includes(item.id)}
-        onChange={() => toggleSelect(item.id)}
-      />
-    </Col>
+            <Card key={item.id} style={{ marginBottom: 12 }}>
+              <Row gutter={16} style={{ alignItems: "stretch" }}>
+                {/* ✅ Checkbox เลือกรายการ */}
+                <Col span={1}>
+                  <Checkbox
+                    checked={selectedRowKeys.includes(item.id)}
+                    onChange={() => toggleSelect(item.id)}
+                  />
+                </Col>
 
-    {/* ✅ กรอบรูปภาพ */}
-    <Col span={5}>
-      <div
-        style={{
-          border: "1px solid #d9d9d9",
-          borderRadius: 8,
-          padding: 4,
-          width: "100%",
-          height: 160,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-          backgroundColor: "#fafafa",
-        }}
-      >
-        <img
-          src="https://via.placeholder.com/100" // เปลี่ยนเป็น item.image ได้
-          alt={item.name}
-          style={{
-            maxWidth: "100%",
-            maxHeight: "100%",
-            objectFit: "contain",
-          }}
-        />
-      </div>
-    </Col>
+                {/* ✅ กรอบรูปภาพ */}
+                <Col span={5}>
+                  <div
+                    style={{
+                      border: "1px solid #d9d9d9",
+                      borderRadius: 8,
+                      padding: 4,
+                      width: "100%",
+                      height: 160,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                      backgroundColor: "#fafafa",
+                    }}
+                  >
+                    <img
+                      src={item.picture}// เปลี่ยนเป็น item.image ได้
+                      alt={item.name}
+                      style={{
+                        maxWidth: "100%",
+                        maxHeight: "100%",
+                        objectFit: "contain",
+                      }}
+                    />
+                  </div>
+                </Col>
 
-    {/* ✅ รายละเอียดสินค้า */}
-    <Col span={12}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <div style={{ fontWeight: "bold", fontSize: 16 }}>{item.name}</div>
-        <div>{item.color} | {item.size}</div>
-        <div>THB {item.price.toLocaleString()}</div>
-      </div>
-    </Col>
+                {/* ✅ รายละเอียดสินค้า */}
+                <Col span={12}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div style={{ fontWeight: "bold", fontSize: 16 }}>{item.name}</div>
+                    <div>{item.color} | {item.size}</div>
+                    <div>THB {item.price.toLocaleString()}</div>
+                  </div>
+                </Col>
 
-    {/* ✅ ชิดล่าง: จำนวน + ปุ่มลบ */}
-    <Col span={6}>
-      <div style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "flex-end",
-        alignItems: "flex-end"
-      }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <InputNumber
-            min={1}
-            value={item.quantity}
-            onChange={(value) => updateQuantity(item.id, value || 1)}
-          />
-          <Popconfirm
-            title="ลบสินค้านี้หรือไม่?"
-            onConfirm={() => removeItem(item.id)}
-          >
-            <Button danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </div>
-      </div>
-    </Col>
-  </Row>
-</Card>
+                {/* ✅ ชิดล่าง: จำนวน + ปุ่มลบ */}
+                <Col span={6}>
+                  <div style={{
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "flex-end",
+                    alignItems: "flex-end"
+                  }}>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <InputNumber
+                        min={1}
+                        value={item.quantity}
+                        onChange={(value) => updateQuantity(item.id, value || 1)}
+                      />
+                      <Popconfirm
+                        title="ลบสินค้านี้หรือไม่?"
+                        onConfirm={() => removeItem(item.id)}
+                      >
+                        <Button danger icon={<DeleteOutlined />} />
+                      </Popconfirm>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+            </Card>
             ))}
-
-
           </div>
-
         </Col>
 
         {/* Sidebar สรุปยอด */}
         <Col span={7}>
-          <Card>
-            <Title level={4}>รวมราคาสินค้าที่เลือก</Title>
-
+          <Card style={{background:"#f9f9f9ff"}}>
+            <Title level={3}>Order Summary</Title>
+              <Divider />
             {/* รายการสินค้า */}
             {selectedItems.map((item) => {
               const itemTotal = item.price * item.quantity;
@@ -254,15 +240,19 @@ const CartPages: React.FC = () => {
             })}
 
             {/* ช่องใส่รหัสส่วนลด */}
-            <Input
-              placeholder="ใส่รหัสส่วนลด"
-              value={discountCode}
-              onChange={(e) => setDiscountCode(e.target.value)}
-              style={{ marginBottom: 8 }}
-            />
-            <Button onClick={applyDiscount} block>
-              ใช้ส่วนลด
-            </Button>
+            <Title level={3}>Discount Code</Title>
+          
+            <Space.Compact style={{ width: '100%' }}>
+              <Input
+                placeholder="ใส่รหัสส่วนลด"
+                value={discountCode}
+                onChange={(e) => setDiscountCode(e.target.value)}
+                style={{ marginBottom: 8 ,width:"80%"}}
+                />
+              <Button onClick={applyDiscount} block type="primary" style={{width:"20%"}}>
+                Use
+              </Button>
+            </Space.Compact>
 
             {/* ราคารวม */}
             <Divider />
@@ -302,7 +292,7 @@ const CartPages: React.FC = () => {
 
         </Col>
       </Row>
-    </Card>
+    </div>
   );
 };
 

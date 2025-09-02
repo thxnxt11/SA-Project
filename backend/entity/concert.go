@@ -7,5 +7,5 @@ import (
 
 type Concert struct {
    gorm.Model
-   Concert 	string 	`json:"concert"`
+   Concert 	   string 	`json:"concert"`
 }

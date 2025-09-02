@@ -29,7 +29,6 @@ const WarehouseLayout: React.FC = () => {
     "/warehouse/create": "2",
     "/warehouse/edit": "3",
     "/warehouse/balance": "4",
-    "/warehouse/notification": "5",
   };
 
   return (
@@ -51,7 +50,7 @@ const WarehouseLayout: React.FC = () => {
             }}
           >
             Warehouse Management
-            <h5>_________________________</h5>
+            <div>_________________________</div>
           </h1>
         )}
         <Menu
@@ -71,7 +70,6 @@ const WarehouseLayout: React.FC = () => {
               "2": "/warehouse/create",
               "3": "/warehouse/edit",
               "4": "/warehouse/balance",
-              "5": "/warehouse/notification",
             };
             const path = pathMap[e.key];
             if (path) navigate(path);
@@ -96,11 +94,6 @@ const WarehouseLayout: React.FC = () => {
               key: "4",
               icon: <FallOutlined style={{ fontSize: "20px" }} />,
               label: "Check balance ",
-            },
-            {
-              key: "5",
-              icon: <MessageOutlined style={{ fontSize: "20px" }} />,
-              label: " Notification ",
             },
           ]}
         />
@@ -161,6 +154,7 @@ const WarehouseLayout: React.FC = () => {
               backgroundColor: "#00306E",
               fontSize: 17,
               color: "white",
+              borderRadius: 15,
             }}
           >
             <FaUserCircle />

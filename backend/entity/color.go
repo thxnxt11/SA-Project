@@ -1,11 +1,8 @@
 package entity
 
-import (
-   //"time"
-   "gorm.io/gorm"
-)
+import "gorm.io/gorm"
 
 type Color struct {
    gorm.Model
-   Color	string	`json:"color"`
+   Color string   `json:"color"`
 }

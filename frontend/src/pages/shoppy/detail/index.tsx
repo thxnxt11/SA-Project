@@ -11,6 +11,7 @@ import {
 } from "antd";
 
 import onceshirt from "../../../assets/onceshirt.jpg";
+import { ShoppingCartOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
@@ -126,7 +127,7 @@ const ProductDetailPage: React.FC = () => {
                 </div>
 
             {/* จำนวน */}
-            <div style={{ marginTop: 16 }}>
+            {/* <div style={{ marginTop: 16 }}>
               <Text strong>Quantity:</Text>
                 <InputNumber
                   min={1}
@@ -135,7 +136,7 @@ const ProductDetailPage: React.FC = () => {
                   onChange={(value) => setQuantity(value || 1)}
                   style={{ marginLeft: 8 }}
                 />
-            </div>
+            </div> */}
 
             <Divider style={{ marginTop: 16 , marginBottom: 16}} />
             <Title level={4}>THB {mockProduct.price.toLocaleString()}</Title>
@@ -146,6 +147,7 @@ const ProductDetailPage: React.FC = () => {
               onClick={handleAddToCart}
               
             >
+              <ShoppingCartOutlined style={{ fontSize: 24, color: "white", cursor: "pointer" }} />
               Add to Cart
             </Button>
           </div>
