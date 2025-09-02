@@ -24,10 +24,10 @@ import "./payment.css";
 import QRPromptPay from "./promptpay_qr";
 import { UploadModal } from "./upload";
 import Loader from "../../component/loader/loader";
-import { paymentAPI, uploadAPI } from "../../services/https"; // 👈 เพิ่ม eticketAPI
+import { paymentAPI, uploadAPI } from "../../services/https"; 
 import BankAccountModal from "../../component/payment/BankAccountModal";
-import  ETicketSuccess  from "../e-ticket";
-import type { Ticket } from "../e-ticket"; // 👈 ใช้ type จาก e-ticket
+import ETicketSuccess from "../e-ticket/show_ticket";
+import type { Ticket } from "../e-ticket/show_ticket"; 
 
 const { Title, Text } = Typography;
 
@@ -120,6 +120,7 @@ const Payment: React.FC = () => {
   );
 
   const basePrice = unitPrice ?? 0;
+  const price = basePrice * quantity;
   const qty = quantity ?? 1;
   const discountValue = discount ?? 0;
   const extraRefundFee = selectedRefundType?.refund_fee ?? 0;
@@ -213,7 +214,7 @@ const Payment: React.FC = () => {
         payment_method_id: selectedPaymentMethodId,
         refund_type_id: selectedRefundTypeId ?? undefined,
         promotion_id: promotionID ?? undefined,
-        base_price: basePrice,
+        base_price: price,
         discount: discountValue,
         refund_fee: extraRefundFee,
         total_price: totalPrice,
@@ -280,7 +281,7 @@ const Payment: React.FC = () => {
       formData.append("file", file);
       const res = await uploadAPI.upload(formData);
       const url: string = res?.data?.data?.url;
-
+      console.log("path: ", url);
       if (!paymentId) {
         message.info("กำลังสร้างรายการชำระเงิน...");
         return;
@@ -355,11 +356,11 @@ const Payment: React.FC = () => {
             <Card className="payment-section" style={{ marginBottom: 24 }}>
               <Title
                 level={4}
-                style={{
-                  marginBottom: 16,
-                  display: "flex",
-                  alignItems: "center",
-                }}
+                // style={{
+                //   marginBottom: 16,
+                //   display: "flex",
+                //   alignItems: "center",
+                // }}
               >
                 <LuShieldCheck style={{ marginRight: 8 }} /> Ticket Type
               </Title>

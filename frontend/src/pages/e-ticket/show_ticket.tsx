@@ -1,41 +1,33 @@
 import React, { useEffect, useRef } from "react";
-import { Modal, Typography, Carousel, message, Button } from "antd";
+import { Modal, Typography, Carousel, Button } from "antd";
 import type { CarouselRef } from "antd/es/carousel";
 import logo from "../../assets/logo.png";
-import {
-  CheckCircleFilled,
-  LeftOutlined,
-  RightOutlined,
-} from "@ant-design/icons";
+import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { QRCodeCanvas } from "qrcode.react";
 
 const { Title, Text } = Typography;
 
 export type Ticket = {
-  uuid: string; // seating = TicketUUID, standing = BookingCode (จาก backend)
+  uuid: string; // seating = TicketUUID, standing = BookingCode
   concertName: string;
   venueName: string;
   showTimeISO: string; // ISO string
-  bookingCode: string; // เช่น BK2025xxxx
+  bookingCode: string; // เช่น BKxxxxxx (standing จะมี)
   zoneType: "SEAT" | "STANDING" | string;
   zone: string; // เช่น ZONE E
   seatLabel?: string; // เช่น E10 (standing จะไม่มี)
-  queueNumber?: number; // standing ใช้ค่านี้แทน seat
+  queueNumber?: number; // ถ้า standing zone
   priceTHB: number; // เช่น 6500
 };
 
 type SuccessProps = {
   open: boolean;
-  tickets: Ticket[]; // ถ้า >1 จะใช้ Carousel
+  tickets: Ticket[];
   onClose: () => void;
+  /** ถ้า true จะไม่โชว์ข้อความสำเร็จ */
+  suppressToast?: boolean;
 };
-
-// type ViewerProps = {
-//   open: boolean;
-//   ticket: Ticket; // แสดงทีละใบ
-//   onClose: () => void;
-// };
 
 const cardWrap: React.CSSProperties = {
   width: 320,
@@ -73,19 +65,15 @@ const footerBrand: React.CSSProperties = {
   gap: 8,
 };
 
-const fontStyle = {
-  fontSize: 16,
-  fontWeight: "bold",
-};
+const fontStyle = { fontSize: 16, fontWeight: "bold" };
 
 const TicketCard: React.FC<{ t: Ticket }> = ({ t }) => {
   const zt = (t.zoneType || "").trim().toLowerCase();
   const isSeat = zt.startsWith("seat");
-  const url = `${window.location.origin}/e-ticket/${t.uuid}`;
+  const url = `http://localhost:8000/e-ticket/${t.uuid}`;
 
   return (
     <div style={cardWrap}>
-      {/* Header */}
       <div style={headerBox}>
         <Text
           strong
@@ -98,7 +86,6 @@ const TicketCard: React.FC<{ t: Ticket }> = ({ t }) => {
         </Text>
       </div>
 
-      {/* QR Area */}
       <div style={{ padding: 14 }}>
         <div style={dashDivider} />
         <div
@@ -127,7 +114,6 @@ const TicketCard: React.FC<{ t: Ticket }> = ({ t }) => {
 
         <div style={dashDivider} />
 
-        {/* Details */}
         <div style={{ paddingTop: 0 }}>
           <div style={row}>
             <div>
@@ -163,9 +149,7 @@ const TicketCard: React.FC<{ t: Ticket }> = ({ t }) => {
               </Text>
               <div>
                 <Text strong>
-                  <Text strong>
-                    {isSeat ? t.seatLabel ?? "-" : t.queueNumber ?? "-"}
-                  </Text>
+                  {isSeat ? t.seatLabel ?? "-" : t.queueNumber ?? "-"}
                 </Text>
               </div>
             </div>
@@ -184,7 +168,6 @@ const TicketCard: React.FC<{ t: Ticket }> = ({ t }) => {
         </div>
       </div>
 
-      {/* Footer brand */}
       <div style={footerBrand}>
         <img
           src={logo}
@@ -199,23 +182,17 @@ const TicketCard: React.FC<{ t: Ticket }> = ({ t }) => {
   );
 };
 
-// Component สำหรับหลังชำระเงิน (มี Carousel)
 const ETicketSuccess: React.FC<SuccessProps> = ({
   open,
   tickets,
   onClose,
+  suppressToast,
 }) => {
   const sliderRef = useRef<CarouselRef>(null);
 
+  // ปิด toast ตามคำขอ: ไม่แสดง message สำเร็จ
   useEffect(() => {
-    if (open) {
-      message.success({
-        content: "Create E-Ticket Success",
-        key: "eticket-success",
-        duration: 2.5,
-        icon: <CheckCircleFilled style={{ color: "#52c41a" }} />,
-      });
-    }
+    // no-op
   }, [open]);
 
   const multiple = tickets && tickets.length > 1;
@@ -249,7 +226,6 @@ const ETicketSuccess: React.FC<SuccessProps> = ({
           <Text type="secondary">No tickets.</Text>
         ) : multiple ? (
           <div style={{ width: 360, margin: "0 auto", position: "relative" }}>
-            {/* Custom Navigation Buttons */}
             <div
               style={{
                 position: "absolute",
@@ -313,43 +289,4 @@ const ETicketSuccess: React.FC<SuccessProps> = ({
   );
 };
 
-// Component สำหรับหน้า My E-Ticket (แสดงทีละใบ)
-// const ETicketViewer: React.FC<ViewerProps> = ({
-//   open,
-//   ticket,
-//   onClose,
-// }) => {
-//   return (
-//     <Modal
-//       open={open}
-//       onCancel={onClose}
-//       footer={
-//         <div style={{ display: "flex", justifyContent: "center" }}>
-//           <Button type="primary" onClick={onClose} style={{ minWidth: 160 }}>
-//             Close
-//           </Button>
-//         </div>
-//       }
-//       centered
-//       width={560}
-//       closable
-//       maskClosable={false}
-//       styles={{ body: { paddingTop: 8, paddingBottom: 8 } }}
-//       title={
-//         <div style={{ textAlign: "center" }}>
-//           <Title level={4} style={{ margin: 0 }}>
-//             E-Ticket
-//           </Title>
-//         </div>
-//       }
-//     >
-//       <div style={{ padding: "8px 0 4px" }}>
-//         <TicketCard t={ticket} />
-//       </div>
-//     </Modal>
-//   );
-// };
-
 export default ETicketSuccess;
-// export default ETicketViewer;
-

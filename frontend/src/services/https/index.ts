@@ -122,7 +122,8 @@ export const promotionAPI = {
   getAllTypes: () => Get(`${PUBLIC_API_URL}/promotions`, false),
   validateCode: (data: { code: string; target: string; concert_id?: number }) =>
     Post(`${PUBLIC_API_URL}/promotion/validate`, data, false),
-  getConcertByuserId: (user_id: number | string | undefined) => Get(`${PUBLIC_API_URL}/concert/${user_id}/user`),
+  getConcertByuserId: (user_id: number | string | undefined) =>
+    Get(`${PUBLIC_API_URL}/concert/${user_id}/user`),
 };
 
 // Concert APIs
@@ -155,6 +156,20 @@ export const paymentAPI = {
 };
 
 export const uploadAPI = {
-  upload: (data: FormData) =>
-    axios.post(`${PUBLIC_API_URL}/upload`, data)
-}
+  upload: (data: FormData) => axios.post(`${PUBLIC_API_URL}/upload`, data),
+};
+
+export const eticketApi = {
+  getByBookingId: (booking_id: number | string | undefined) =>
+    Get(`${PUBLIC_API_URL}/e-tickets/booking/${booking_id}`),
+  getByUserId: (user_id: number | string | undefined) =>
+    Get(`${PUBLIC_API_URL}/e-tickets/${user_id}/user`),
+  getByShowId: (
+    user_id: number | string | undefined,
+    concert_id: number | string | undefined,
+    show_date_id: number | string | undefined
+  ) =>
+    Get(
+      `${PUBLIC_API_URL}/eticket/user/${user_id}/concert/${concert_id}/show/${show_date_id}`
+    ),
+};

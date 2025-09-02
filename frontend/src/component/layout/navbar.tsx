@@ -52,7 +52,7 @@ const Navbar: React.FC = () => {
   const userMenu = {
     items: [
       { key: "profile", label: <Link to="/profile">Profile</Link> },
-      { key: "orders", label: <Link to="/orders">My E-Tickets</Link> },
+      { key: "myeticket", label: <Link to="/my-e-ticket">My E-Tickets</Link> },
       { type: "divider" as const },
       {
         key: "logout",

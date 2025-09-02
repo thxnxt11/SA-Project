@@ -163,28 +163,4 @@ func SetupDatabase() {
       PaymentStatus: "refunded",
    })
 
-
-   // SeedSeatAvailable(db, 2, 195)
-   // SeedSeatAvailable(db, 4, 195)
-   // SeedSeatAvailable(db, 6, 195)
-   // SeedSeatAvailable(db, 8, 195)
-
-   // sql := `
-	// 	UPDATE seat_availables
-	// 	SET seat_available_status = 'available'
-	// 	WHERE rowid IN (
-	// 		SELECT rowid
-	// 		FROM seat_availables
-	// 		WHERE zone_id = ?
-	// 	)
-	// `
-	// result := db.Exec(sql,2 )
-   // res := db.Exec(sql,4 )
-   // if result.Error != nil {
-	// 	panic(result.Error)
-	// }
-   // if res.Error != nil {
-	// 	panic(res.Error)
-	// }
-
 }

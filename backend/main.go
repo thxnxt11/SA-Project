@@ -72,6 +72,8 @@ func main() {
 		api.PUT("/payment/:id/receipt", booking.UpdatePaymentReceipt)
 		api.GET("/concert/:id/user",booking.GetConcertsByUserID)
 		api.GET("/e-tickets/booking/:booking_id",eTicketCtl.GetETicketByBookingID)
+		api.GET("/e-tickets/:user_id/user",eTicketCtl.GetMyTicketCards)
+		api.GET("/eticket/user/:user_id/concert/:concert_id/show/:show_date_id",eTicketCtl.GetETicketByShowID)
 		
 	}
 	r.Static("/uploads", "./uploads")
