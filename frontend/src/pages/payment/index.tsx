@@ -24,10 +24,10 @@ import "./payment.css";
 import QRPromptPay from "./promptpay_qr";
 import { UploadModal } from "./upload";
 import Loader from "../../component/loader/loader";
-import { paymentAPI, uploadAPI } from "../../services/https"; 
+import { paymentAPI, uploadAPI } from "../../services/https";
 import BankAccountModal from "../../component/payment/BankAccountModal";
 import ETicketSuccess from "../e-ticket/show_ticket";
-import type { Ticket } from "../e-ticket/show_ticket"; 
+import type { Ticket } from "../e-ticket/show_ticket";
 
 const { Title, Text } = Typography;
 

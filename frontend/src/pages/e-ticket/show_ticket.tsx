@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Modal, Typography, Carousel, Button } from "antd";
+import { Modal, Typography, Carousel, Button, message } from "antd";
 import type { CarouselRef } from "antd/es/carousel";
 import logo from "../../assets/logo.png";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
@@ -192,7 +192,11 @@ const ETicketSuccess: React.FC<SuccessProps> = ({
 
   // ปิด toast ตามคำขอ: ไม่แสดง message สำเร็จ
   useEffect(() => {
-    // no-op
+    if (suppressToast){
+      return
+    }else{
+      message.success("Creat E-Ticket success")
+    }
   }, [open]);
 
   const multiple = tickets && tickets.length > 1;
