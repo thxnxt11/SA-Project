@@ -14,13 +14,13 @@ import { FaUserCircle, FaBell, FaBars } from "react-icons/fa";
 import { DownOutlined } from "@ant-design/icons";
 import logo from "../../assets/logo.png";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../hook/authContext"; // <-- ตรวจ path ให้ถูก
+import { useAuth } from "../../hook/authContext"; 
 
 const { Header } = Layout;
 const { useBreakpoint } = Grid;
 
 const Navbar: React.FC = () => {
-  const [,setOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const screens = useBreakpoint();
   const isMobile = !screens.md;
   const navigate = useNavigate();
@@ -52,7 +52,7 @@ const Navbar: React.FC = () => {
   const userMenu = {
     items: [
       { key: "profile", label: <Link to="/profile">Profile</Link> },
-      { key: "orders", label: <Link to="/orders">My E-Tickets</Link> },
+      { key: "myeticket", label: <Link to="/my-e-ticket">My E-Tickets</Link> },
       { type: "divider" as const },
       {
         key: "logout",
