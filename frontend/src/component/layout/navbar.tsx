@@ -14,7 +14,7 @@ import { FaUserCircle, FaBell, FaBars } from "react-icons/fa";
 import { DownOutlined } from "@ant-design/icons";
 import logo from "../../assets/logo.png";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../hook/authContext"; 
+import { useAuth } from "../../hook/authContext"; // <-- ตรวจ path ให้ถูก
 
 const { Header } = Layout;
 const { useBreakpoint } = Grid;

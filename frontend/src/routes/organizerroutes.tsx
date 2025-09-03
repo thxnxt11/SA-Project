@@ -19,7 +19,7 @@ export default function OrganizerRoutes() {
         path="dashboard"
         element={
           <RequireAuth>
-            <RequireRole allow={["organizer","admin","staff"]}> {/*สามารถเพิ่ม role อื่นได้ */}
+            <RequireRole allow={["organizer"]}> {/*สามารถเพิ่ม role อื่นได้ */}
               <Dashboard />
             </RequireRole>
           </RequireAuth>

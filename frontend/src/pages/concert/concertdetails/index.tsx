@@ -41,7 +41,6 @@ const toUpperMonthRange = (isoDates: (string | undefined)[]): string => {
   const l = `${last.getDate()} ${mon(last)} ${last.getFullYear()}`;
   return `${f} – ${l}`;
 };
-
 const extractTime = (raw?: string): string => {
   if (!raw) return "—";
 
@@ -64,136 +63,57 @@ const ConcertDetail: React.FC = () => {
   const navigate = useNavigate();
   const [concert, setConcert] = useState<ConcertInterface | null>(null);
   const [loading, setLoading] = useState(false);
-
   const dateRangeText = useMemo(
     () =>
       toUpperMonthRange(concert?.ShowDates?.map((sd) => sd?.show_date) ?? []),
     [concert]
   );
-
-  // เพิ่มฟังก์ชันเช็ควันขาย
-  const isOnSaleStarted = (onsaleDate?: string): boolean => {
-    if (!onsaleDate) return true; // ถ้าไม่มี onsale_date ให้ถือว่าขายได้
-    const now = new Date();
-    const saleDateTime = new Date(onsaleDate);
-    return now >= saleDateTime;
-  };
-
-  // เพิ่มฟังก์ชันเช็คว่าคอนเสิร์ตจบแล้วหรือยัง
-  const parseLocalYMD = (s: string): Date => {
-    const ymd = s.split("T")[0] || s;
-    const [y, m, d] = ymd.split(/[-/]/).map((n) => parseInt(n, 10));
-    return new Date(y, (m || 1) - 1, d || 1);
-  };
-
-  const isConcertEnded = (showDates?: { show_date: string }[]): boolean => {
-    if (!showDates || showDates.length === 0) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return showDates.every((sd) => parseLocalYMD(sd.show_date) < today);
-  };
-
-  // ฟังก์ชันกำหนดสถานะปุ่ม
-  const getButtonState = () => {
-    if (!concert) return { text: "Buy Now", disabled: true, clickable: false };
-
-    const ended = isConcertEnded(concert.ShowDates);
-    const onSaleStarted = isOnSaleStarted(concert.onsale_date);
-
-    if (ended) {
-      return {
-        text: "Buy Now",
-        disabled: true,
-        clickable: false,
-        style: {
-          backgroundColor: "#d9d9d9",
-          borderColor: "#d9d9d9",
-          color: "#fff",
-          cursor: "not-allowed",
-        },
-      };
-    } else if (!onSaleStarted) {
-      return {
-        text: "Coming Soon",
-        disabled: true,
-        clickable: false,
-        style: {
-          backgroundColor: "#d9d9d9",
-          borderColor: "#d9d9d9",
-          color: "#fff",
-          cursor: "not-allowed",
-        },
-      };
-    } else {
-      return {
-        text: "Buy Now",
-        disabled: false,
-        clickable: true,
-        style: {},
-      };
-    }
-  };
-
   const handleBuyNow = () => {
-    const buttonState = getButtonState();
-
-    if (!buttonState.clickable) {
-      if (buttonState.text === "Coming Soon") {
-        message.info("ยังไม่ถึงเวลาเปิดขาย");
-      } else {
-        message.info("คอนเสิร์ตนี้จบแล้ว");
-      }
-      return;
-    }
-
     if (!concert?.ID) {
       message.error("ไม่พบรหัสคอนเสิร์ต");
       return;
     }
-
     // ไปหน้า selectzone แบบ path ต่อจาก concert/:id
     navigate(`/concert/${concert.ID}/selectzone`);
   };
+useEffect(() => {
+  const fetchDetail = async () => {
+    if (!id) {
+      message.error("ไม่พบคอนเสิร์ต");
+      navigate("/");
+      return;
+    }
 
-  useEffect(() => {
-    const fetchDetail = async () => {
-      if (!id) {
-        message.error("ไม่พบคอนเสิร์ต");
-        navigate("/");
-        return;
+    setLoading(true);
+    try {
+      const response = await concertAPI.getById(Number(id)); // หรือ await GetConcertById(id);
+
+      // ตรวจสอบว่า response สำเร็จหรือไม่
+      if (!response || response.status !== 200) {
+        throw new Error(
+          `Failed to fetch concert: ${response?.status || "Unknown error"}`
+        );
       }
 
-      setLoading(true);
-      try {
-        const response = await concertAPI.getById(Number(id));
+      const data: ConcertInterface = response.data || response; // response อาจจะเป็น data โดยตรงหรือใน response.data
+      setConcert(data);
+      console.log("Raw api data:", data);
+    } catch (e) {
+      console.error(e);
+      message.error("ไม่สามารถโหลดรายละเอียดคอนเสิร์ตได้");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        if (!response || response.status !== 200) {
-          throw new Error(
-            `Failed to fetch concert: ${response?.status || "Unknown error"}`
-          );
-        }
-
-        const data: ConcertInterface = response.data || response;
-        setConcert(data);
-        console.log("Raw api data:", data);
-        console.log("On Sale Date:", data.onsale_date);
-        console.log("Is On Sale Started:", isOnSaleStarted(data.onsale_date));
-      } catch (e) {
-        console.error(e);
-        message.error("ไม่สามารถโหลดรายละเอียดคอนเสิร์ตได้");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDetail();
-  }, [id, navigate]);
+  fetchDetail();
+}, [id, navigate]);
 
   const getVenueName = (venue: any): string => {
-    if (!venue) return "";
+    if (!venue) return ""; // ถ้า venue เป็น string
     if (typeof venue === "string") {
       return venue;
-    }
+    } // ถ้า venue เป็น object
     if (typeof venue === "object") {
       return venue.venue_name || venue.name || "";
     }
@@ -231,7 +151,6 @@ const ConcertDetail: React.FC = () => {
   }
 
   const thb = new Intl.NumberFormat("th-TH");
-  const buttonState = getButtonState();
 
   return (
     <>
@@ -241,7 +160,7 @@ const ConcertDetail: React.FC = () => {
       >
         <Card
           style={{
-            backgroundColor: "#ffffffff",
+            backgroundColor: "#e4ecffff",
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
             borderRadius: 12,
             padding: "16px",
@@ -271,6 +190,7 @@ const ConcertDetail: React.FC = () => {
             <Col xs={24} md={14}>
               <div
                 style={{
+                  //   background: "#dfe8ff",
                   borderRadius: 16,
                   padding: "20px 24px",
                   minHeight: 420,
@@ -323,7 +243,7 @@ const ConcertDetail: React.FC = () => {
                         )
                       )
                     )
-                      .sort((a, b) => b - a)
+                      .sort((a, b) => b - a) // เรียงจากมาก -> น้อย
                       .map((price) => thb.format(price))
                       .join(" / ")}{" "}
                     THB
@@ -345,11 +265,10 @@ const ConcertDetail: React.FC = () => {
                       borderRadius: "10px",
                       color: "#fff",
                       border: "none",
-                      cursor: buttonState.clickable ? "pointer" : "not-allowed",
-                      ...buttonState.style,
+                      cursor: "pointer",
                     }}
                   >
-                    {buttonState.text}
+                    Buy Now
                   </button>
                 </div>
               </div>

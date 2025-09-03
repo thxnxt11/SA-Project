@@ -17,6 +17,7 @@ const Concert: React.FC = () => {
       setLoading(true);
       try {
         const response = await concertAPI.getAll();
+
         if (!response || response.status !== 200) {
           throw new Error(
             `Failed to fetch concerts: ${response?.status || "Unknown error"}`
@@ -25,7 +26,6 @@ const Concert: React.FC = () => {
 
         const data: ConcertInterface[] = response.data || [];
         setConcerts(data.slice(0, 5));
-        console.log("all Concerts: ", data);
       } catch (err) {
         console.error("Error fetching concerts:", err);
         message.error("ไม่สามารถโหลดข้อมูลคอนเสิร์ตได้");
@@ -82,6 +82,8 @@ const Concert: React.FC = () => {
     return `${firstStr} – ${lastStr}`;
   };
 
+  // ===== helper: เช็คว่าคอนเสิร์ต “จบแล้ว” หรือยัง =====
+  // parse YYYY-MM-DD (หรือ string มีเวลา) เป็น local date (ตัดเวลา)
   const parseLocalYMD = (s: string): Date => {
     const ymd = s.split("T")[0] || s; // กันมีเวลา
     const [y, m, d] = ymd.split(/[-/]/).map((n) => parseInt(n, 10));
@@ -94,43 +96,6 @@ const Concert: React.FC = () => {
     today.setHours(0, 0, 0, 0); // เทียบเป็นรายวัน
     // จบแล้ว = ทุก show_date < วันนี้
     return showDates.every((sd) => parseLocalYMD(sd.show_date) < today);
-  };
-
-  // ฟังก์ชันเช็ควันขายบัตร
-  const isOnSaleStarted = (onsaleDate?: string): boolean => {
-    if (!onsaleDate) return true; // ถ้าไม่มี onsale_date ให้ถือว่าขายได้
-    const now = new Date();
-    const saleDateTime = new Date(onsaleDate);
-    return now >= saleDateTime;
-  };
-
-  // ฟังก์ชันกำหนดสถานะปุ่มและข้อความ
-  const getButtonState = (concert: ConcertInterface) => {
-    const ended = isConcertEnded(concert.ShowDates);
-    const onSaleStarted = isOnSaleStarted(concert.onsale_date);
-
-    if (ended) {
-      return {
-        text: "Concert End",
-        disabled: true,
-        type: "default" as const,
-        clickable: false,
-      };
-    } else if (!onSaleStarted) {
-      return {
-        text: "Coming Soon",
-        disabled: false,
-        type: "default" as const,
-        clickable: true, // ยังคลิกเข้าหน้า detail ได้
-      };
-    } else {
-      return {
-        text: "BuyNow",
-        disabled: false,
-        type: "primary" as const,
-        clickable: true,
-      };
-    }
   };
 
   if (loading) {
@@ -178,9 +143,7 @@ const Concert: React.FC = () => {
               style={{ maxWidth: "1300px", width: "100%" }}
             >
               {concerts.map((concert) => {
-                // const ended = isConcertEnded(concert.ShowDates);
-                const buttonState = getButtonState(concert);
-
+                const ended = isConcertEnded(concert.ShowDates);
                 const baseBtnStyle: React.CSSProperties = {
                   height: 48,
                   fontSize: 18,
@@ -188,7 +151,6 @@ const Concert: React.FC = () => {
                   borderRadius: 15,
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                 };
-
                 const grayBtnStyle: React.CSSProperties = {
                   ...baseBtnStyle,
                   backgroundColor: "#d9d9d9",
@@ -207,7 +169,7 @@ const Concert: React.FC = () => {
                       }}
                     >
                       <Card
-                        hoverable={buttonState.clickable}
+                        hoverable={!ended}
                         cover={
                           <img
                             alt={concert.concert_name || "Concert"}
@@ -224,15 +186,10 @@ const Concert: React.FC = () => {
                           display: "flex",
                           flexDirection: "column",
                           justifyContent: "space-between",
-                          cursor: buttonState.clickable
-                            ? "pointer"
-                            : "not-allowed",
-                          opacity: buttonState.clickable ? 1 : 0.9,
+                          cursor: ended ? "not-allowed" : "pointer",
+                          opacity: ended ? 0.9 : 1,
                         }}
-                        onClick={() =>
-                          buttonState.clickable &&
-                          handleConcertClick(concert.ID)
-                        }
+                        onClick={() => !ended && handleConcertClick(concert.ID)}
                       >
                         <Title level={5} ellipsis={{ rows: 2 }}>
                           {concert.concert_name || "ไม่ระบุชื่อคอนเสิร์ต"}
@@ -255,18 +212,13 @@ const Concert: React.FC = () => {
                       </Card>
 
                       <Button
-                        onClick={() =>
-                          buttonState.clickable &&
-                          handleConcertClick(concert.ID)
-                        }
-                        type={buttonState.type}
+                        onClick={() => !ended && handleConcertClick(concert.ID)}
+                        type={ended ? "default" : "primary"}
                         size="large"
-                        disabled={buttonState.disabled}
-                        style={
-                          buttonState.disabled ? grayBtnStyle : baseBtnStyle
-                        }
+                        disabled={ended}
+                        style={ended ? grayBtnStyle : baseBtnStyle}
                       >
-                        {buttonState.text}
+                        BuyNow
                       </Button>
                     </div>
                   </Col>
