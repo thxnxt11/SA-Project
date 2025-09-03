@@ -3,12 +3,9 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   DownOutlined,
-<<<<<<< Updated upstream
-=======
   PlusSquareOutlined,
   EditOutlined,
   FallOutlined,
->>>>>>> Stashed changes
 } from "@ant-design/icons";
 import {
   Button,
@@ -19,24 +16,13 @@ import {
   Dropdown,
   Avatar,
   Typography,
-<<<<<<< Updated upstream
-=======
   Badge,
->>>>>>> Stashed changes
   Divider,
 } from "antd";
 import {
   MdOutlineSpaceDashboard,
   MdOutlineLibraryMusic,
   MdEventSeat,
-<<<<<<< Updated upstream
-} from "react-icons/md";
-import { LuTicketPercent } from "react-icons/lu";
-import { FaRegCalendarAlt, FaUserCircle } from "react-icons/fa";
-import logo from "../../assets/logo.png";
-import { useLocation, useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../hook/authContext"; // <- ตรวจ path ให้ตรง
-=======
   MdAssignment,
 } from "react-icons/md";
 import { LuTicketPercent } from "react-icons/lu";
@@ -51,7 +37,6 @@ import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hook/authContext";
 import { BsPersonLinesFill } from "react-icons/bs";
 import type { MenuProps } from "antd";
->>>>>>> Stashed changes
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -60,13 +45,10 @@ interface SidebarLayoutProps {
   children: React.ReactNode;
 }
 
-<<<<<<< Updated upstream
-=======
 type AppMenuItem = NonNullable<MenuProps["items"]>[number] & {
   roles?: Array<"organizer" | "admin" | "staff">; // เมนูนี้ให้ใครเห็นบ้าง
 };
 
->>>>>>> Stashed changes
 const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   const {
@@ -77,13 +59,6 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const screens = useBreakpoint();
 
   const { user, logout } = useAuth();
-<<<<<<< Updated upstream
-
-  const isMobile = !screens.lg; // < lg = mobile/tablet
-
-  // เมนูหลัก
-  const menuItems = useMemo(
-=======
   const role = user?.role as "organizer" | "admin" | "staff" | undefined;
   console.log("role: ", user?.role);
   const isMobile = !screens.lg; // < lg = mobile/tablet
@@ -91,51 +66,33 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     !item?.roles || (role && item.roles.includes(role));
   // เมนูหลัก
   const menuItems = useMemo<AppMenuItem[]>(
->>>>>>> Stashed changes
     () => [
       {
         key: "/organizer/dashboard",
         icon: <MdOutlineSpaceDashboard style={{ fontSize: 20 }} />,
         label: <span title="Dashboard">Dashboard</span>,
         onClick: () => navigate("/organizer/dashboard"),
-<<<<<<< Updated upstream
-=======
         roles: ["organizer"],
->>>>>>> Stashed changes
       },
       {
         key: "/organizer/concert",
         icon: <MdOutlineLibraryMusic style={{ fontSize: 20 }} />,
         label: <span title="จัดการคอนเสิร์ต">จัดการคอนเสิร์ต</span>,
         onClick: () => navigate("/organizer/concert"),
-<<<<<<< Updated upstream
-=======
         roles: ["organizer"],
->>>>>>> Stashed changes
       },
       {
         key: "/organizer/chart",
         icon: <MdEventSeat style={{ fontSize: 20 }} />,
         label: <span title="จัดการผังที่นั่ง">จัดการผังที่นั่ง</span>,
         onClick: () => navigate("/organizer/chart"),
-<<<<<<< Updated upstream
-=======
         roles: ["organizer"],
->>>>>>> Stashed changes
       },
       {
         key: "/organizer/promotion",
         icon: <LuTicketPercent style={{ fontSize: 20 }} />,
         label: <span title="จัดการโปรโมชั่น">จัดการโปรโมชั่น</span>,
         onClick: () => navigate("/organizer/promotion"),
-<<<<<<< Updated upstream
-      },
-      {
-        key: "/organizer/venue",
-        icon: <FaRegCalendarAlt style={{ fontSize: 20 }} />,
-        label: <span title="ปฏิทินสถานที่">ปฏิทินสถานที่</span>,
-        onClick: () => navigate("/organizer/venue"),
-=======
         roles: ["organizer"],
       },
       {
@@ -200,18 +157,14 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         label: <span title="มอบหมายงาน">มอบหมายงาน</span>,
         onClick: () => navigate("/admin/assignment "),
         roles: ["admin", "staff"],
->>>>>>> Stashed changes
       },
     ],
     [navigate]
   );
-<<<<<<< Updated upstream
-=======
   const visibleMenuItems = useMemo(
     () => menuItems.filter(canSee),
     [menuItems, role]
   );
->>>>>>> Stashed changes
 
   // เมนูผู้ใช้มุมขวาบน
   const userMenu = {
@@ -296,19 +249,12 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
               padding: "12px 8px",
               fontSize: 16,
             }}
-<<<<<<< Updated upstream
-            items={menuItems}
-            onClick={(info) => {
-              const selected = menuItems.find((i) => i.key === info.key);
-              selected?.onClick?.();
-=======
             items={visibleMenuItems as MenuProps["items"]}
             onClick={(info) => {
               const selected = visibleMenuItems.find(
                 (i) => i?.key === info.key
               );
               (selected as any)?.onClick?.();
->>>>>>> Stashed changes
             }}
           />
         </div>
@@ -413,8 +359,6 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
               gap: 8,
             }}
           >
-<<<<<<< Updated upstream
-=======
             <Badge dot offset={[-2, 2]}>
               <Button
                 type="text"
@@ -424,7 +368,6 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
               />
             </Badge>
 
->>>>>>> Stashed changes
             <Divider type="vertical" style={{ height: 24, marginInline: 8 }} />
 
             {!user ? (

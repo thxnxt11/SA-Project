@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 import styled from "styled-components";
 
 const Loader = () => {
@@ -14,12 +10,8 @@ const Loader = () => {
   );
 };
 
-<<<<<<< Updated upstream
-const StyledWrapper = styled.div`
-=======
 const StyledWrapper = styled.div
 `
->>>>>>> Stashed changes
   position: fixed;
   top: 0;
   left: 0;

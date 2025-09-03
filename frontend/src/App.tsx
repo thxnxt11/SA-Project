@@ -7,13 +7,8 @@ import {
   Navigate,
 } from "react-router-dom";
 
-<<<<<<< Updated upstream
-import MemberRoutes from "./routes/memberroutes";
-import OrganizerRoutes from "./routes/organizerroutes";
-=======
 import MemberRoutes from "./routes/memberRoutes";
 import OrganizerRoutes from "./routes/organizerRoutes";
->>>>>>> Stashed changes
 import { AuthProvider } from "./hook/authContext";
 
 const App: React.FC = () => {

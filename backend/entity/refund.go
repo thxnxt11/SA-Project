@@ -14,7 +14,7 @@ type Refund struct {
 	Consume     time.Time `json:"consume"`
 
 	UserID uint   
-	User  *User `gorm:"foreignKey:MembersID"`
+	User  *User `gorm:"foreignKey:UserID"`
 
 	BookingID uint   
 	Booking   *Booking `gorm:"foreignKey:BookingID"`

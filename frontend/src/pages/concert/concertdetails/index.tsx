@@ -68,9 +68,6 @@ const ConcertDetail: React.FC = () => {
       toUpperMonthRange(concert?.ShowDates?.map((sd) => sd?.show_date) ?? []),
     [concert]
   );
-<<<<<<< Updated upstream
-  const handleBuyNow = () => {
-=======
 
   // เพิ่มฟังก์ชันเช็ควันขาย
   const isOnSaleStarted = (onsaleDate?: string): boolean => {
@@ -147,54 +144,10 @@ const ConcertDetail: React.FC = () => {
       return;
     }
 
->>>>>>> Stashed changes
     if (!concert?.ID) {
       message.error("ไม่พบรหัสคอนเสิร์ต");
       return;
     }
-<<<<<<< Updated upstream
-    // ไปหน้า selectzone แบบ path ต่อจาก concert/:id
-    navigate(`/concert/${concert.ID}/selectzone`);
-  };
-useEffect(() => {
-  const fetchDetail = async () => {
-    if (!id) {
-      message.error("ไม่พบคอนเสิร์ต");
-      navigate("/");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await concertAPI.getById(Number(id)); // หรือ await GetConcertById(id);
-
-      // ตรวจสอบว่า response สำเร็จหรือไม่
-      if (!response || response.status !== 200) {
-        throw new Error(
-          `Failed to fetch concert: ${response?.status || "Unknown error"}`
-        );
-      }
-
-      const data: ConcertInterface = response.data || response; // response อาจจะเป็น data โดยตรงหรือใน response.data
-      setConcert(data);
-      console.log("Raw api data:", data);
-    } catch (e) {
-      console.error(e);
-      message.error("ไม่สามารถโหลดรายละเอียดคอนเสิร์ตได้");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchDetail();
-}, [id, navigate]);
-
-  const getVenueName = (venue: any): string => {
-    if (!venue) return ""; // ถ้า venue เป็น string
-    if (typeof venue === "string") {
-      return venue;
-    } // ถ้า venue เป็น object
-=======
 
     // ไปหน้า selectzone แบบ path ต่อจาก concert/:id
     navigate(`/concert/${concert.ID}/selectzone`);
@@ -238,7 +191,6 @@ useEffect(() => {
     if (typeof venue === "string") {
       return venue;
     }
->>>>>>> Stashed changes
     if (typeof venue === "object") {
       return venue.venue_name || venue.name || "";
     }
@@ -276,10 +228,7 @@ useEffect(() => {
   }
 
   const thb = new Intl.NumberFormat("th-TH");
-<<<<<<< Updated upstream
-=======
   const buttonState = getButtonState();
->>>>>>> Stashed changes
 
   return (
     <>
@@ -289,11 +238,7 @@ useEffect(() => {
       >
         <Card
           style={{
-<<<<<<< Updated upstream
-            backgroundColor: "#e4ecffff",
-=======
             backgroundColor: "#ffffffff",
->>>>>>> Stashed changes
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
             borderRadius: 12,
             padding: "16px",
@@ -323,10 +268,6 @@ useEffect(() => {
             <Col xs={24} md={14}>
               <div
                 style={{
-<<<<<<< Updated upstream
-                  //   background: "#dfe8ff",
-=======
->>>>>>> Stashed changes
                   borderRadius: 16,
                   padding: "20px 24px",
                   minHeight: 420,
@@ -379,11 +320,7 @@ useEffect(() => {
                         )
                       )
                     )
-<<<<<<< Updated upstream
-                      .sort((a, b) => b - a) // เรียงจากมาก -> น้อย
-=======
                       .sort((a, b) => b - a)
->>>>>>> Stashed changes
                       .map((price) => thb.format(price))
                       .join(" / ")}{" "}
                     THB
@@ -405,18 +342,11 @@ useEffect(() => {
                       borderRadius: "10px",
                       color: "#fff",
                       border: "none",
-<<<<<<< Updated upstream
-                      cursor: "pointer",
-                    }}
-                  >
-                    Buy Now
-=======
                       cursor: buttonState.clickable ? "pointer" : "not-allowed",
                       ...buttonState.style,
                     }}
                   >
                     {buttonState.text}
->>>>>>> Stashed changes
                   </button>
                 </div>
               </div>

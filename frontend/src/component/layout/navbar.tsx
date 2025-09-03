@@ -14,11 +14,7 @@ import { FaUserCircle, FaBell, FaBars } from "react-icons/fa";
 import { DownOutlined } from "@ant-design/icons";
 import logo from "../../assets/logo.png";
 import { Link, useNavigate } from "react-router-dom";
-<<<<<<< Updated upstream
-import { useAuth } from "../../hook/authContext";
-=======
 import { useAuth } from "../../hook/authContext"; 
->>>>>>> Stashed changes
 
 const { Header } = Layout;
 const { useBreakpoint } = Grid;
@@ -41,11 +37,7 @@ const Navbar: React.FC = () => {
   );
 
   // ✅ สร้างชื่อแสดงผลจาก firstname + lastname > name > email prefix
-<<<<<<< Updated upstream
-  const displayName = user?.name;
-=======
   const displayName = user?.name ;
->>>>>>> Stashed changes
 
   // ตัวอักษรย่อใน Avatar
   // const initials = (
@@ -162,8 +154,6 @@ const Navbar: React.FC = () => {
       <div style={{ marginLeft: "auto" }}>
         {!isMobile ? (
           <Space size={16} align="center">
-<<<<<<< Updated upstream
-=======
             <Badge dot offset={[-2, 2]}>
               <Button
                 type="text"
@@ -176,7 +166,6 @@ const Navbar: React.FC = () => {
                 }}
               />
             </Badge>
->>>>>>> Stashed changes
 
             {!user ? (
               <Button

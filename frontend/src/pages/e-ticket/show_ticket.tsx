@@ -189,7 +189,6 @@ const ETicketSuccess: React.FC<SuccessProps> = ({
   suppressToast,
 }) => {
   const sliderRef = useRef<CarouselRef>(null);
-<<<<<<< Updated upstream
   const prevOpen = useRef<boolean>(open); // จดสถานะก่อนหน้า
 
   useEffect(() => {
@@ -197,23 +196,12 @@ const ETicketSuccess: React.FC<SuccessProps> = ({
     if (!suppressToast && prevOpen.current === false && open === true) {
       message.success({
         content: "Create E-Ticket success",
-        key: "eticket-success", 
+        key: "eticket-success",
         duration: 1.5,
       });
     }
     prevOpen.current = open;
   }, [open, suppressToast]);
-=======
-
-  // ปิด toast ตามคำขอ: ไม่แสดง message สำเร็จ
-  useEffect(() => {
-    if (suppressToast){
-      return
-    }else{
-      message.success("Creat E-Ticket success")
-    }
-  }, [open]);
->>>>>>> Stashed changes
 
   const multiple = tickets && tickets.length > 1;
 

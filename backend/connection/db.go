@@ -40,7 +40,7 @@ func SetupDatabase() {
        &entity.BookingStatus{},
        &entity.BookingSeat{},
        &entity.Cart{},
-       &entity.Cartitem{},
+       &entity.CartItem{},
        &entity.Catagory{},
        &entity.Color{},
        &entity.Concert{},

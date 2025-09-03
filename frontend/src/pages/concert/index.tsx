@@ -17,10 +17,6 @@ const Concert: React.FC = () => {
       setLoading(true);
       try {
         const response = await concertAPI.getAll();
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
         if (!response || response.status !== 200) {
           throw new Error(
             `Failed to fetch concerts: ${response?.status || "Unknown error"}`
@@ -29,10 +25,7 @@ const Concert: React.FC = () => {
 
         const data: ConcertInterface[] = response.data || [];
         setConcerts(data.slice(0, 5));
-<<<<<<< Updated upstream
-=======
         console.log("all Concerts: ", data);
->>>>>>> Stashed changes
       } catch (err) {
         console.error("Error fetching concerts:", err);
         message.error("ไม่สามารถโหลดข้อมูลคอนเสิร์ตได้");
@@ -89,11 +82,6 @@ const Concert: React.FC = () => {
     return `${firstStr} – ${lastStr}`;
   };
 
-<<<<<<< Updated upstream
-  // ===== helper: เช็คว่าคอนเสิร์ต “จบแล้ว” หรือยัง =====
-  // parse YYYY-MM-DD (หรือ string มีเวลา) เป็น local date (ตัดเวลา)
-=======
->>>>>>> Stashed changes
   const parseLocalYMD = (s: string): Date => {
     const ymd = s.split("T")[0] || s; // กันมีเวลา
     const [y, m, d] = ymd.split(/[-/]/).map((n) => parseInt(n, 10));
@@ -108,8 +96,6 @@ const Concert: React.FC = () => {
     return showDates.every((sd) => parseLocalYMD(sd.show_date) < today);
   };
 
-<<<<<<< Updated upstream
-=======
   // ฟังก์ชันเช็ควันขายบัตร
   const isOnSaleStarted = (onsaleDate?: string): boolean => {
     if (!onsaleDate) return true; // ถ้าไม่มี onsale_date ให้ถือว่าขายได้
@@ -147,7 +133,6 @@ const Concert: React.FC = () => {
     }
   };
 
->>>>>>> Stashed changes
   if (loading) {
     return (
       <>
@@ -193,13 +178,9 @@ const Concert: React.FC = () => {
               style={{ maxWidth: "1300px", width: "100%" }}
             >
               {concerts.map((concert) => {
-<<<<<<< Updated upstream
-                const ended = isConcertEnded(concert.ShowDates);
-=======
                 // const ended = isConcertEnded(concert.ShowDates);
                 const buttonState = getButtonState(concert);
 
->>>>>>> Stashed changes
                 const baseBtnStyle: React.CSSProperties = {
                   height: 48,
                   fontSize: 18,
@@ -207,10 +188,6 @@ const Concert: React.FC = () => {
                   borderRadius: 15,
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                 };
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
                 const grayBtnStyle: React.CSSProperties = {
                   ...baseBtnStyle,
                   backgroundColor: "#d9d9d9",
@@ -229,11 +206,7 @@ const Concert: React.FC = () => {
                       }}
                     >
                       <Card
-<<<<<<< Updated upstream
-                        hoverable={!ended}
-=======
                         hoverable={buttonState.clickable}
->>>>>>> Stashed changes
                         cover={
                           <img
                             alt={concert.concert_name || "Concert"}
@@ -250,12 +223,6 @@ const Concert: React.FC = () => {
                           display: "flex",
                           flexDirection: "column",
                           justifyContent: "space-between",
-<<<<<<< Updated upstream
-                          cursor: ended ? "not-allowed" : "pointer",
-                          opacity: ended ? 0.9 : 1,
-                        }}
-                        onClick={() => !ended && handleConcertClick(concert.ID)}
-=======
                           cursor: buttonState.clickable
                             ? "pointer"
                             : "not-allowed",
@@ -265,7 +232,6 @@ const Concert: React.FC = () => {
                           buttonState.clickable &&
                           handleConcertClick(concert.ID)
                         }
->>>>>>> Stashed changes
                       >
                         <Title level={5} ellipsis={{ rows: 2 }}>
                           {concert.concert_name || "ไม่ระบุชื่อคอนเสิร์ต"}
@@ -288,15 +254,6 @@ const Concert: React.FC = () => {
                       </Card>
 
                       <Button
-<<<<<<< Updated upstream
-                        onClick={() => !ended && handleConcertClick(concert.ID)}
-                        type={ended ? "default" : "primary"}
-                        size="large"
-                        disabled={ended}
-                        style={ended ? grayBtnStyle : baseBtnStyle}
-                      >
-                        BuyNow
-=======
                         onClick={() =>
                           buttonState.clickable &&
                           handleConcertClick(concert.ID)
@@ -309,7 +266,6 @@ const Concert: React.FC = () => {
                         }
                       >
                         {buttonState.text}
->>>>>>> Stashed changes
                       </Button>
                     </div>
                   </Col>

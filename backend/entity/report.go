@@ -10,7 +10,7 @@ type Report struct {
 	Description string  `json:"description"`
 
 	UserID uint   
-	User   *User `gorm:"foreignKey:MembersID"`
+	User   *User `gorm:"foreignKey:UserID"`
 
 	ReportStatusID uint
 	ReportStatus *ReportStatus `gorm:"foreignKey:ReportStatusID"`

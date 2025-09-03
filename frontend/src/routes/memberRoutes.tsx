@@ -80,14 +80,6 @@ export default function MemberRoutes() {
           </RequireAuth>
         }
       />
-      {/* <Route
-        path="/e-ticket/:uuid"
-        element={
-          <RequireAuth>
-            <ETicketCard />
-          </RequireAuth>
-        }
-      /> */}
 
       {/* 404 fallback for public */}
       <Route path="*" element={<Navigate to="/concerts" replace />} />

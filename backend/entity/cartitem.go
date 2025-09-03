@@ -5,7 +5,7 @@ import (
    "gorm.io/gorm"
 )
 
-type Cartitem struct {
+type CartItem struct {
    gorm.Model
    CartID 	uint8    	`json:"cart_id"`
    Cart    *User      `gorm:"foreignKey: cart_id" json:"cart"`
