@@ -2,6 +2,7 @@ import axios from "axios";
 import type { AxiosResponse, AxiosError } from "axios";
 import type { PromotionInterface } from "../../interface/promotion";
 import type { bookingInterface } from "../../interface/booking";
+import type { UserInterface } from "../../interface/user";
 
 const ORGANIZER_API_URL = "http://localhost:8000/organizer";
 const PUBLIC_API_URL = "http://localhost:8000/api";
@@ -172,4 +173,12 @@ export const eticketApi = {
     Get(
       `${PUBLIC_API_URL}/eticket/user/${user_id}/concert/${concert_id}/show/${show_date_id}`
     ),
+};
+
+export const userApi = {
+  getById: (user_id: number | string | undefined) =>
+    Get(`${PUBLIC_API_URL}/user/${user_id}`),
+  updateById: (user_id: number | string | undefined, data: any) =>
+    Update(`${PUBLIC_API_URL}/user/${user_id}`, data),
+  getAllGender: () => Get(`${PUBLIC_API_URL}/genders`),
 };

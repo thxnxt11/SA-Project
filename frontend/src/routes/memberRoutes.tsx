@@ -13,6 +13,7 @@ import Payment from "../pages/payment";
 import RequireAuth from "../hook/RequireAuth";
 import PublicRoute from "./publicRoutes";
 import MyETicket from "../pages/e-ticket/my-e-ticket";
+import EditProfile from "../pages/user/profile/editprofile";
 
 export default function MemberRoutes() {
   return (
@@ -40,6 +41,14 @@ export default function MemberRoutes() {
       <Route path="/concert/:id" element={<ConcertDetail />} />
 
       {/* protected */}
+      <Route
+        path="/user/profile"
+        element={
+          <RequireAuth>
+            <EditProfile />
+          </RequireAuth>
+        }
+      />
       <Route
         path="/my-e-ticket"
         element={

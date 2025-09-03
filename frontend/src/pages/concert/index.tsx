@@ -1,9 +1,21 @@
-import React, { useEffect, useState } from "react";
-import { Row, Col, Card, Typography, Spin, message, Button } from "antd";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Row,
+  Col,
+  Card,
+  Typography,
+  Spin,
+  message,
+  Button,
+  Carousel,
+  Grid,
+} from "antd";
+import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../component/layout/navbar";
 import type { ConcertInterface } from "../../interface/concert";
 import { concertAPI } from "../../services/https";
+import type { CarouselRef } from "antd/es/carousel";
 
 const { Title, Paragraph } = Typography;
 
@@ -11,6 +23,8 @@ const Concert: React.FC = () => {
   const [concerts, setConcerts] = useState<ConcertInterface[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  const carouselRef = useRef<CarouselRef>(null);
 
   useEffect(() => {
     const fetchConcerts = async (): Promise<void> => {
@@ -24,8 +38,7 @@ const Concert: React.FC = () => {
         }
 
         const data: ConcertInterface[] = response.data || [];
-        setConcerts(data.slice(0, 5));
-        console.log("all Concerts: ", data);
+        setConcerts(data.slice(0, 12));
       } catch (err) {
         console.error("Error fetching concerts:", err);
         message.error("ไม่สามารถโหลดข้อมูลคอนเสิร์ตได้");
@@ -39,7 +52,6 @@ const Concert: React.FC = () => {
 
   const handleConcertClick = (concertId: number): void => {
     if (!concertId) {
-      console.error("Concert ID is undefined");
       message.error("ไม่สามารถเปิดหน้ารายละเอียดคอนเสิร์ตได้");
       return;
     }
@@ -83,7 +95,7 @@ const Concert: React.FC = () => {
   };
 
   const parseLocalYMD = (s: string): Date => {
-    const ymd = s.split("T")[0] || s; // กันมีเวลา
+    const ymd = s.split("T")[0] || s;
     const [y, m, d] = ymd.split(/[-/]/).map((n) => parseInt(n, 10));
     return new Date(y, (m || 1) - 1, d || 1);
   };
@@ -91,20 +103,17 @@ const Concert: React.FC = () => {
   const isConcertEnded = (showDates?: { show_date: string }[]): boolean => {
     if (!showDates || showDates.length === 0) return false;
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // เทียบเป็นรายวัน
-    // จบแล้ว = ทุก show_date < วันนี้
+    today.setHours(0, 0, 0, 0);
     return showDates.every((sd) => parseLocalYMD(sd.show_date) < today);
   };
 
-  // ฟังก์ชันเช็ควันขายบัตร
   const isOnSaleStarted = (onsaleDate?: string): boolean => {
-    if (!onsaleDate) return true; // ถ้าไม่มี onsale_date ให้ถือว่าขายได้
+    if (!onsaleDate) return true;
     const now = new Date();
     const saleDateTime = new Date(onsaleDate);
     return now >= saleDateTime;
   };
 
-  // ฟังก์ชันกำหนดสถานะปุ่มและข้อความ
   const getButtonState = (concert: ConcertInterface) => {
     const ended = isConcertEnded(concert.ShowDates);
     const onSaleStarted = isOnSaleStarted(concert.onsale_date);
@@ -121,7 +130,7 @@ const Concert: React.FC = () => {
         text: "Coming Soon",
         disabled: false,
         type: "default" as const,
-        clickable: true, // ยังคลิกเข้าหน้า detail ได้
+        clickable: true,
       };
     } else {
       return {
@@ -132,6 +141,16 @@ const Concert: React.FC = () => {
       };
     }
   };
+
+  const perSlide = screens.xl ? 3 : screens.md ? 2 : 1;
+
+  const slides = useMemo(() => {
+    const out: ConcertInterface[][] = [];
+    for (let i = 0; i < concerts.length; i += perSlide) {
+      out.push(concerts.slice(i, i + perSlide));
+    }
+    return out;
+  }, [concerts, perSlide]);
 
   if (loading) {
     return (
@@ -155,123 +174,158 @@ const Concert: React.FC = () => {
   return (
     <>
       <Navbar />
-      <div style={{ padding: "20px 40px" }}>
+      <div style={{ padding: "20px 40px", position: "relative" }}>
         <Title level={2} style={{ marginBottom: 24, marginLeft: "6%" }}>
           🎶 Recommended Concerts
         </Title>
 
-        {concerts.length === 0 ? (
+        {slides.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px 0" }}>
             <Paragraph type="secondary">ไม่พบข้อมูลคอนเสิร์ต</Paragraph>
           </div>
         ) : (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              width: "100%",
-            }}
-          >
-            <Row
-              gutter={[16, 20]}
-              justify="center"
-              style={{ maxWidth: "1300px", width: "100%" }}
-            >
-              {concerts.map((concert) => {
-                // const ended = isConcertEnded(concert.ShowDates);
-                const buttonState = getButtonState(concert);
+          <div style={{ position: "relative" }}>
+            {/* ปุ่มซ้าย */}
+            <Button
+              shape="circle"
+              size="large"
+              icon={<LeftOutlined />}
+              onClick={() => carouselRef.current?.prev()}
+              style={{
+                position: "absolute",
+                top: "40%",
+                left: "50px",
+                zIndex: 10,
+                background: "rgba(0,0,0,0.6)",
+                borderColor: "transparent",
+                color: "#fff",
+              }}
+            />
 
-                const baseBtnStyle: React.CSSProperties = {
-                  height: 48,
-                  fontSize: 18,
-                  width: "230px",
-                  borderRadius: 15,
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                };
-                const grayBtnStyle: React.CSSProperties = {
-                  ...baseBtnStyle,
-                  backgroundColor: "#d9d9d9",
-                  borderColor: "#d9d9d9",
-                  color: "#fff",
-                };
+            {/* ปุ่มขวา */}
+            <Button
+              shape="circle"
+              size="large"
+              icon={<RightOutlined />}
+              onClick={() => carouselRef.current?.next()}
+              style={{
+                position: "absolute",
+                top: "40%",
+                right: "50px",
+                zIndex: 10,
+                background: "rgba(0,0,0,0.6)",
+                borderColor: "transparent",
+                color: "#fff",
+              }}
+            />
 
-                return (
-                  <Col key={concert.ID}>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "12px",
-                      }}
-                    >
-                      <Card
-                        hoverable={buttonState.clickable}
-                        cover={
-                          <img
-                            alt={concert.concert_name || "Concert"}
-                            src={`http://localhost:8000${concert.concert_poster_url}`}
-                            style={{ height: 280, objectFit: "fill" }}
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = "/placeholder-image.jpg";
+            <Carousel ref={carouselRef} dots={false} infinite={false}>
+              {slides.map((group, idx) => (
+                <div key={idx}>
+                  <Row
+                    gutter={[16, 20]}
+                    justify="center"
+                    style={{ maxWidth: 1300, margin: "0 auto" }}
+                  >
+                    {group.map((concert) => {
+                      const buttonState = getButtonState(concert);
+
+                      const baseBtnStyle: React.CSSProperties = {
+                        height: 48,
+                        fontSize: 18,
+                        width: 230,
+                        borderRadius: 15,
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                      };
+                      const grayBtnStyle: React.CSSProperties = {
+                        ...baseBtnStyle,
+                        backgroundColor: "#d9d9d9",
+                        borderColor: "#d9d9d9",
+                        color: "#fff",
+                      };
+
+                      return (
+                        <Col key={concert.ID}>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: 12,
                             }}
-                          />
-                        }
-                        style={{
-                          width: "230px",
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "space-between",
-                          cursor: buttonState.clickable
-                            ? "pointer"
-                            : "not-allowed",
-                          opacity: buttonState.clickable ? 1 : 0.9,
-                        }}
-                        onClick={() =>
-                          buttonState.clickable &&
-                          handleConcertClick(concert.ID)
-                        }
-                      >
-                        <Title level={5} ellipsis={{ rows: 2 }}>
-                          {concert.concert_name || "ไม่ระบุชื่อคอนเสิร์ต"}
-                        </Title>
+                          >
+                            <Card
+                              hoverable={buttonState.clickable}
+                              cover={
+                                <img
+                                  alt={concert.concert_name || "Concert"}
+                                  src={`http://localhost:8000${concert.concert_poster_url}`}
+                                  style={{ height: 280, objectFit: "cover" }}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      "/placeholder-image.jpg";
+                                  }}
+                                />
+                              }
+                              style={{
+                                width: 230,
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "space-between",
+                                cursor: buttonState.clickable
+                                  ? "pointer"
+                                  : "not-allowed",
+                                opacity: buttonState.clickable ? 1 : 0.9,
+                              }}
+                              onClick={() =>
+                                buttonState.clickable &&
+                                handleConcertClick(concert.ID)
+                              }
+                            >
+                              <Title level={5} ellipsis={{ rows: 2 }}>
+                                {concert.concert_name || "ไม่ระบุชื่อคอนเสิร์ต"}
+                              </Title>
 
-                        {concert.artist && (
-                          <Paragraph type="secondary" ellipsis>
-                            {concert.artist}
-                          </Paragraph>
-                        )}
+                              {concert.artist && (
+                                <Paragraph type="secondary" ellipsis>
+                                  {concert.artist}
+                                </Paragraph>
+                              )}
 
-                        {concert.ShowDates && (
-                          <Paragraph style={{ marginBottom: 0 }}>
-                            📅{" "}
-                            {formatDateRange(
-                              concert.ShowDates.map((sd) => sd.show_date)
-                            )}
-                          </Paragraph>
-                        )}
-                      </Card>
+                              {concert.ShowDates && (
+                                <Paragraph style={{ marginBottom: 0 }}>
+                                  📅{" "}
+                                  {formatDateRange(
+                                    concert.ShowDates.map((sd) => sd.show_date)
+                                  )}
+                                </Paragraph>
+                              )}
+                            </Card>
 
-                      <Button
-                        onClick={() =>
-                          buttonState.clickable &&
-                          handleConcertClick(concert.ID)
-                        }
-                        type={buttonState.type}
-                        size="large"
-                        disabled={buttonState.disabled}
-                        style={
-                          buttonState.disabled ? grayBtnStyle : baseBtnStyle
-                        }
-                      >
-                        {buttonState.text}
-                      </Button>
-                    </div>
-                  </Col>
-                );
-              })}
-            </Row>
+                            <Button
+                              onClick={() =>
+                                buttonState.clickable &&
+                                handleConcertClick(concert.ID)
+                              }
+                              type={buttonState.type}
+                              size="large"
+                              disabled={buttonState.disabled}
+                              style={
+                                buttonState.disabled
+                                  ? grayBtnStyle
+                                  : baseBtnStyle
+                              }
+                            >
+                              {buttonState.text}
+                            </Button>
+                          </div>
+                        </Col>
+                      );
+                    })}
+                  </Row>
+                </div>
+              ))}
+            </Carousel>
           </div>
         )}
       </div>
