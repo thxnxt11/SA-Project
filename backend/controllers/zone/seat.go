@@ -80,32 +80,42 @@ func GetseatzonesByzoneID(c *gin.Context) {
 }
 
 func UpdateSeatzone(c *gin.Context) {
-	db := connection.DB()
+    db := connection.DB()
 
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil || id <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
-		return
-	}
+    // get zone_id and seat_id from path params
+    zoneID, err := strconv.Atoi(c.Param("id"))
+    if err != nil || zoneID <= 0 {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid zone id"})
+        return
+    }
 
-	var body entity.SeatAvailable
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON: " + err.Error()})
-		return
-	}
+    seatID, err := strconv.Atoi(c.Param("seat_id"))
+    if err != nil || seatID <= 0 {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid seat id"})
+        return
+    }
 
-	// NOTE: Select forces these columns to update even if zero-values
-	if err := db.Model(&entity.SeatAvailable{}).
-		Where("id = ?", id).
-		Select(
-			"seat_available_status",
-		).
-		Updates(body).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    // only bind the field we care about
+    var body struct {
+        SeatAvailableStatus string `json:"seat_available_status" binding:"required"`
+    }
+    if err := c.ShouldBindJSON(&body); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON: " + err.Error()})
+        return
+    }
 
-	
+    // update one seat in one zone
+    tx := db.Model(&entity.SeatAvailable{}).
+        Where("zone_id = ? AND seat_id = ?", zoneID, seatID).
+        Update("seat_available_status", body.SeatAvailableStatus)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Zone updated"})
+    if tx.Error != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": tx.Error.Error()})
+        return
+    }
+    if tx.RowsAffected == 0 {
+        c.JSON(http.StatusNotFound, gin.H{"message": "seat not found for that zone"})
+        return
+    }
+
 }

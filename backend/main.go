@@ -94,7 +94,7 @@ func main() {
 		router.GET("/seatzone/:id",zone.GetseatzonesByzoneID)
 		router.POST("/seatzone/:id",zone.Addseatzone)
 		router.DELETE("/seatzone/:id",zone.Deleteseatzone)
-		router.PUT("/seatzone/:id",zone.UpdateSeatzone)
+		router.PUT("/seatzone/:id/seat/:seat_id",zone.UpdateSeatzone)
 
 	}
 
