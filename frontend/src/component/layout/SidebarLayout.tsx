@@ -16,7 +16,6 @@ import {
   Dropdown,
   Avatar,
   Typography,
-  Badge,
   Divider,
 } from "antd";
 import {
@@ -26,12 +25,7 @@ import {
   MdAssignment,
 } from "react-icons/md";
 import { LuTicketPercent } from "react-icons/lu";
-import {
-  FaRegCalendarAlt,
-  FaUserCircle,
-  FaBell,
-  FaBuilding,
-} from "react-icons/fa";
+import { FaRegCalendarAlt, FaUserCircle, FaBuilding } from "react-icons/fa";
 import logo from "../../assets/logo.png";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hook/authContext";
@@ -359,15 +353,6 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
               gap: 8,
             }}
           >
-            <Badge dot offset={[-2, 2]}>
-              <Button
-                type="text"
-                aria-label="Notifications"
-                icon={<FaBell />}
-                style={{ width: 40, height: 40, fontSize: 18 }}
-              />
-            </Badge>
-
             <Divider type="vertical" style={{ height: 24, marginInline: 8 }} />
 
             {!user ? (
