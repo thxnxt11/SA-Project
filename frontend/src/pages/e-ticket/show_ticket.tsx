@@ -189,15 +189,19 @@ const ETicketSuccess: React.FC<SuccessProps> = ({
   suppressToast,
 }) => {
   const sliderRef = useRef<CarouselRef>(null);
+  const prevOpen = useRef<boolean>(open); // จดสถานะก่อนหน้า
 
-  // ปิด toast ตามคำขอ: ไม่แสดง message สำเร็จ
   useEffect(() => {
-    if (suppressToast){
-      return
-    }else{
-      message.success("Creat E-Ticket success")
+    // ยิง toast เฉพาะจังหวะ false -> true เท่านั้น และเมื่อไม่ได้สั่ง suppress
+    if (!suppressToast && prevOpen.current === false && open === true) {
+      message.success({
+        content: "Create E-Ticket success",
+        key: "eticket-success", 
+        duration: 1.5,
+      });
     }
-  }, [open]);
+    prevOpen.current = open;
+  }, [open, suppressToast]);
 
   const multiple = tickets && tickets.length > 1;
 
