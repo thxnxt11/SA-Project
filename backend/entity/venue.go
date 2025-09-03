@@ -1,5 +1,6 @@
 package entity
-import"gorm.io/gorm"
+
+import "gorm.io/gorm"
 
 type Venue struct{
 	gorm.Model
@@ -13,4 +14,3 @@ type Venue struct{
 	VenueStatus *VenueStatus `gorm:"foreignKey: venue_status_id" json:"venue_status"`
 
 }
-

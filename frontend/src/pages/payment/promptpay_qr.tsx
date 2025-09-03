@@ -4,17 +4,17 @@ import promptpay from "promptpay-qr";
 import QRCode from "qrcode";
 
 interface QRPromptPayProps {
-  phoneNumber: string;
+  // phoneNumber: string;
   amount: number;
 }
 
-const QRPromptPay: React.FC<QRPromptPayProps> = ({ phoneNumber, amount }) => {
+const QRPromptPay: React.FC<QRPromptPayProps> = ({ amount }) => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
 
   useEffect(() => {
     const generateQRCode = async () => {
       try {
-        const payload = promptpay(phoneNumber, { amount });
+        const payload = promptpay('0902745366', { amount });
         const url = await QRCode.toDataURL(payload);
         setQrCodeUrl(url);
       } catch (err) {
@@ -23,7 +23,7 @@ const QRPromptPay: React.FC<QRPromptPayProps> = ({ phoneNumber, amount }) => {
     };
 
     generateQRCode();
-  }, [phoneNumber, amount]);
+  }, [ amount]);
 
   if (!qrCodeUrl) return <p>กำลังสร้าง QR Code...</p>;
 

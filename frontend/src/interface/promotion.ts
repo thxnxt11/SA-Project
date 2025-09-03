@@ -16,7 +16,7 @@ export interface PromotionInterface {
   used_count?: number;
   promotion_status?: "active" | "inactive"; // 'active' | 'inactive'
   user_id?: number;
-  creat_by?: UserInterface;
+  created_by?: UserInterface;
   concert_id?: number;
   concert?: ConcertInterface;
 }

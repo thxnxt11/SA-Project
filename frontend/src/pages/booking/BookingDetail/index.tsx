@@ -11,23 +11,33 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Form } from "antd";
-import { mockBookingDetails } from "../../../mock/booking";
 import { RxCrossCircled } from "react-icons/rx";
+import { useAuth } from "../../../hook/authContext";
+import { promotionAPI } from "../../../services/https";
 
 const BookingDetail: React.FC = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Get data from location state (from select-seat page)
-  const { showDate, showTime, zone, seatNo, quantity, unitPrice } =
-    location.state || {};
+  const {
+    showDate,
+    showTime,
+    zone,
+    seatNo,
+    quantity,
+    unitPrice,
+    concertInfo,
+    bookingData,
+    bookingId,
+  } = location.state || {};
 
   useEffect(() => {
     console.log("Received state from SelectSeat:", location.state);
   }, []);
 
   // Use mock data as fallback or for initial structure
-  const concertInfo = mockBookingDetails.concert;
   const ticketInfo = {
     zone: zone || "N/A",
     seatNo: seatNo || "N/A",
@@ -41,30 +51,54 @@ const BookingDetail: React.FC = () => {
     amount: number;
     message: string;
     code: string;
+    promtionID?: number;
   } | null>(null);
-  const [remainingTime, setRemainingTime] = useState(300); // 5 minutes
 
   // Initialize member form with mock data
   useEffect(() => {
-    memberForm.setFieldsValue(mockBookingDetails.member);
+    memberForm.setFieldsValue(user);
   }, [memberForm]);
+  const COUNTDOWN_SECONDS = 300; // countdown 5 minutes
+  const [remainingTime, setRemainingTime] = useState(COUNTDOWN_SECONDS);
 
-  // Timer effect
   useEffect(() => {
+    const key = `booking_start_time_${bookingId}`;
+    const now = Date.now();
+
+    const storedStart = localStorage.getItem(key);
+    let startTime = storedStart ? parseInt(storedStart, 10) : NaN;
+
+    // ถ้าไม่มีค่า หรือค่าเก่าเกินเวลาแล้ว → รีเซ็ตเริ่มใหม่
+    if (
+      !storedStart ||
+      isNaN(startTime) ||
+      (now - startTime) / 1000 >= COUNTDOWN_SECONDS
+    ) {
+      startTime = now;
+      localStorage.setItem(key, String(startTime));
+      setRemainingTime(COUNTDOWN_SECONDS);
+    } else {
+      const elapsed = Math.floor((now - startTime) / 1000);
+      setRemainingTime(Math.max(COUNTDOWN_SECONDS - elapsed, 0));
+    }
+
     const timer = setInterval(() => {
-      setRemainingTime((prevTime) => {
-        if (prevTime <= 1) {
-          clearInterval(timer);
-          // Optionally navigate away or show expired message
-          navigate("/selectzone");
-          return 0;
-        }
-        return prevTime - 1;
-      });
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const timeLeft = COUNTDOWN_SECONDS - elapsed;
+
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        localStorage.removeItem(key);
+        setRemainingTime(0);
+        navigate(`/concert/${concertInfo?.ID}/selectzone`, { replace: true });
+      } else {
+        setRemainingTime(timeLeft);
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+    // ใส่ dependency ให้ครบเพื่อความปลอดภัย
+  }, [bookingId, concertInfo?.ID, COUNTDOWN_SECONDS, navigate]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -74,29 +108,39 @@ const BookingDetail: React.FC = () => {
       .padStart(2, "0")}`;
   };
 
-  const handleApplyDiscount = () => {
-    const foundDiscount = mockBookingDetails.discounts.find(
-      (d) => d.code.toLowerCase() === discountCode.toLowerCase()
-    );
-
-    if (foundDiscount) {
-      let discountAmount = 0;
-      const currentSubtotal = ticketInfo.unitPrice * ticketInfo.quantity;
-      if (foundDiscount.type === "percentage") {
-        discountAmount = (currentSubtotal * foundDiscount.value) / 100;
-      } else if (foundDiscount.type === "fixed") {
-        discountAmount = foundDiscount.value;
+  const handleApplyDiscount = async () => {
+    try {
+      const payload = {
+        code: discountCode,
+        target:
+          seatNo?.toLowerCase() === "standing" || seatNo ? "ticket" : "product",
+        concert_id: concertInfo?.ID,
+      };
+      const res = await promotionAPI.validateCode(payload);
+      if (res?.data?.valid) {
+        const pct = res.data.data.discount_percent ?? 0;
+        const promotionID = res?.data?.data?.promotion_id;
+        const amount = Math.round((unitPrice * quantity * pct) / 100);
+        setAppliedDiscount({
+          amount,
+          message: `Applied ${pct}% discount`,
+          code: res.data.data.code,
+          promtionID: promotionID,
+        });
+      } else {
+        setAppliedDiscount({
+          amount: 0,
+          message: res?.data?.error || "The discount code is invalid",
+          code: "",
+          promtionID: undefined,
+        });
       }
-      setAppliedDiscount({
-        amount: discountAmount,
-        message: foundDiscount.message,
-        code: foundDiscount.code,
-      });
-    } else {
+    } catch (e) {
       setAppliedDiscount({
         amount: 0,
-        message: "The discount code is invalid",
+        message: "Cannot validate the code",
         code: "",
+        promtionID: undefined,
       });
     }
   };
@@ -109,21 +153,26 @@ const BookingDetail: React.FC = () => {
   const handleCancel = () => {
     navigate(-1); // Go back to the previous page
   };
+  const memberData = memberForm.getFieldsValue();
   const hasNavigated = useRef(false);
+
   const handleConfirm = () => {
     if (hasNavigated.current) return;
     hasNavigated.current = true;
-    const memberData = memberForm.getFieldsValue();
 
     const bookingInfo = {
       showDate,
       showTime,
+      show:showDate+ " "+showTime,
       zone: zone,
       seatNo: seatNo,
       quantity: quantity,
       unitPrice: unitPrice,
       discount: appliedDiscount?.amount || 0,
+      promotionID: appliedDiscount?.promtionID,
       member: memberData,
+      bookingData,
+      bookingId,
     };
 
     navigate("/payment", { state: bookingInfo });
@@ -174,7 +223,7 @@ const BookingDetail: React.FC = () => {
                     margin: "10px 0 5px 0",
                   }}
                 >
-                  {concertInfo.name}
+                  {concertInfo?.concert_name}
                 </h3>
                 <p
                   style={{
@@ -194,8 +243,7 @@ const BookingDetail: React.FC = () => {
                     color: "#666",
                   }}
                 >
-                  <CalendarDays size={18} /> {showDate || concertInfo.date}{" "}
-                  {showTime || concertInfo.time}
+                  <CalendarDays size={18} /> {showDate}
                 </div>
                 <div
                   style={{
@@ -207,7 +255,7 @@ const BookingDetail: React.FC = () => {
                     marginTop: "5px",
                   }}
                 >
-                  <MapPin size={18} /> {concertInfo.venue}
+                  <MapPin size={18} /> {concertInfo?.venue?.venue_name}
                 </div>
               </div>
 
@@ -286,7 +334,7 @@ const BookingDetail: React.FC = () => {
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Form.Item label="Tel" name="tel">
+                      <Form.Item label="Tel" name="phonenum">
                         <Input size="large" />
                       </Form.Item>
                     </Col>
@@ -352,7 +400,7 @@ const BookingDetail: React.FC = () => {
                         display: "flex",
                         alignItems: "center",
                         gap: "5px",
-                        color: appliedDiscount.code ? "green" : "red",
+                        color: appliedDiscount.code ? "#00c50aff" : "red",
                       }}
                     >
                       {appliedDiscount.code ? (
@@ -396,7 +444,7 @@ const BookingDetail: React.FC = () => {
                       style={{
                         fontSize: "16px",
                         marginBottom: "5px",
-                        color: appliedDiscount.code ? "green" : "red",
+                        color: appliedDiscount.code ? "#00c50aff" : "red",
                       }}
                     >
                       <Col span={12}>Discount ({appliedDiscount.code}):</Col>

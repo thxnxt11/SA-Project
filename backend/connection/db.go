@@ -1,11 +1,12 @@
 package connection
 
 import (
-   "fmt"
-   "time"
-   "github.com/yourname/went-back/entity"
-   "gorm.io/driver/sqlite"
-   "gorm.io/gorm"
+	"fmt"
+	"time"
+
+	"github.com/yourname/went-back/entity"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 var db *gorm.DB
@@ -25,10 +26,16 @@ func ConnectionDB() {
 
 func SetupDatabase() {
    db.AutoMigrate(
-       &entity.Assignment{},
-       &entity.AssignmentConcert{},
-       &entity.AssignmentStatus{},
-       &entity.Bank{},
+       &entity.User{},
+       &entity.Genders{},
+       &entity.Role{},
+       &entity.PromotionType{},
+       &entity.Promotion{}, 
+       &entity.Concert{},
+       &entity.ShowDate{},  
+       &entity.Venue{},
+       &entity.VenueType{},
+       &entity.VenueStatus{},
        &entity.Booking{},
        &entity.BookingStatus{},
        &entity.BookingSeat{},
@@ -58,22 +65,9 @@ func SetupDatabase() {
        &entity.Role{},
        &entity.Seat{},
        &entity.SeatAvailable{},
-       &entity.ShowDate{},
-       &entity.Size{},
-       &entity.StaffAssignment{},
-       &entity.Stage{},
-       &entity.StageEquipment{},
-       &entity.StageType{},
-       &entity.User{},
-       &entity.Variant{},
-       &entity.Venue{},
-       &entity.VenueStatus{},
-       &entity.VenueType{},
-       &entity.Warehouse{},
-       &entity.WorkSchedule{},
        &entity.Zone{},
        &entity.ZoneType{},
-
+       
    )
    
    GenderMale := entity.Genders{Gender: "Male"}
@@ -82,6 +76,7 @@ func SetupDatabase() {
    db.FirstOrCreate(&GenderMale, &entity.Genders{Gender: "Male"})
    db.FirstOrCreate(&GenderFemale, &entity.Genders{Gender: "Female"})
 
+   //organizer account
    hashedPassword, _ := HashPassword("123456")
    BirthDay, _ := time.Parse("2006-01-02", "1988-11-12")
    Member := &entity.User{
@@ -93,9 +88,100 @@ func SetupDatabase() {
        BirthDay:  BirthDay,
 	   Phonenum:  "xxx-xxx-xxxx",
        GenderID:  1,
-       RoleID: 2,
+       RoleID: 1,
    }
    db.FirstOrCreate(Member, &entity.User{
        Email: "SMTRUE@gmail.com",
    })
+   Organizer := &entity.User{
+       FirstName: "John",
+       LastName:  "Doe",
+       Email:     "ENTERTAIN@gmail.com",
+       Age:       40,
+       Password:  hashedPassword,
+       BirthDay:  BirthDay,
+	    Phonenum:  "xxx-xxx-xxxx",
+       GenderID:  1,
+       RoleID: 1,
+   }
+   db.FirstOrCreate(Organizer, &entity.User{
+       Email: "ENTERTAIN@gmail.com",
+   })
+
+   //promotion type
+   db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
+      PromotionType: "Code",
+   })
+   db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
+      PromotionType: "Concert",
+   })
+
+   //zone type
+   db.FirstOrCreate(&entity.ZoneType{}, entity.ZoneType{
+      ZoneType: "Standing",
+   })
+   db.FirstOrCreate(&entity.ZoneType{}, entity.ZoneType{
+      ZoneType: "Seating",
+   })
+
+   // booking status
+   db.FirstOrCreate(&entity.BookingStatus{}, entity.BookingStatus{
+      BookingStatus: "pending",
+   })
+   db.FirstOrCreate(&entity.BookingStatus{}, entity.BookingStatus{
+      BookingStatus: "paided",
+   })
+   db.FirstOrCreate(&entity.BookingStatus{}, entity.BookingStatus{
+      BookingStatus: "cancelled",
+   })
+   db.FirstOrCreate(&entity.BookingStatus{}, entity.BookingStatus{
+      BookingStatus: "expired",        
+   })
+   db.FirstOrCreate(&entity.BookingStatus{}, entity.BookingStatus{
+      BookingStatus: "refunded",
+   })
+
+   // refund type
+   db.FirstOrCreate(&entity.RefundType{}, entity.RefundType{
+      RefundTypeName: "Non Refundable Ticket",
+      RefundFee: 0,
+   })
+
+   db.FirstOrCreate(&entity.RefundType{}, entity.RefundType{
+      RefundTypeName: "Refundable Ticket",
+      RefundFee: 299,
+   })
+
+   // payment method
+   db.FirstOrCreate(&entity.PaymentMethod{}, entity.PaymentMethod{
+      PaymentMethodName: "QR PromptPay",
+      AccountName: "Eventix Entertainment",
+      AccountNumber: "0902745366",
+      BankName: "PromptPay",
+   })
+
+   db.FirstOrCreate(&entity.PaymentMethod{}, entity.PaymentMethod{
+      PaymentMethodName: "Account Number",
+      AccountName: "Eventix Entertainment",
+      AccountNumber: "123-4-56789-0",
+      BankName: "Bangkok Bank(BBL)",
+   })
+
+   // payment status
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "pending payment",
+   })
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "paided",
+   })
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "cancelled",
+   })
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "expired",        
+   })
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "refunded",
+   })
+
 }

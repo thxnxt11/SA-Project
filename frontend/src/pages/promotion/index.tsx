@@ -1,505 +1,281 @@
-import React, { useEffect, useState } from "react";
-import { PlusOutlined } from "@ant-design/icons";
-import SidebarLayout from "./../../component/layout/SidebarLayout";
-import {
-  Card,
-  Divider,
-  Form,
-  Button,
-  Input,
-  Select,
-  Space,
-  Row,
-  Col,
-  InputNumber,
-  DatePicker,
-  message,
-  Upload,
-} from "antd";
-import type {
-  InputNumberProps,
-  DatePickerProps,
-  UploadFile,
-  UploadProps,
-} from "antd";
-import {
-  CreatePromotion,
-  GetAllPromotionTypes,
-  GetAllConcerts,
-} from "./../../services/https";
-import { useNavigate } from "react-router-dom";
-const { Option } = Select;
+import SidebarLayout from "../../component/layout/SidebarLayout";
+import type React from "react";
+import { useState, useEffect } from "react";
+import { Button, Flex, Space, Table, Tag, message, Modal } from "antd";
+import type { TableProps } from "antd";
+import { SearchOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import type { PromotionInterface } from "../../interface/promotion";
+import { FaEdit } from "react-icons/fa";
+import { RiDeleteBin6Line } from "react-icons/ri";
+import { Link } from "react-router-dom";
+import EditPromotionModal from "../promotion/edit";
+import { promotionAPI } from "../../services/https";
+import { useAuth } from "../../hook/authContext";
 
-const AddPromotion: React.FC = () => {
-  const navigate = useNavigate();
-  const [form] = Form.useForm();
-  const [messageApi, contextHolder] = message.useMessage();
-  const [selectedType, setSelectedType] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [apiLoaded, setApiLoaded] = useState(false);
-  const [promotionTypes, setPromotionTypes] = useState<any[]>([]);
-  const [concerts, setConcerts] = useState<any[]>([]);
-  const [posterUrl, setPosterUrl] = useState<string | null>(null);
-  const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const onGetInitialData = async () => {
-    try {
-      const [typesRes, concertsRes] = await Promise.all([
-        GetAllPromotionTypes(),
-        GetAllConcerts(),
-      ]);
-      if (typesRes.status === 200 && concertsRes.status === 200) {
-        setPromotionTypes(typesRes.data);
-        setConcerts(concertsRes.data);
-        setApiLoaded(true);
-      } else {
-        messageApi.open({
-          type: "error",
-          content: "ไม่สามารถดึงข้อมูลเริ่มต้นได้",
-        });
-        setTimeout(() => {
-          navigate("/organizer/promotion");
-        }, 2000);
-      }
-    } catch (error) {
-      messageApi.open({
-        type: "error",
-        content: "เกิดข้อผิดพลาดในการเชื่อมต่อ",
-      });
-      console.error("Fetch error:", error);
-      setTimeout(() => {
-        navigate("/organizer/promotion");
-      }, 2000);
-    }
-  };
+const { confirm } = Modal;
+// Helper function สำหรับ format วันที่
+const formatDate = (dateString: string) => {
+  if (!dateString) return "-";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("th-TH", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Bangkok",
+  });
+};
 
-  const handlePromotionTypeChange = (value: number) => {
-    setSelectedType(value);
-    form.setFieldsValue({ concert: undefined, code: undefined }); // reset fields
-  };
+const Promotion: React.FC = () => {
+  const { user } = useAuth();
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedPromotionId, setSelectedPromotionId] = useState<number | null>(
+    null
+  );
+  const [promotions, setPromotions] = useState<PromotionInterface[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleFileUpload = async (file: File) => {
-    setLoading(true); // Use general loading for now, could be specific uploadLoading
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("http://localhost:8000/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-        // อ่านข้อความตอบกลับดิบๆ เพื่อช่วยในการ debug
-        const errorText = await response.text();
-        console.error(
-          `HTTP error! Status: ${response.status}, Response: ${errorText}`
-        );
-        messageApi.error(
-          `อัปโหลดรูปภาพไม่สำเร็จ: ${response.status} ${response.statusText}`
-        );
-        return false;
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        const uploadedUrl = result.data.url;
-        setPosterUrl(uploadedUrl);
-        form.setFieldsValue({ poster_url: uploadedUrl });
-        messageApi.success("อัปโหลดรูปภาพสำเร็จ!");
-        return true;
-      } else {
-        messageApi.error(result.error || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
-        return false;
-      }
-    } catch (error) {
-      messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
-      console.error("Upload error:", error);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Ant Design Upload onChange handler
-  const handleAntdUploadChange: UploadProps["onChange"] = ({
-    fileList: newFileList,
-  }) => {
-    setFileList(newFileList);
-    // If the file list becomes empty (e.g., user removes the file), clear the posterUrl
-    if (newFileList.length === 0) {
-      setPosterUrl(null);
-      form.setFieldsValue({ poster_url: undefined }); // Clear form field as well
-    }
-  };
-
-  const onFinish = async (values: any) => {
+  const fetchPromotions = async () => {
     setLoading(true);
     try {
-      const payload = {
-        promotion_name: values.promotion_name,
-        promotion_description: values.description,
-        promotion_type_id: values.promotion_type,
-        promotion_code: values.promotion_code,
-        discount: values.discount,
-        limit: parseInt(values.limit),
-        start_date: values.start_date.toISOString(),
-        end_date: values.end_date.toISOString(),
-        promotion_status: values.promotion_status,
-        concert_id: values.promotion_type === 3 ? values.concert : null,
-        poster_url: posterUrl,
-      };
-      console.log("Form values:", values);
-      console.log("Payload:", payload);
+      const res = await promotionAPI.getAll();
+      console.log("API Response:", res); // Debug log
 
-      let res = await CreatePromotion(payload);
-
-      if (res.status === 201) {
-        messageApi.open({
-          type: "success",
-          content: res.data.message || "สร้างโปรโมชั่นสำเร็จ!",
-        });
-        setTimeout(() => {
-          navigate("/organizer/promotion");
-        }, 2000);
+      if (res && res.status === 200) {
+        console.log("Promotions data:", res.data); // Debug log
+        setPromotions(res.data);
       } else {
-        messageApi.open({
-          type: "error",
-          content: res.data.error || "สร้างโปรโมชั่นไม่สำเร็จ",
-        });
+        message.error("ดึงข้อมูลโปรโมชั่นไม่สำเร็จ");
       }
     } catch (error) {
-      messageApi.open({
-        type: "error",
-        content: "เกิดข้อผิดพลาดในการเชื่อมต่อ",
-      });
-      console.error("Submit error:", error);
+      console.error("Error fetching promotions:", error);
+      message.error("เกิดข้อผิดพลาดในการดึงข้อมูล");
     } finally {
       setLoading(false);
     }
-  };
-
-  const onReset = () => {
-    form.resetFields();
-    setSelectedType(null);
-  };
-
-  const onDiscountChange: InputNumberProps["onChange"] = (value) => {
-    console.log("changed", value);
-  };
-
-  const onDateChange: DatePickerProps["onChange"] = (date, dateString) => {
-    console.log(date, dateString);
   };
 
   useEffect(() => {
-    onGetInitialData();
-    return () => {};
+    fetchPromotions();
   }, []);
+
+  const columns: TableProps<PromotionInterface>["columns"] = [
+    {
+      title: "Name",
+      dataIndex: "promotion_name",
+      key: "promotion_name",
+      render: (text) => <a>{text}</a>,
+    },
+    {
+      title: "Type",
+      key: "promotion_type",
+      dataIndex: "promotion_type_id",
+      render: (_, record) => {
+        const typeMap: Record<number, string> = {
+          1: "Early Bird",
+          2: "Code",
+          3: "Concert",
+        };
+        const typeId = record.promotion_type_id;
+        return (
+          <Tag color="#0048ffc7">
+            {typeId ? typeMap[typeId] || "Unknown" : "-"}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: "Discount (%)",
+      dataIndex: "discount",
+      key: "discount",
+      render: (value) => `${value || 0}%`,
+    },
+    {
+      title: "Start Date",
+      key: "start_date",
+      dataIndex: "start_date",
+      render: (date) => formatDate(date),
+    },
+    {
+      title: "End Date",
+      key: "end_date",
+      dataIndex: "end_date",
+      render: (date) => formatDate(date),
+    },
+    {
+      title: "Limit",
+      key: "limit",
+      dataIndex: "limit",
+      render: (value) => value || "-",
+    },
+    {
+      title: "Used",
+      dataIndex: "used_count",
+      key: "used_count",
+      render: (value) => value || 0,
+    },
+    {
+      title: "Status",
+      dataIndex: "promotion_status",
+      key: "promotion_status",
+      render: (status: string | undefined, record: PromotionInterface) => {
+        const actualStatus =
+          status ||
+          record.promotion_status ||
+          (record as any).Status ||
+          (record as any).promotion_status;
+
+        if (!actualStatus) return <Tag color="default">UNKNOWN</Tag>;
+
+        const lower = actualStatus.toLowerCase();
+        const color =
+          lower === "active"
+            ? "#10a400ff"
+            : lower === "inactive"
+            ? "#ff0000"
+            : "default";
+        return <Tag color={color}>{actualStatus.toUpperCase()}</Tag>;
+      },
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (record: PromotionInterface) => {
+        const creatorId = record.user_id;
+        const currentUserId = user?.id;
+        const isOwner =
+          creatorId !== undefined &&
+          currentUserId !== undefined &&
+          String(creatorId) === String(currentUserId);
+
+        if (!isOwner) return null; // ไม่ใช่เจ้าของ → ไม่แสดงอะไรเลย
+
+        return (
+          <Space size="middle">
+            <FaEdit
+              style={{ fontSize: 20, color: "#0048ffff", cursor: "pointer" }}
+              onClick={() =>
+                (record as any).ID !== undefined &&
+                handleEdit((record as any).ID)
+              }
+            />
+            <RiDeleteBin6Line
+              style={{ fontSize: 20, color: "#ff0000ff", cursor: "pointer" }}
+              onClick={() =>
+                (record as any).ID !== undefined &&
+                (record as any).promotion_name &&
+                handleDelete((record as any).ID, (record as any).promotion_name)
+              }
+            />
+          </Space>
+        );
+      },
+    },
+  ];
+  [user?.id];
+
+  const handleEdit = (id: number) => {
+    setSelectedPromotionId(id);
+    setEditModalVisible(true);
+  };
+
+  const handleDelete = (id: number, promotion_name: string) => {
+    confirm({
+      title: `คุณต้องการลบโปรโมชั่น "${promotion_name}" ใช่หรือไม่?`,
+      icon: <ExclamationCircleOutlined />,
+      content: "การลบโปรโมชั่นนี้ไม่สามารถกู้คืนได้",
+      centered: true,
+      okText: "ลบ",
+      okType: "danger",
+      cancelText: "ยกเลิก",
+      async onOk() {
+        try {
+          setLoading(true);
+          const res = await promotionAPI.delete(id);
+          if (res && res.status === 200) {
+            message.success("ลบโปรโมชั่นสำเร็จ");
+            fetchPromotions(); // รีโหลดข้อมูล
+          } else {
+            message.error("ลบโปรโมชั่นไม่สำเร็จ");
+          }
+        } catch (error) {
+          console.error("Delete error:", error);
+          message.error("เกิดข้อผิดพลาดในการลบ");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
+  const handleEditSuccess = () => {
+    fetchPromotions(); // รีโหลดข้อมูลหลัง edit สำเร็จ
+    setEditModalVisible(false);
+  };
 
   return (
     <>
-      {contextHolder}
       <SidebarLayout>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <Card
+        <div style={{ display: "flex", alignContent: "center" }}>
+          <h1>Promotion Management</h1>
+          <Link to={"/organizer/promotion/add"}>
+            <Button
+              className="payment-button"
+              style={{
+                position: "fixed",
+                right: 40,
+                height: 45,
+                fontSize: 17,
+                borderRadius: 17,
+              }}
+              type="primary"
+            >
+              + New Promotion
+            </Button>
+          </Link>
+        </div>
+
+        <Flex gap="small" vertical>
+          <Button
+            icon={<SearchOutlined />}
             style={{
-              width: 900,
-              height: 700,
-              borderColor: "#d3d3d3ff",
               display: "flex",
-              justifyContent: "center",
+              justifyContent: "left",
+              height: 45,
+              fontSize: 17,
+              marginTop: 20,
               boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
             }}
           >
-            <h2 style={{ display: "flex", justifyContent: "center" }}>
-              Create New Promotion
-            </h2>
-            <Divider style={{ borderColor: "#d3d3d3ff" }} />
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <Form
-                form={form}
-                layout="vertical"
-                onFinish={onFinish}
-                style={{ maxWidth: 600 }}
-                autoComplete="off"
-              >
-                <Row gutter={[50, 0]}>
-                  <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                    <Form.Item
-                      name="promotion_name"
-                      label="Promotion Name"
-                      rules={[{ required: true }]}
-                    >
-                      <Input style={{ width: 300 }} />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                    <Form.Item
-                      name="promotion_type"
-                      label="Promotion Type"
-                      rules={[{ required: true }]}
-                    >
-                      <Select
-                        placeholder="Select a promotion type"
-                        onChange={handlePromotionTypeChange}
-                        allowClear
-                        style={{ width: 300 }}
-                        disabled={!apiLoaded}
-                      >
-                        {promotionTypes.map((type) => (
-                          <Option key={type.id} value={type.id}>
-                            {type.promotion_type}
-                          </Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={[50, 0]}>
-                  {selectedType === 2 && (
-                    <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                      <Form.Item
-                        name="promotion_code"
-                        label="Discount Code"
-                        rules={
-                          selectedType === 2
-                            ? [
-                                {
-                                  required: true,
-                                  message: "Please enter a code",
-                                },
-                              ]
-                            : []
-                        }
-                      >
-                        <Input
-                          placeholder="Enter your code"
-                          style={{ width: 625 }}
-                        />
-                      </Form.Item>
-                    </Col>
-                  )}
-                  {selectedType === 3 && (
-                    <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                      <Form.Item
-                        name="concert"
-                        label="Concert"
-                        rules={
-                          selectedType === 3
-                            ? [
-                                {
-                                  required: true,
-                                  message: "Please select a concert",
-                                },
-                              ]
-                            : []
-                        }
-                      >
-                        <Select
-                          placeholder="Select a Concert"
-                          style={{ width: 625 }}
-                          allowClear
-                        >
-                          {concerts.map((concert) => (
-                            <Option key={concert.ID} value={concert.ID}>
-                              {concert.concert_name}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                  )}
-                </Row>
-                <Row gutter={[50, 0]}>
-                  <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                    <Form.Item
-                      name="description"
-                      label="Description"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Please enter description!",
-                        },
-                      ]}
-                    >
-                      <Input.TextArea
-                        showCount
-                        maxLength={255}
-                        placeholder="description"
-                        style={{ width: 300 }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                    <Form.Item
-                      name="poster_url"
-                      label="Poster"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Please upload a poster image!",
-                        },
-                      ]}
-                    >
-                      <Upload
-                        listType="picture-card"
-                        maxCount={1} // Allow only one file
-                        fileList={fileList}
-                        beforeUpload={(file) => {
-                          // Prevent Ant Design's default upload behavior
-                          // and call our custom upload function
-                          handleFileUpload(file);
-                          return false;
-                        }}
-                        onChange={handleAntdUploadChange}
-                      >
-                        {fileList.length < 1 && (
-                          <button
-                            style={{
-                              color: "inherit",
-                              cursor: "inherit",
-                              border: 0,
-                              background: "none",
-                            }}
-                            type="button"
-                          >
-                            <PlusOutlined />
-                            <div style={{ marginTop: 8 }}>Upload</div>
-                          </button>
-                        )}
-                      </Upload>
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={[50, 0]}>
-                  <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                    <Form.Item
-                      name="discount"
-                      label="Discount(%)"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Please enter discount percentage!",
-                        },
-                      ]}
-                    >
-                      <InputNumber<number>
-                        defaultValue={0}
-                        min={0}
-                        max={100}
-                        formatter={(value) => `${value}%`}
-                        parser={(value) =>
-                          value?.replace("%", "") as unknown as number
-                        }
-                        style={{ width: 300 }}
-                        onChange={onDiscountChange}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                    <Form.Item
-                      name="limit"
-                      label="Usage Limit"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Please enter usage limit!",
-                        },
-                      ]}
-                    >
-                      <Input style={{ width: 300 }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={[50, 0]}>
-                  <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                    <Form.Item
-                      name="start_date"
-                      label="Start Date"
-                      rules={[
-                        {
-                          required: true,
-                          message: "Please select start date!",
-                        },
-                      ]}
-                    >
-                      <DatePicker
-                        showTime={{ format: "HH:mm:ss" }}
-                        format="YYYY-MM-DD HH:mm:ss"
-                        style={{ width: 300 }}
-                        onChange={onDateChange}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                    <Form.Item
-                      name="end_date"
-                      label="End Date"
-                      rules={[
-                        { required: true, message: "Please select end date!" },
-                        ({ getFieldValue }) => ({
-                          validator(_, value) {
-                            const startDate = getFieldValue("start_date");
-                            if (
-                              !startDate ||
-                              !value ||
-                              value.isAfter(startDate)
-                            ) {
-                              return Promise.resolve();
-                            }
-                            return Promise.reject(
-                              new Error("End date must be after start date!")
-                            );
-                          },
-                        }),
-                      ]}
-                    >
-                      <DatePicker
-                        showTime={{ format: "HH:mm:ss" }}
-                        format="YYYY-MM-DD HH:mm:ss"
-                        style={{ width: 300 }}
-                        onChange={onDateChange}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={[50, 0]}>
-                  <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                    <Form.Item
-                      name="promotion_status"
-                      label="Status"
-                      rules={[{ required: true }]}
-                    >
-                      <Select allowClear style={{ width: 300 }}>
-                        <Option value="Inactive">Inactive</Option>
-                        <Option value="Active">Active</Option>
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col style={{ marginTop: 31, marginLeft: 120 }}>
-                    <Form.Item>
-                      <Space>
-                        <Button htmlType="button" onClick={onReset}>
-                          Reset
-                        </Button>
-                        <Button
-                          type="primary"
-                          htmlType="submit"
-                          loading={loading}
-                        >
-                          Submit
-                        </Button>
-                      </Space>
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </Form>
-            </div>
-          </Card>
-        </div>
+            Search
+          </Button>
+        </Flex>
+
+        <Table<PromotionInterface>
+          columns={columns}
+          dataSource={promotions}
+          loading={loading}
+          style={{ marginTop: 20, width: "auto" }}
+          rowKey="ID"
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} ของ ${total} รายการ`,
+          }}
+        />
       </SidebarLayout>
+
+      <EditPromotionModal
+        visible={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        onSuccess={handleEditSuccess}
+        promotionId={selectedPromotionId}
+      />
     </>
   );
 };
 
-export default AddPromotion;
+export default Promotion;

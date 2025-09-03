@@ -13,4 +13,6 @@ type ShowDate struct {
 	VenueID uint `json:"venue_id"`
 	Venue *Venue `gorm:"foreignKey:VenueID" json:"venue"`
 	ShowDate time.Time `json:"show_date"`
+
+	Zones     []Zone `gorm:"foreignKey:ShowDateID"`
 }

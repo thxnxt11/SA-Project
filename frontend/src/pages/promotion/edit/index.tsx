@@ -18,12 +18,7 @@ import {
   type UploadProps,
 } from "antd";
 import dayjs from "dayjs";
-import {
-  GetAllConcerts,
-  GetAllPromotionTypes,
-  GetPromotionByID,
-  UpdatePromotionByID,
-} from "../../../services/https";
+import { concertAPI, promotionAPI, uploadAPI } from "../../../services/https";
 import { PlusOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
@@ -34,12 +29,10 @@ interface EditPromotionModalProps {
   onSuccess: () => void;
   promotionId: number | null;
 }
-
 interface ConcertInterface {
   id: number;
   concert_name: string;
 }
-
 interface PromotionTypeInterface {
   id: number;
   promotion_type: string;
@@ -52,17 +45,106 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
   promotionId,
 }) => {
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
+  const [fetching, setFetching] = useState(false); // โหลดข้อมูลแรกเข้า modal
+  const [loading, setLoading] = useState(false); // submit / upload
   const [selectedType, setSelectedType] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
   const [promotion, setPromotion] = useState<any>(null);
   const [concerts, setConcerts] = useState<ConcertInterface[]>([]);
   const [promotionTypes, setPromotionTypes] = useState<
     PromotionTypeInterface[]
   >([]);
-  const [fetching, setFetching] = useState(false);
-  const [messageApi, contextHolder] = message.useMessage();
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+
+  const setPosterToForm = (url: string | null) => {
+    setPosterUrl(url);
+    form.setFieldsValue({ poster_url: url ?? undefined });
+  };
+
+  const setPosterPreview = (absoluteUrl: string | null) => {
+    if (!absoluteUrl) {
+      setFileList([]);
+      return;
+    }
+    setFileList([
+      {
+        uid: "-1",
+        name: "poster.png",
+        status: "done",
+        url: absoluteUrl,
+        thumbUrl: absoluteUrl,
+      },
+    ]);
+  };
+
+  const mapInitialFormValues = (p: any) => ({
+    promotion_name: p?.promotion_name ?? "",
+    promotion_type: p?.promotion_type_id ?? undefined,
+    discount: p?.discount ?? 0,
+    start_date: p?.start_date ? dayjs(p.start_date) : null,
+    end_date: p?.end_date ? dayjs(p.end_date) : null,
+    limit: p?.limit ?? "",
+    promotion_status: p?.promotion_status ?? "",
+    description: p?.promotion_description ?? "",
+    promotion_code: p?.promotion_code ?? "",
+    concert: p?.concert_id ?? undefined,
+  });
+
+  /* ---------------- Effects: fetch initial data ---------------- */
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!visible || !promotionId) return;
+
+      setFetching(true);
+      try {
+        const [promotionRes, concertsRes, typesRes] = await Promise.all([
+          promotionAPI.getById(promotionId),
+          concertAPI.getAll(),
+          promotionAPI.getAllTypes(),
+        ]);
+
+        const promotionData = promotionRes.data?.data ?? promotionRes.data;
+        const concertsData = concertsRes.data?.data ?? concertsRes.data;
+        const typesData = typesRes.data?.data ?? typesRes.data;
+
+        setConcerts(concertsData ?? []);
+        setPromotionTypes(typesData ?? []);
+
+        if (promotionData) {
+          setPromotion(promotionData);
+          setSelectedType(promotionData.promotion_type_id ?? null);
+
+          // โปสเตอร์
+          if (promotionData.poster_url) {
+            const absolute = `http://localhost:8000${promotionData.poster_url}`;
+            setPosterToForm(promotionData.poster_url);
+            setPosterPreview(absolute);
+          } else {
+            setPosterToForm(null);
+            setPosterPreview(null);
+          }
+
+          // ฟอร์ม
+          const values = mapInitialFormValues(promotionData);
+          setTimeout(() => form.setFieldsValue(values), 0);
+        }
+      } catch (error) {
+        messageApi.error("Failed to fetch data");
+        console.error("Fetch error:", error);
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchData();
+  }, [visible, promotionId]);
+
+  /* ---------------- Handlers ---------------- */
+  const handlePromotionTypeChange = (value: number) => {
+    setSelectedType(value);
+    form.setFieldsValue({ concert: undefined, promotion_code: undefined });
+  };
 
   const handleFileUpload = async (file: File) => {
     setLoading(true);
@@ -70,179 +152,68 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("http://localhost:8000/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await uploadAPI.upload(formData);
+      const result = res.data;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(
-          `HTTP error! Status: ${response.status}, Response: ${errorText}`
-        );
-        messageApi.error(
-          `อัปโหลดรูปภาพไม่สำเร็จ: ${response.status} ${response.statusText}`
-        );
+      if (!result?.success) {
+        messageApi.error(result?.error || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
         return false;
       }
 
-      const result = await response.json();
-
-      if (result.success) {
-        const uploadedUrl = result.data.url;
-        setPosterUrl(uploadedUrl); // Update the state holding the URL
-        form.setFieldsValue({ poster_url: uploadedUrl }); // Update form field for validation
-        messageApi.success("อัปโหลดรูปภาพสำเร็จ!");
-        return true; // Indicate success
+      const uploadedUrl: string = result.data.url; // path บนเซิร์ฟเวอร์
+      setPosterToForm(uploadedUrl);
+      setPosterPreview(`http://localhost:8000${uploadedUrl}`);
+      messageApi.success("อัปโหลดรูปภาพสำเร็จ!");
+      return true;
+    } catch (error: any) {
+      if (error.response) {
+        messageApi.error(
+          `อัปโหลดรูปภาพไม่สำเร็จ: ${error.response?.status ?? ""} ${
+            error.response?.statusText ?? ""
+          }`
+        );
+        console.error("Upload error:", error.response?.data || error.message);
       } else {
-        messageApi.error(result.error || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
-        return false; // Indicate failure
+        messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
+        console.error("Upload error:", error);
       }
-    } catch (error) {
-      messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
-      console.error("Upload error:", error);
-      return false; // Indicate failure
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  // Ant Design Upload onChange handler
-  const handleAntdUploadChange: UploadProps["onChange"] = ({
-    fileList: newFileList,
-  }) => {
-    setFileList(newFileList);
-    // If the file list becomes empty (e.g., user removes the file), clear the posterUrl
-    if (newFileList.length === 0) {
-      setPosterUrl(null);
-      form.setFieldsValue({ poster_url: undefined }); // Clear form field as well
-    }
+  const handleUploadChange: UploadProps["onChange"] = ({ fileList: next }) => {
+    setFileList(next);
+    if (next.length === 0) setPosterToForm(null);
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (visible && promotionId) {
-        setFetching(true);
-        try {
-          const [promotionRes, concertsRes, typesRes] = await Promise.all([
-            GetPromotionByID(promotionId),
-            GetAllConcerts(),
-            GetAllPromotionTypes(),
-          ]);
-
-          console.log("API Responses:", {
-            promotion: promotionRes,
-            concerts: concertsRes,
-            types: typesRes,
-          });
-
-          // แก้ไข: ข้อมูลอยู่ใน .data.data
-          const promotionData = promotionRes.data?.data || promotionRes.data;
-          const concertsData = concertsRes.data?.data || concertsRes.data;
-          const typesData = typesRes.data?.data || typesRes.data;
-
-          console.log("Extracted data:", {
-            promotionData,
-            concertsData,
-            typesData,
-          });
-
-          setConcerts(concertsData || []);
-          setPromotionTypes(typesData || []);
-
-          if (promotionData) {
-            setPromotion(promotionData);
-            // ตั้งค่า selectedType
-            setSelectedType(promotionData.promotion_type_id);
-            if (promotionData.poster_url) {
-              setPosterUrl(promotionData.poster_url);
-              setFileList([
-                {
-                  uid: "-1", // Unique ID for the file
-                  name: "poster.png", // Placeholder name
-                  status: "done", // Mark as uploaded
-                  url: promotionData.poster_url, // The actual URL
-                  thumbUrl: promotionData.poster_url, // For thumbnail display
-                },
-              ]);
-              // Set form field value for validation, though not strictly needed for display
-              form.setFieldsValue({ poster_url: promotionData.poster_url });
-            } else {
-              setPosterUrl(null);
-              setFileList([]);
-              form.setFieldsValue({ poster_url: undefined });
-            }
-
-            const formValues = {
-              promotion_name: promotionData.promotion_name || "",
-              promotion_type: promotionData.promotion_type_id || undefined,
-              discount: promotionData.discount || 0,
-              start_date: promotionData.start_date
-                ? dayjs(promotionData.start_date)
-                : null,
-              end_date: promotionData.end_date
-                ? dayjs(promotionData.end_date)
-                : null,
-              limit: promotionData.limit || "",
-              promotion_status: promotionData.promotion_status || "",
-              description: promotionData.promotion_description || "",
-              promotion_code: promotionData.promotion_code || "",
-              concert: promotionData.concert_id || undefined,
-            };
-
-            console.log("Setting form values:", formValues);
-
-            // ใช้ setTimeout เพื่อให้แน่ใจว่าฟอร์มพร้อมรับค่า
-            setTimeout(() => {
-              form.setFieldsValue(formValues);
-              console.log("Form values set successfully");
-            }, 100);
-          }
-        } catch (error) {
-          messageApi.error("Failed to fetch data");
-          console.error("Fetch error:", error);
-        } finally {
-          setFetching(false);
-        }
-      }
-    };
-
-    fetchData();
-  }, [visible, promotionId, form, messageApi]);
-
-  const handlePromotionTypeChange = (value: number) => {
-    setSelectedType(value);
-    form.setFieldsValue({ concert: undefined, promotion_code: undefined });
-  };
-
-  const onFinish = async (values: any) => {
+  const onFinish = async (v: any) => {
     setLoading(true);
     try {
-      if (promotionId) {
-        const payload = {
-          promotion_name: values.promotion_name,
-          promotion_description: values.description,
-          promotion_type_id: values.promotion_type,
-          promotion_code: values.promotion_code || "",
-          discount: values.discount,
-          limit: parseInt(values.limit),
-          start_date: values.start_date.toISOString(),
-          end_date: values.end_date.toISOString(),
-          promotion_status: values.promotion_status,
-          concert_id: values.promotion_type === 3 ? values.concert : null,
-          poster_url: posterUrl,
-        };
+      if (!promotionId) return;
 
-        console.log("Submitting payload:", payload);
-        const res = await UpdatePromotionByID(promotionId, payload);
+      const payload = {
+        promotion_name: v.promotion_name,
+        promotion_description: v.description,
+        promotion_type_id: v.promotion_type,
+        promotion_code: v.promotion_code || "",
+        discount: v.discount,
+        limit: parseInt(v.limit),
+        start_date: v.start_date.toISOString(),
+        end_date: v.end_date.toISOString(),
+        promotion_status: v.promotion_status,
+        concert_id: v.promotion_type === 3 ? v.concert : null,
+        poster_url: posterUrl, // path (เช่น /uploads/xxx.png)
+      };
 
-        if (res.status === 200) {
-          messageApi.success("อัปเดตโปรโมชั่นสำเร็จ!");
-          onSuccess();
-          handleCancel();
-        } else {
-          messageApi.error(res.data?.error || "อัปเดตโปรโมชั่นไม่สำเร็จ");
-        }
+      const res = await promotionAPI.update(promotionId, payload);
+      if (res.status === 200) {
+        messageApi.success("อัปเดตโปรโมชั่นสำเร็จ!");
+        onSuccess();
+        handleCancel();
+      } else {
+        messageApi.error(res.data?.error || "อัปเดตโปรโมชั่นไม่สำเร็จ");
       }
     } catch (error) {
       messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
@@ -253,50 +224,30 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
   };
 
   const onReset = () => {
-    if (promotion) {
-      const formValues = {
-        promotion_name: promotion.promotion_name || "",
-        promotion_type: promotion.promotion_type_id || undefined,
-        discount: promotion.discount || 0,
-        start_date: promotion.start_date ? dayjs(promotion.start_date) : null,
-        end_date: promotion.end_date ? dayjs(promotion.end_date) : null,
-        limit: promotion.limit || "",
-        promotion_status: promotion.promotion_status || "",
-        description: promotion.promotion_description || "",
-        promotion_code: promotion.promotion_code || "",
-        concert: promotion.concert_id || undefined,
-      };
+    if (!promotion) return;
 
-      form.setFieldsValue(formValues);
-      setSelectedType(promotion.promotion_type_id || null);
-      if (promotion.poster_url) {
-        setPosterUrl(promotion.poster_url);
-        setFileList([
-          {
-            uid: "-1",
-            name: "poster.png",
-            status: "done",
-            url: promotion.poster_url,
-            thumbUrl: promotion.poster_url,
-          },
-        ]);
-        form.setFieldsValue({ poster_url: promotion.poster_url });
-      } else {
-        setPosterUrl(null);
-        setFileList([]);
-        form.setFieldsValue({ poster_url: undefined });
-      }
+    form.setFieldsValue(mapInitialFormValues(promotion));
+    setSelectedType(promotion.promotion_type_id ?? null);
+
+    if (promotion.poster_url) {
+      const absolute = `http://localhost:8000${promotion.poster_url}`;
+      setPosterToForm(promotion.poster_url);
+      setPosterPreview(absolute);
+    } else {
+      setPosterToForm(null);
+      setPosterPreview(null);
     }
   };
 
   const handleCancel = () => {
     form.resetFields();
     setSelectedType(null);
-    setPosterUrl(null);
-    setFileList([]);
+    setPosterToForm(null);
+    setPosterPreview(null);
     onCancel();
   };
 
+  /* ---------------- Render ---------------- */
   return (
     <>
       {contextHolder}
@@ -311,7 +262,7 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
         <Divider style={{ borderColor: "#d3d3d3ff" }} />
 
         {fetching ? (
-          <div style={{ textAlign: "center", padding: "50px" }}>
+          <div style={{ textAlign: "center", padding: 50 }}>
             <Spin size="large" />
           </div>
         ) : (
@@ -322,17 +273,18 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
             style={{ maxWidth: 900, margin: "20px auto" }}
             autoComplete="off"
           >
+            {/* Row 1: Name & Type */}
             <Row gutter={[50, 0]}>
-              <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
                   name="promotion_name"
                   label="Promotion Name"
                   rules={[{ required: true }]}
                 >
-                  <Input style={{ width: "100%" }} />
+                  <Input />
                 </Form.Item>
               </Col>
-              <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
                   name="promotion_type"
                   label="Promotion Type"
@@ -341,11 +293,10 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
                   <Select
                     placeholder="Select a promotion type"
                     onChange={handlePromotionTypeChange}
-                    style={{ width: "100%" }}
                   >
-                    {promotionTypes.map((type) => (
-                      <Option key={`type-${type.id}`} value={type.id}>
-                        {type.promotion_type}
+                    {promotionTypes.map((t) => (
+                      <Option key={`type-${t.id}`} value={t.id}>
+                        {t.promotion_type}
                       </Option>
                     ))}
                   </Select>
@@ -353,7 +304,6 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
               </Col>
             </Row>
 
-            {selectedType === 2 && (
               <Row gutter={[50, 0]}>
                 <Col span={24}>
                   <Form.Item
@@ -361,15 +311,11 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
                     label="Discount Code"
                     rules={[{ required: true, message: "Please enter a code" }]}
                   >
-                    <Input
-                      placeholder="Enter your code"
-                      style={{ width: "100%" }}
-                    />
+                    <Input placeholder="Enter your code" />
                   </Form.Item>
                 </Col>
               </Row>
-            )}
-
+            
             {selectedType === 3 && (
               <Row gutter={[50, 0]}>
                 <Col span={24}>
@@ -380,17 +326,10 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
                       { required: true, message: "Please select a concert" },
                     ]}
                   >
-                    <Select
-                      placeholder="Select a Concert"
-                      style={{ width: "100%" }}
-                      allowClear
-                    >
-                      {concerts.map((concert) => (
-                        <Option
-                          key={`concert-${concert.id}`}
-                          value={concert.id}
-                        >
-                          {concert.concert_name}
+                    <Select placeholder="Select a Concert" allowClear>
+                      {concerts.map((c) => (
+                        <Option key={`concert-${c.id}`} value={c.id}>
+                          {c.concert_name}
                         </Option>
                       ))}
                     </Select>
@@ -399,8 +338,9 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
               </Row>
             )}
 
+            {/* Row 3: Description & Poster */}
             <Row gutter={[50, 0]}>
-              <Col span={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
                   name="description"
                   label="Description"
@@ -410,13 +350,12 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
                     showCount
                     maxLength={255}
                     placeholder="description"
-                    style={{ width: "100%" }}
                   />
                 </Form.Item>
               </Col>
-              <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
-                  name="poster_url" // This field will hold the URL
+                  name="poster_url"
                   label="Poster"
                   rules={[
                     {
@@ -427,25 +366,28 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
                 >
                   <Upload
                     listType="picture-card"
-                    maxCount={1} // Allow only one file
+                    maxCount={1}
                     fileList={fileList}
                     beforeUpload={(file) => {
-                      // Prevent Ant Design's default upload behavior
-                      // and call our custom upload function
+                      // ใช้ upload เองเสมอ
                       handleFileUpload(file);
                       return false;
                     }}
-                    onChange={handleAntdUploadChange}
+                    onChange={handleUploadChange}
+                    onRemove={() => {
+                      setPosterToForm(null);
+                      return true;
+                    }}
                   >
                     {fileList.length < 1 && (
                       <button
+                        type="button"
                         style={{
                           color: "inherit",
                           cursor: "inherit",
                           border: 0,
                           background: "none",
                         }}
-                        type="button"
                       >
                         <PlusOutlined />
                         <div style={{ marginTop: 8 }}>Upload</div>
@@ -456,8 +398,9 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
               </Col>
             </Row>
 
+            {/* Row 4: Discount & Limit */}
             <Row gutter={[50, 0]}>
-              <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
                   name="discount"
                   label="Discount(%)"
@@ -466,27 +409,26 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
                   <InputNumber<number>
                     min={0}
                     max={100}
-                    formatter={(value) => `${value}%`}
-                    parser={(value) =>
-                      value?.replace("%", "") as unknown as number
-                    }
+                    formatter={(v) => `${v}%`}
+                    parser={(v) => v?.replace("%", "") as unknown as number}
                     style={{ width: "100%" }}
                   />
                 </Form.Item>
               </Col>
-              <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
                   name="limit"
                   label="Usage Limit"
                   rules={[{ required: true }]}
                 >
-                  <Input style={{ width: "100%" }} />
+                  <Input />
                 </Form.Item>
               </Col>
             </Row>
 
+            {/* Row 5: Dates */}
             <Row gutter={[50, 0]}>
-              <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
                   name="start_date"
                   label="Start Date"
@@ -499,7 +441,7 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
                   />
                 </Form.Item>
               </Col>
-              <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
                   name="end_date"
                   label="End Date"
@@ -529,14 +471,15 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
               </Col>
             </Row>
 
+            {/* Row 6: Status */}
             <Row gutter={[50, 0]}>
-              <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+              <Col xs={24} md={12}>
                 <Form.Item
                   name="promotion_status"
                   label="Status"
                   rules={[{ required: true }]}
                 >
-                  <Select style={{ width: "100%" }}>
+                  <Select>
                     <Option value="inactive">Inactive</Option>
                     <Option value="active">Active</Option>
                   </Select>
@@ -544,6 +487,7 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
               </Col>
             </Row>
 
+            {/* Actions */}
             <Row justify="center" style={{ marginTop: 30 }}>
               <Space>
                 <Button htmlType="button" onClick={onReset}>

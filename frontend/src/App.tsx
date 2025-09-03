@@ -1,14 +1,29 @@
 import React from "react";
 import "antd/dist/reset.css";
-import { BrowserRouter as Router } from "react-router-dom";
-import AppRoutes from "./routes/organizerroutes"
-import ConcertManagement from "./pages/concert";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
+import MemberRoutes from "./routes/memberRoutes";
+import OrganizerRoutes from "./routes/organizerRoutes";
+import { AuthProvider } from "./hook/authContext";
 
 const App: React.FC = () => {
   return (
-    <Router>
-      <AppRoutes />
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Navigate to="/concerts" replace />} />
+          <Route path="/*" element={<MemberRoutes />} />
+          <Route path="/organizer/*" element={<OrganizerRoutes />} />
+          <Route path="/forbidden" element={<div>403 Not access right</div>} />
+          <Route path="*" element={<Navigate to="/concerts" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 };
 

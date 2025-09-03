@@ -7,5 +7,5 @@ import (
 type BookingStatus struct {
 	gorm.Model
 	BookingStatus string `gorm:"type:text" json:"booking_status"`
-	// Enum('reserved','awaiting_payment','paid','cancelled','expired','refunded')
+	// Enum('pending','paid','cancelled','expired','refunded')
 }

@@ -1,9 +1,12 @@
 export interface bookingInterface {
-  booking_id?: number;
-  user_id?: number; // Reference to the member making the booking
-  concert_id?: number; // Reference to the concert being booked
-  zone_id?: number; // Reference to the zone being booked
-  queue_number?: number; // Queue number for the booking
-  promotion_id?: number; // Reference to any promotion applied
-  booking_status?: string; // "pending", "confirmed", "cancelled"
+  ID?: number; // Booking.ID
+  user_id: number;
+  showdate_id: number;
+  zone_id: number;
+  queue_number: number; // โซนยืนจะถูกคำนวณใน backend
+  total_price: number;
+  booking_status_id: number; // 1=pending, 2=paid, 3=expired (ตามระบบคุณ)
+  booking_date: string; // ISO datetime
+  expired_date: string;
+  seat_ids?: number[]; // รายการ SeatAvailable.ID ที่จอง (ถ้ามี)
 }

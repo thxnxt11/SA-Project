@@ -16,21 +16,15 @@ import {
   message,
   Upload,
 } from "antd";
-import type {
-  InputNumberProps,
-  DatePickerProps,
-  UploadFile,
-  UploadProps,
-} from "antd";
-import {
-  CreatePromotion,
-  GetAllPromotionTypes,
-  GetAllConcerts,
-} from "../../../services/https";
+import type { UploadFile, UploadProps } from "antd";
+import { promotionAPI, uploadAPI } from "../../../services/https";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../hook/authContext";
+
 const { Option } = Select;
 
 const AddPromotion: React.FC = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
@@ -44,8 +38,8 @@ const AddPromotion: React.FC = () => {
   const onGetInitialData = async () => {
     try {
       const [typesRes, concertsRes] = await Promise.all([
-        GetAllPromotionTypes(),
-        GetAllConcerts(),
+        promotionAPI.getAllTypes(),
+        promotionAPI.getConcertByuserId(user?.id),
       ]);
       if (typesRes.status === 200 && concertsRes.status === 200) {
         setPromotionTypes(typesRes.data);
@@ -77,48 +71,47 @@ const AddPromotion: React.FC = () => {
     form.setFieldsValue({ concert: undefined, code: undefined }); // reset fields
   };
 
-  const handleFileUpload = async (file: File) => {
-    setLoading(true); // Use general loading for now, could be specific uploadLoading
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+const handleFileUpload = async (file: File) => {
+  setLoading(true);
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
 
-      const response = await fetch("http://localhost:8000/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-        // อ่านข้อความตอบกลับดิบๆ เพื่อช่วยในการ debug
-        const errorText = await response.text();
-        console.error(
-          `HTTP error! Status: ${response.status}, Response: ${errorText}`
-        );
-        messageApi.error(
-          `อัปโหลดรูปภาพไม่สำเร็จ: ${response.status} ${response.statusText}`
-        );
-        return false;
-      }
+    // ✅ เรียกผ่าน service
+    const res = await uploadAPI.upload(formData);
+    const data = res?.data;
 
-      const result = await response.json();
+    // รองรับทั้งสองรูปแบบ response: { success, data:{url} } หรือ { url }
+    const success = data?.success ?? Boolean(data?.data?.url || data?.url);
+    const uploadedUrl = data?.data?.url ?? data?.url ?? "";
 
-      if (result.success) {
-        const uploadedUrl = result.data.url;
-        setPosterUrl(uploadedUrl);
-        form.setFieldsValue({ poster_url: uploadedUrl });
-        messageApi.success("อัปโหลดรูปภาพสำเร็จ!");
-        return true;
-      } else {
-        messageApi.error(result.error || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
-        return false;
-      }
-    } catch (error) {
-      messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
-      console.error("Upload error:", error);
-      return false;
-    } finally {
-      setLoading(false);
+    if (success && uploadedUrl) {
+      setPosterUrl(uploadedUrl);
+      form.setFieldsValue({ poster_url: uploadedUrl });
+      messageApi.success("อัปโหลดรูปภาพสำเร็จ!");
+      return true;
     }
-  };
+
+    messageApi.error(data?.error || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
+    return false;
+  } catch (err: any) {
+    if (err.response) {
+      messageApi.error(
+        `อัปโหลดรูปภาพไม่สำเร็จ: ${err.response?.status ?? ""} ${
+          err.response?.statusText ?? ""
+        }`
+      );
+      console.error("Upload error:", err.response?.data || err.message);
+    } else {
+      messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
+      console.error("Upload error:", err);
+    }
+    return false;
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Ant Design Upload onChange handler
   const handleAntdUploadChange: UploadProps["onChange"] = ({
@@ -147,11 +140,13 @@ const AddPromotion: React.FC = () => {
         promotion_status: values.promotion_status,
         concert_id: values.promotion_type === 3 ? values.concert : null,
         poster_url: posterUrl,
+        user_id:
+          typeof user?.id === "string" ? parseInt(user.id, 10) : user?.id,
       };
       console.log("Form values:", values);
       console.log("Payload:", payload);
 
-      let res = await CreatePromotion(payload);
+      let res = await promotionAPI.create(payload);
 
       if (res.status === 201) {
         messageApi.open({
@@ -181,14 +176,10 @@ const AddPromotion: React.FC = () => {
   const onReset = () => {
     form.resetFields();
     setSelectedType(null);
-  };
 
-  const onDiscountChange: InputNumberProps["onChange"] = (value) => {
-    console.log("changed", value);
-  };
-
-  const onDateChange: DatePickerProps["onChange"] = (date, dateString) => {
-    console.log(date, dateString);
+    setFileList([]);
+    setPosterUrl(null);
+    form.setFieldsValue({ poster_url: undefined });
   };
 
   useEffect(() => {
@@ -256,29 +247,28 @@ const AddPromotion: React.FC = () => {
                   </Col>
                 </Row>
                 <Row gutter={[50, 0]}>
-                  {selectedType === 2 && (
-                    <Col xs={24} sm={24} md={12} lg={12} xl={12}>
-                      <Form.Item
-                        name="promotion_code"
-                        label="Discount Code"
-                        rules={
-                          selectedType === 2
-                            ? [
-                                {
-                                  required: true,
-                                  message: "Please enter a code",
-                                },
-                              ]
-                            : []
-                        }
-                      >
-                        <Input
-                          placeholder="Enter your code"
-                          style={{ width: 625 }}
-                        />
-                      </Form.Item>
-                    </Col>
-                  )}
+                  <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+                    <Form.Item
+                      name="promotion_code"
+                      label="Discount Code"
+                      rules={
+                        selectedType === 2
+                          ? [
+                              {
+                                required: true,
+                                message: "Please enter a code",
+                              },
+                            ]
+                          : []
+                      }
+                    >
+                      <Input
+                        placeholder="Enter your code"
+                        style={{ width: 300 }}
+                      />
+                    </Form.Item>
+                  </Col>
+
                   {selectedType === 3 && (
                     <Col xs={24} sm={24} md={12} lg={12} xl={12}>
                       <Form.Item
@@ -297,7 +287,7 @@ const AddPromotion: React.FC = () => {
                       >
                         <Select
                           placeholder="Select a Concert"
-                          style={{ width: 625 }}
+                          style={{ width: 300 }}
                           allowClear
                         >
                           {concerts.map((concert) => (
@@ -392,7 +382,6 @@ const AddPromotion: React.FC = () => {
                           value?.replace("%", "") as unknown as number
                         }
                         style={{ width: 300 }}
-                        onChange={onDiscountChange}
                       />
                     </Form.Item>
                   </Col>
@@ -427,7 +416,6 @@ const AddPromotion: React.FC = () => {
                         showTime={{ format: "HH:mm:ss" }}
                         format="YYYY-MM-DD HH:mm:ss"
                         style={{ width: 300 }}
-                        onChange={onDateChange}
                       />
                     </Form.Item>
                   </Col>
@@ -458,7 +446,6 @@ const AddPromotion: React.FC = () => {
                         showTime={{ format: "HH:mm:ss" }}
                         format="YYYY-MM-DD HH:mm:ss"
                         style={{ width: 300 }}
-                        onChange={onDateChange}
                       />
                     </Form.Item>
                   </Col>

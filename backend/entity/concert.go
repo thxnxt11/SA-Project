@@ -2,6 +2,7 @@ package entity
 
 import (
 	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -13,7 +14,10 @@ type Concert struct {
 	OffsaleDate time.Time `json:"offsale_date"`
 	VenueID    uint `json:"venue_id"`
 	Venue       *Venue `gorm:"foreignKey:VenueID" json:"venue"`
+	Poster      string `gorm:"column:poster" json:"concert_poster_url"`
 	ChartImage  string `json:"chart_image"`
 	UserID uint `json:"user_id"`
 	User *User `gorm:"foreignKey:UserID" json:"user"`
+
+	ShowDates   []ShowDate `gorm:"foreignKey:ConcertID"`	
 }

@@ -8,10 +8,12 @@ import (
 
 type Payment struct {
 	gorm.Model
-	BookingID uint `json:"booking_id"`
+	BookingID uint `gorm:"uniqueIndex" json:"booking_id"`
 	Booking *Booking `gorm:"foreignKey:BookingID" json:"booking"`
 	PromotionID uint `json:"promotion_id"`
 	Promotion *Promotion `gorm:"foreignKey:PromotionID" json:"promotion"`
+	RefundTypeID uint `json:"refund_type_id"`
+	RefundType *RefundType `gorm:"foreignKey:RefundTypeID" json:"refund_type"`
 	BasePrice float32 `json:"base_price"`
 	Discount  float32 `json:"discount"`
 	RefundFee float32 `json:"refund_fee"`
@@ -21,4 +23,5 @@ type Payment struct {
 	PaymentStatusID uint `json:"payment_status_id"`
 	PaymentStatus *PaymentStatus `gorm:"foreignKey:PaymentStatusID" json:"payment_status"`
 	PaidAt time.Time `json:"paid_at"`
+	ReceiptURL string `json:"receipt_url"`
 }
