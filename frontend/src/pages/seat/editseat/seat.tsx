@@ -5,11 +5,11 @@ const letters = (n: number) =>
   Array.from({ length: n }, (_, i) => String.fromCharCode(65 + i));
 
 const SeatSelector: React.FC = () => {
-  // grid size
-  const rows = 19; // A–S
-  const cols = 15; // 1–15
 
-  // selection state
+  const rows = 19; 
+  const cols = 15; 
+
+
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
 
   // drag state
@@ -17,13 +17,12 @@ const SeatSelector: React.FC = () => {
   const [dragEnd, setDragEnd] = React.useState<{ x: number; y: number } | null>(null);
   const gridRef = React.useRef<HTMLDivElement>(null);
 
-  // labels
   const labelsY = letters(rows);
   const labelsX = Array.from({ length: cols }, (_, i) => i + 1);
 
   const seatId = (r: number, c: number) => `${labelsY[r]}${labelsX[c]}`;
 
-  // drag handlers
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!gridRef.current) return;
     const rect = gridRef.current.getBoundingClientRect();
@@ -41,7 +40,7 @@ const SeatSelector: React.FC = () => {
     if (dragStart && dragEnd && gridRef.current) {
       const rect = gridRef.current.getBoundingClientRect();
 
-      // normalized selection box
+
       const x1 = Math.min(dragStart.x, dragEnd.x);
       const y1 = Math.min(dragStart.y, dragEnd.y);
       const x2 = Math.max(dragStart.x, dragEnd.x);
@@ -57,7 +56,7 @@ const SeatSelector: React.FC = () => {
         const gw = d.width;
         const gh = d.height;
 
-        // intersects selection box?
+
         if (gx < x2 && gx + gw > x1 && gy < y2 && gy + gh > y1) {
           const id = div.dataset.id!;
           if (next.has(id)) next.delete(id);

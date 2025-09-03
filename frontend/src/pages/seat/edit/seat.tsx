@@ -14,7 +14,6 @@ export interface EditZoneFormProps {
 
 const EditZoneForm: React.FC<EditZoneFormProps> = ({
   venueOptions,
-  zoneTypeOptions,
   initialValues,
   form,
 }) => {
