@@ -38,7 +38,6 @@ const BookingDetail: React.FC = () => {
   }, []);
 
   // Use mock data as fallback or for initial structure
-
   const ticketInfo = {
     zone: zone || "N/A",
     seatNo: seatNo || "N/A",

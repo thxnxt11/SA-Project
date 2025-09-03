@@ -1,5 +1,6 @@
 package entity
-import"gorm.io/gorm"
+
+import "gorm.io/gorm"
 
 type Venue struct{
 	gorm.Model

@@ -196,7 +196,7 @@ const ETicketSuccess: React.FC<SuccessProps> = ({
     if (!suppressToast && prevOpen.current === false && open === true) {
       message.success({
         content: "Create E-Ticket success",
-        key: "eticket-success", 
+        key: "eticket-success",
         duration: 1.5,
       });
     }

@@ -1,0 +1,20 @@
+package entity
+
+import (
+	"gorm.io/gorm"
+)
+
+type Report struct {
+	gorm.Model
+	Topic string `json:"topic"`
+	Description string  `json:"description"`
+
+	UserID uint   
+	User   *User `gorm:"foreignKey:UserID"`
+
+	ReportStatusID uint
+	ReportStatus *ReportStatus `gorm:"foreignKey:ReportStatusID"`
+
+	ReportTypeID uint
+	ReportType *ReportType `gorm:"foreignKey:ReportTypeID"`
+}

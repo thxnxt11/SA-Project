@@ -302,7 +302,6 @@ const SelectSeat: React.FC = () => {
     borderColor: "#d3d3d3ff",
     margin: "10px 0",
   };
-
   return (
     <>
       <Navbar />
@@ -577,7 +576,6 @@ const SelectSeat: React.FC = () => {
                     <TbTicket style={{ fontSize: "130%" }} />
                     Ticket Information
                   </h1>
-
                   <Divider
                     style={{
                       borderColor: "#d3d3d3ff",

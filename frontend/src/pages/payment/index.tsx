@@ -501,7 +501,6 @@ const Payment: React.FC = () => {
                   {totalPrice.toLocaleString()} THB
                 </Text>
               </div>
-
               <Row style={{ display: "flex", justifyContent: "center" }}>
                 <Space>
                   <Button
@@ -514,7 +513,6 @@ const Payment: React.FC = () => {
                   >
                     Payment
                   </Button>
-
                   <Button
                     type="primary"
                     className="payment-button"
