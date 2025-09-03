@@ -41,8 +41,6 @@ const SeatGrid: React.FC<Props> = ({
   seats = [],
   loading = false,
   onSeatClick,
-  onApply,
-  onCancel,
   columnsPerRow = 15,
 }) => {
   // ----- stable sort for grid -------
