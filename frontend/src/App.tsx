@@ -7,8 +7,8 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import MemberRoutes from "./routes/memberRoutes";
-import OrganizerRoutes from "./routes/organizerRoutes";
+import MemberRoutes from "./routes/memberroutes";
+import OrganizerRoutes from "./routes/organizerroutes";
 import { AuthProvider } from "./hook/authContext";
 
 const App: React.FC = () => {
