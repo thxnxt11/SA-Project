@@ -5,7 +5,7 @@ import (
     "github.com/gin-gonic/gin"
     "github.com/yourname/went-back/connection"
     // "github.com/yourname/went-back/appsystem"
-	// "github.com/yourname/went-back/controllers/user"
+	"github.com/yourname/went-back/controllers/user"
     "github.com/yourname/went-back/controllers/warehouse-shop"
 
 )
@@ -44,10 +44,11 @@ func main() {
 	r.PUT("/products/:id", controllers.UpdateProduct)
 	r.DELETE("/products/:id", controllers.DeleteProductById)
 	r.DELETE("/variant/:id", controllers.DeleteVariantById)
+	r.GET("/stockmovements", controllers.GetStockMovements)
 
-	// r.Static("/uploads", "./uploads")
-	// r.POST("/signup", user.SignUp)
-	// r.POST("/signin", user.SignIn)
+	r.Static("/uploads", "./uploads")
+	r.POST("/signup", user.SignUp)
+	r.POST("/signin", user.SignIn)
 
 	// start
 	fmt.Println("Server running on http://localhost:8000")

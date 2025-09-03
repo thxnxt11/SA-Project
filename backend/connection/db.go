@@ -25,6 +25,7 @@ func ConnectionDB() {
     
 func SetupDatabase() {
     db.AutoMigrate(
+        &entity.Action{},
         &entity.Cart{},
         &entity.Category{},
         &entity.Color{},
@@ -36,9 +37,11 @@ func SetupDatabase() {
         &entity.Variant{},
         &entity.Promotion{},
         &entity.Size{},
-        &entity.Stockmovement{},
+        &entity.StockMovement{},
         &entity.User{},
-        // &entity.Warehouse{},
+        &entity.Role{},
+        &entity.Position{},
+        &entity.Department {},
         &entity.Genders{},
     )
 
@@ -47,7 +50,11 @@ func SetupDatabase() {
 
     db.FirstOrCreate(&GenderMale, &entity.Genders{Gender: "Male"})
     db.FirstOrCreate(&GenderFemale, &entity.Genders{Gender: "Female"})
-
+    // role
+    roles := []string{"organizer", "member", "admin", "staff"}
+    for _, rol := range roles {
+        db.FirstOrCreate(&entity.Role{}, entity.Role{Role: rol})
+    }
     //organizer account
     hashedPassword, _ := HashPassword("123456")
     BirthDay, _ := time.Parse("2006-01-02", "1988-11-12")
@@ -72,7 +79,7 @@ func SetupDatabase() {
         Age:       40,
         Password:  hashedPassword,
         BirthDay:  BirthDay,
-            Phonenum:  "xxx-xxx-xxxx",
+        Phonenum:  "xxx-xxx-xxxx",
         GenderID:  1,
         RoleID: 1,
     }
@@ -80,6 +87,11 @@ func SetupDatabase() {
         Email: "ENTERTAIN@gmail.com",
     })
     
+    // --- Action ---
+    action := []string{"IN", "OUT", "UPDATE"}
+    for _, ac := range action {
+        db.FirstOrCreate(&entity.Action{}, entity.Action{Action: ac})
+    }
 
     // --- Colors ---
     colors := []string{"Red", "Black", "Blue"}

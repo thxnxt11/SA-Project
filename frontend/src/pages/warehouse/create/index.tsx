@@ -21,6 +21,7 @@ import {
   colorsAPI,
   sizesAPI
 } from "../../../services/https";
+import { useAuth } from "../../../hook/authContext";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -85,33 +86,50 @@ const CreateWarehouse: React.FC = () => {
     });
   };
 
-  const onFinish = async (values: any) => {
+  const { user } = useAuth(); // ดึง user ปัจจุบัน
+
+const onFinish = async (values: any) => {
   try {
     const payloadVariants: any[] = [];
 
-    if (Array.isArray(values.variants)) {
-      for (const v of values.variants) {
-        let base64Image = "";
-        if (v.picture && v.picture.length > 0 && v.picture[0].originFileObj) {
-          base64Image = await getBase64(v.picture[0].originFileObj);
-        }
+    if ([1, 3].includes(values.category)) {
+      // สำหรับหมวด 1,3 (color + size)
+      if (Array.isArray(values.variants)) {
+        for (const v of values.variants) {
+          let base64Image = "";
+          if (v.picture && v.picture.length > 0 && v.picture[0].originFileObj) {
+            base64Image = await getBase64(v.picture[0].originFileObj);
+          }
 
-        // สร้าง array ของ size + quantity
-        Object.entries(v)
-          .filter(([key]) => !["color", "picture"].includes(key))
-          .forEach(([sizeId, quantity]) => {
-            const qty = Number(quantity);
-            const sid = Number(sizeId);
-            if (qty > 0 && !isNaN(sid)) {
-              payloadVariants.push({
-                color_id: Number(v.color),
-                size_id: sid,
-                quantity: qty,
-                picture: base64Image
-              });
-            }
-        });
+          Object.entries(v)
+            .filter(([key]) => !["color", "picture"].includes(key))
+            .forEach(([sizeId, quantity]) => {
+              const qty = Number(quantity);
+              const sid = Number(sizeId);
+              if (qty > 0 && !isNaN(sid)) {
+                payloadVariants.push({
+                  color_id: Number(v.color),
+                  size_id: sid,
+                  quantity: qty,
+                  picture: base64Image,
+                });
+              }
+            });
+        }
       }
+    } else {
+      // สำหรับหมวดอื่น
+      let base64Image = "";
+      if (values.picture && values.picture.length > 0 && values.picture[0].originFileObj) {
+        base64Image = await getBase64(values.picture[0].originFileObj);
+      }
+
+      payloadVariants.push({
+        color_id: null,
+        size_id: null,
+        quantity: values.quantity,
+        picture: base64Image,
+      });
     }
 
     const payload = {
@@ -119,22 +137,13 @@ const CreateWarehouse: React.FC = () => {
       category_id: values.category,
       product_detail: values.product_detail,
       product_price: values.product_price,
-      quantity: values.quantity || null,
       minimum: values.minimum,
       concert_id: values.concert_id || null,
-      variants: payloadVariants,
+      staff_id: user?.id,   // <-- เพิ่มตรงนี้
+      variants: payloadVariants, 
     };
-    
-    console.log("Payload Variants:", payloadVariants);
-    console.log("Payload:", payload);
-    console.log("Variants for API:", payloadVariants);
-    payloadVariants.forEach((v, index) => {
-      if (!v.color_id || !v.size_id || v.quantity === undefined || !v.picture) {
-        console.warn(`Variant #${index} missing required field`, v);
-      }
-    });
-    
-    
+
+    console.log(payload);
     const res = await axios.post("http://localhost:8000/products", payload);
 
     if (res.status === 201) {
@@ -148,7 +157,6 @@ const CreateWarehouse: React.FC = () => {
     message.error("เกิดข้อผิดพลาดในการเชื่อมต่อ");
   }
 };
-
 
   return (
     <>
@@ -333,6 +341,25 @@ const CreateWarehouse: React.FC = () => {
               rules={[{ required: true, message: "กรุณากรอกจำนวนสินค้า" }]}
             >
               <InputNumber min={1} style={{ width: "100%" }} />
+            </Form.Item>
+
+            <Form.Item
+              label="Product Picture"
+              name="picture"
+              valuePropName="fileList"
+              getValueFromEvent={(e) => Array.isArray(e) ? e : e?.fileList}
+              rules={[{ required: true, message: "กรุณาอัปโหลดรูปสินค้า" }]}
+            >
+              <Upload
+                listType="picture-card"
+                maxCount={1}
+                beforeUpload={() => false}
+              >
+                <div>
+                  <UploadOutlined />
+                  <div>Upload</div>
+                </div>
+              </Upload>
             </Form.Item>
           </div>
         )}

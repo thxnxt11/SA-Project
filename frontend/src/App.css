@@ -1,0 +1,5 @@
+.low-stock td {
+  background-color: #ffeaea !important; /* พื้นหลังแดงอ่อน */
+  color: #d32f2f !important;           /* ตัวอักษรแดงเข้ม */
+  font-weight: bold;
+}

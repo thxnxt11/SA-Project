@@ -7,7 +7,7 @@ const { Title } = Typography;
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const goToWarehouse = () => navigate("/warehouse");
+  const goToWarehouse = () => navigate("/warehouse/dashboardwarehouse");
   const goToShopping = () => navigate("/shoppy");
 
   return (

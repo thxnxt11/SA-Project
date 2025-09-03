@@ -1,21 +1,26 @@
+// src/auth/RequireAuth.tsx
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation, Outlet } from "react-router-dom";
+import { Spin } from "antd";
 import { useAuth } from "./authContext";
 
-type Props = { allow: Array<string | number> };
+const RequireAuth: React.FC<React.PropsWithChildren> = ({ children }) => {
+  const { user, authReady } = useAuth();
+  const location = useLocation();
 
-const RequireRole: React.FC<React.PropsWithChildren<Props>> = ({
-  allow,
-  children,
-}) => {
-  const { user } = useAuth();
-  const roleName = String(user?.role ?? "").toLowerCase();
-  const allowed = allow.map((r) => String(r).toLowerCase());
-
-  if (!allowed.includes(roleName)) {
-    return <Navigate to="/forbidden" replace />;
+  if (!authReady) {
+    return (
+      <div style={{ minHeight: "40vh", display: "grid", placeItems: "center" }}>
+        <Spin size="large" />{" "}
+      </div>
+    );
   }
-  return <>{children}</>;
+
+  if (!user) {
+    return <Navigate to="/signin" state={{ from: location }} replace />;
+  }
+
+  return children ? <>{children}</> : <Outlet />;
 };
 
-export default RequireRole;
+export default RequireAuth;

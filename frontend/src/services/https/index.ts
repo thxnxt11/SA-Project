@@ -150,6 +150,10 @@ export const colorsAPI ={
 export const sizesAPI = {
   getAllSizes : () => Get(`${BASE_URL}/sizes`, false)
 };
+// Fetch sizes
+export const actionAPI = {
+  getAllSizes : () => Get(`${BASE_URL}/action`, false)
+};
 
 // Create product
 export const productsAPI = {

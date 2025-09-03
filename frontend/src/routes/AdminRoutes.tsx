@@ -1,74 +1,87 @@
-import type { RouteObject } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+import WarehouseLayout from "../component/layout/WarehouseLayout";
 
-// layout หลัก
-import WarehouseLayout from "../layout/warehouse";
-import NavbarShop from "../layout/shoppy"
-
-// pages
-import LandingPage from "../pages/land"; // ตรวจ path ให้ถูกต้อง
-
-import Dashboard from "../pages/warehouse";
+// import Dashboard from "../pages/dashboard";
+import DashboardWarehouse from "../pages/warehouse";
 import CreateWarehouse from "../pages/warehouse/create";
 import EditWarehouse from "../pages/warehouse/edit";
 import CheckWarehouse from "../pages/warehouse/balance";
 
-import ShoppingPage from "../pages/shoppy"
-import ProductDetailPage from "../pages/shoppy/detail"
-import CartPages from "../pages/shoppy/cart"
-import PaymentOrderPage from "../pages/shoppy/payment"
+import RequireAuth from "../hook/RequireAuth";
+import RequireRole from "../hook/RequireRole";
 
-const AdminRoutes: RouteObject = {
-  path: "/",
-  children: [
-    {
-      index: true,
-      element: <LandingPage />,
-    },
-    {
-      path: "warehouse",
-      element: <WarehouseLayout />,
-      children: [
-        {
-          index: true, 
-          element: <Dashboard />,
-        },
-        {
-          path: "create",
-          element: <CreateWarehouse />,
-        },
-        {
-          path: "edit",
-          element: <EditWarehouse />,
-        },
-        {
-          path: "balance",
-          element: <CheckWarehouse />,
-        },
-      ],
-    },
-    {
-      path: "shoppy",
-      element: <NavbarShop />, // layout หลัก
-      children: [
-        {
-          index: true, // "/warehouse"
-          element: <ShoppingPage />,
-        },
-        {
-          path: "detail",
-          element: <ProductDetailPage />,
-        },
-        {
-          path: "cart",
-          element: <CartPages />,
-        },
-        {
-          path: "payment",
-          element: <PaymentOrderPage />,
-        },
-      ],
-    }
-  ],
-};
+export default function AdminRoutes() {
+  return (
+    <Routes>
+      {/* ทุกหน้าอยู่ภายใต้ WarehouseLayout */}
+      <Route
+        element={
+          <RequireAuth>
+            <RequireRole allow={["organizer", 1]}>
+              <WarehouseLayout />
+            </RequireRole>
+          </RequireAuth>
+        }
+      >
+        <Route path="dashboardwarehouse" element={<DashboardWarehouse />} />
+        <Route path="create" element={<CreateWarehouse />} />
+        <Route path="edit" element={<EditWarehouse />} />
+        <Route path="balance" element={<CheckWarehouse />} />
+      </Route>
+    </Routes>
+  );
+}
 
-export default AdminRoutes;
+// export default function AdminRoutes() {
+//   return (
+//     <Routes>
+//       {/* /organizer -> dashboard */}
+//       <Route index element={<Navigate to="dashboardwarehouse" replace />} />
+
+//       {/* ทั้งหมดต้องล็อกอิน + role organizer */}
+//       <Route
+//         path="dashboardwarehouse"
+//         element={
+//           <RequireAuth>
+//             <RequireRole allow={["organizer"]}> {/*สามารถเพิ่ม role อื่นได้ */}
+//               <WarehouseLayout />
+//             </RequireRole>
+//           </RequireAuth>
+//         }
+//         />
+//       <Route
+//         path="create"
+//         element={
+//           <RequireAuth>
+//             <RequireRole allow={["organizer"]}>
+//               <CreateWarehouse />
+//             </RequireRole>
+//           </RequireAuth>
+//         }
+//       />
+//       <Route
+//         path="edit"
+//         element={
+//           <RequireAuth>
+//             <RequireRole allow={["organizer"]}>
+//               <EditWarehouse />
+//             </RequireRole>
+//           </RequireAuth>
+//         }
+//         />
+//       <Route
+//         path="balance"
+//         element={
+//           <RequireAuth>
+//             <RequireRole allow={["organizer"]}>
+//               <CheckWarehouse/>
+//             </RequireRole>
+//           </RequireAuth>
+//         }
+//         />
+
+//       {/* 404 inside /organizer */}
+//       <Route path="*" element={<Navigate to="dashboard" replace />} />
+//     </Routes>
+//   );
+// }

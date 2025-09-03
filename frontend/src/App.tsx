@@ -70,30 +70,49 @@
 //   );
 // };
 
-// // refer
-// import React from "react";
-// //import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-// import SidebarLayout from "./page/refer"; // ชี้มาที่ index.tsx
-
-// const SidebarLayoutProps: React.FC = () => {
-//   return (
-//     <>
-//       <SidebarLayout>
-//         <></>
-        
-//       </SidebarLayout>
-//     </>
-//   );
-// };
 
 
 
-import { useRoutes } from "react-router-dom";
-import AdminRoutes from "./routes/AdminRoutes"; // ถูกต้องตาม path
+// import { useRoutes } from "react-router-dom";
+// import AdminRoutes from "./routes/AdminRoutes"; // ถูกต้องตาม path
 
-function App() {
-  const routes = useRoutes([AdminRoutes]); // << ถูกต้องแล้ว
-  return routes;
-}
+// function App() {
+//   const routes = useRoutes([AdminRoutes]); // << ถูกต้องแล้ว
+//   return routes;
+// }
+
+// export default App;
+
+import React from "react";
+import "antd/dist/reset.css";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
+import MemberRoutes from "./routes/memberroutes";
+import OrganizerRoutes from "./routes/organizerroutes";
+import { AuthProvider } from "./hook/authContext";
+import AdminRoutes from "./routes/AdminRoutes"; 
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* <Route path="/" element={<Navigate to="/concerts" replace />} /> */}
+          <Route path="/" element={<Navigate to="/land" replace />} />
+          <Route path="/warehouse/*" element={<AdminRoutes />} />
+          <Route path="/organizer/*" element={<OrganizerRoutes />} />
+          <Route path="/*" element={<MemberRoutes />} />
+          <Route path="/forbidden" element={<div>403 Not access right</div>} />
+          {/* <Route path="*" element={<Navigate to="/concerts" replace />} /> */}
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+};
 
 export default App;

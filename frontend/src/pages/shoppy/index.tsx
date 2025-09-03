@@ -22,7 +22,7 @@ const ShoppingPage: React.FC = () => {
       {/* รายการสินค้า */}
       <Row gutter={[24, 32]} justify="center">
         {mockProducts.map((product) => (
-          <Col key={product.id} xs={24} sm={12} md={8} lg={6} xl={4}>
+          <Col key={product.id} >
             <Card
               hoverable
               onClick={() => navigate("/shoppy/detail")}

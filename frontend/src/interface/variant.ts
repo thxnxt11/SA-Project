@@ -7,6 +7,6 @@ export interface VariantInterface {
     Product?:   ProductInterface
     Color?:	    ColorInterface
     Size?:      SizeInterface
-    Quantity?:  number
+    quantity?:  number
     Picture?:   string    
 }

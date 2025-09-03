@@ -8,32 +8,76 @@ import (
 )
 
 // POST /products
-func CreateProduct(c *gin.Context) {
-	var body entity.Product
-
-	// bind JSON -> struct
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad request body"})
-		return
-	}
-
-	db := connection.DB()
-
-	// ตรวจสอบ Category ว่ามีจริงมั้ย
-	var category entity.Category
-	if tx := db.Where("id = ?", body.CategoryID).First(&category); tx.RowsAffected == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "category id not found"})
-		return
-	}
-
-	// บันทึก product + variants (GORM จะ insert relation ให้)
-	if err := db.Create(&body).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, body)
+type CreateProductPayload struct {
+    ProductName string           `json:"product_name"`
+    CategoryID  uint             `json:"category_id"`
+    ProductDetail string         `json:"product_detail"`
+    ProductPrice uint            `json:"product_price"`
+    Minimum     uint             `json:"minimum"`
+    ConcertID   *uint            `json:"concert_id"`
+    StaffID     uint             `json:"staff_id"` // <-- เพิ่มตรงนี้
+    Variants    []entity.Variant `json:"variants"`
 }
+
+func CreateProduct(c *gin.Context) {
+    var payload CreateProductPayload
+    if err := c.ShouldBindJSON(&payload); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Bad request body"})
+        return
+    }
+
+    db := connection.DB()
+
+    // ตรวจสอบ Category
+    var category entity.Category
+    if tx := db.Where("id = ?", payload.CategoryID).First(&category); tx.RowsAffected == 0 {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "category id not found"})
+        return
+    }
+
+    // สร้าง Product
+	product := entity.Product{
+		ProductName: payload.ProductName,
+		CategoryID:  payload.CategoryID,
+		ProductDetail: payload.ProductDetail,
+		ProductPrice: float32(payload.ProductPrice),
+		Minimum: payload.Minimum,
+	}
+
+	if payload.ConcertID != nil {
+		product.ConcertID = *payload.ConcertID
+	}
+	product.Variants = payload.Variants
+
+	if err := db.Create(&product).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// สร้าง StockMovement
+	for _, v := range product.Variants {
+		sm := entity.StockMovement{
+			ProductID: product.ID,
+			Amount:    v.Quantity,
+			StaffID:   payload.StaffID,
+			ActionID:  1, // กำหนด ActionID เป็น 1  คือ เพิ่ม
+		}
+		if err := db.Create(&sm).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+}
+
+
+    // อัปเดต total ของ Product
+    if err := UpdateProductTotal(product.ID); err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusCreated, product)
+}
+
 
 // GET /products
 func FindProducts(c *gin.Context) {
@@ -51,6 +95,7 @@ func FindProducts(c *gin.Context) {
 
     c.JSON(http.StatusOK, products)
 }
+
 // GET /product/:id
 func FindProductById(c *gin.Context) {
 	id := c.Param("id")
