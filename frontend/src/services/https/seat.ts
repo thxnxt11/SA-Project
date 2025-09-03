@@ -1,6 +1,7 @@
 import axios from "axios";
 import type { AxiosResponse, AxiosError } from "axios";
 import type { ZoneInterface } from "../../interface/zone";
+import type { seat_availableInterface } from "../../interface/seat_available";
 
 const API_URL = "http://localhost:8000/organizer";
 
@@ -134,7 +135,6 @@ export const Seat = {
   },
 
 
-
   update: async (id: number | string, data: Partial<ZoneInterface>) => {
     const r = await Update(`${API_URL}/zone/${id}`, data);
     return r?.data; 
@@ -143,5 +143,32 @@ export const Seat = {
   delete: async (id: number | string) => {
     const r = await Delete(`${API_URL}/zone/${id}`);
     return r?.data; 
+  },
+};
+
+export const zoneaseat = {
+  getbyzoneid: async (id: number | string) => {
+    const r = await Get(`${API_URL}/seatzone/${id}`);
+    return r?.data;
+  },
+
+  updatebyid: async (
+    id: number | string,
+    seat_id: number | string,
+    data: { seatavailable_status: string } 
+  ) => {
+    const r = await Update(`${API_URL}/seatzone/${id}/seat/${seat_id}`, data);
+    return r?.data;
+  },
+
+  deletebyid: async (id: number | string) => {
+    const r = await Delete(`${API_URL}/seatzone/${id}`);
+    return r?.data;
+  },
+
+
+  addbyid: async (id: number | string) => {
+    const r = await Post(`${API_URL}/seatzone/${id}`,{}); 
+    return r?.data;
   },
 };

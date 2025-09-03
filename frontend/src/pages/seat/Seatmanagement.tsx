@@ -5,14 +5,20 @@ import SidebarLayout from "../../component/layout/SidebarLayout";
 import type { ZoneInterface } from "../../interface/zone";
 import { Seat, Get } from "../../services/https/seat";
 import { venueoption } from "../../services/https/concert";
+import { zoneaseat } from "../../services/https/seat";
 
 import AddZoneForm from "./add/seat";
 import EditZoneForm from "./edit/seat";
-import SeatSelector from "./editseat/seat";
+import SeatGrid, { type SeatAvailable } from "./editseat/seat";
 
 const API_ORG = "http://localhost:8000/organizer";
 
+// normalize API ids
 const normalizeId = (x: any) => x?.id ?? x?.ID;
+
+// normalize seat status to a strict union
+const norm = (x?: string) =>
+  ((x ?? "").trim().toLowerCase() === "available" ? "available" : "unavailable");
 
 const fmtDate = (iso?: string) => {
   if (!iso || iso.startsWith("0001-")) return "—";
@@ -48,9 +54,13 @@ export default function ZoneBrowser() {
   const [venueOptions, setVenueOptions] = useState<Option[]>([]);
   const [editForm] = Form.useForm();
 
-  // seat modal state
+  // Seat modal state
   const [isSeatOpen, setIsSeatOpen] = useState(false);
   const [seatZoneId, setSeatZoneId] = useState<number | null>(null);
+  const [seatRows, setSeatRows] = useState<SeatAvailable[]>([]);
+  const [initialSeatRows, setInitialSeatRows] = useState<SeatAvailable[]>([]);
+  const [loadingSeats, setLoadingSeats] = useState(false);
+  const [savingSeats, setSavingSeats] = useState(false);
 
   useEffect(() => {
     const uStr = localStorage.getItem("user") ?? localStorage.getItem("User");
@@ -144,10 +154,23 @@ export default function ZoneBrowser() {
 
   const handleAddZone = async (values: any) => {
     try {
-      await Seat.add(values);
+      const created = await Seat.add(values);
+      const newZoneId = created?.id ?? created?.ID;
+
       message.success("Zone created");
       setIsAddOpen(false);
-      if (showdateId) fetchZones(showdateId);
+
+      // Only seed seats when seating type (here == 2)
+      if (newZoneId && Number(values.zonetype_id) === 2) {
+        try {
+          await zoneaseat.addbyid(newZoneId);
+        } catch (e) {
+          // ignore conflicts etc.
+          console.warn("Seeding seats failed:", e);
+        }
+      }
+
+      if (showdateId) await fetchZones(showdateId);
     } catch (e: any) {
       message.error(e?.message || "Create failed");
     }
@@ -177,16 +200,16 @@ export default function ZoneBrowser() {
       const id = editingZone ? Number(normalizeId(editingZone)) : undefined;
       if (!id) return;
 
-      const payload = {
+      const payload: any = {
         showdate_id: Number(showdateId),
         venue_id: Number(values.venue_id),
         zonetype_id: Number(values.zonetype_id),
         zone_name: String(values.zone_name).trim(),
-        zone_price: values.zone_price != null ? Number(values.zone_price) : undefined,
-        capacity: values.capacity != null ? Number(values.capacity) : undefined,
-        ...(values.seat_sold != null ? { seat_sold: Number(values.seat_sold) } : {}),
-        ...(values.pending_hold != null ? { pending_hold: Number(values.pending_hold) } : {}),
       };
+      if (values.zone_price != null) payload.zone_price = Number(values.zone_price);
+      if (values.capacity != null) payload.capacity = Number(values.capacity);
+      if (values.seat_sold != null) payload.seat_sold = Number(values.seat_sold);
+      if (values.pending_hold != null) payload.pending_hold = Number(values.pending_hold);
 
       await Seat.update(id, payload);
       message.success("Zone updated");
@@ -198,6 +221,15 @@ export default function ZoneBrowser() {
     }
   };
 
+  const getZoneTypeName = (r: any): string | undefined => {
+    const nameFromRow = r?.zone_type?.zone_type ?? r?.ZoneType?.zone_type;
+    if (nameFromRow) return String(nameFromRow);
+    const id = r?.zonetype_id ?? r?.zone_type_id ?? r?.zoneTypeId ?? r?.zone_type?.id ?? r?.ZoneType?.id;
+    if (id == null) return undefined;
+    const opt = (zoneTypeOptions || []).find((o) => Number(o.value) === Number(id));
+    return opt?.label;
+  };
+
   const handleDelete = (zoneId: number) =>
     Modal.confirm({
       title: "Delete zone?",
@@ -206,6 +238,10 @@ export default function ZoneBrowser() {
       okType: "danger",
       onOk: async () => {
         try {
+          // best-effort remove seats; safe for zones without seats
+          try {
+            await zoneaseat.deletebyid(zoneId);
+          } catch {}
           await Seat.delete(zoneId);
           message.success("Zone deleted");
           if (showdateId) fetchZones(showdateId);
@@ -217,35 +253,126 @@ export default function ZoneBrowser() {
 
   const nf = new Intl.NumberFormat();
 
-  const getZoneTypeId = (r: any): number | undefined =>
-    r?.zonetype_id ??
-    r?.zone_type_id ??
-    r?.zoneTypeId ??
-    r?.zone_type?.id ??
-    r?.ZoneType?.id ??
-    undefined;
-
-  const getZoneTypeName = (r: any): string | undefined => {
-    const nameFromRow = r?.zone_type?.zone_type ?? r?.ZoneType?.zone_type;
-    if (nameFromRow) return String(nameFromRow);
-    const id = getZoneTypeId(r);
-    if (id == null) return undefined;
-    const opt = (zoneTypeOptions || []).find((o) => Number(o.value) === Number(id));
-    return opt?.label;
+  // -------- Seat modal helpers --------
+  const loadSeats = async (zoneId: number) => {
+    try {
+      setLoadingSeats(true);
+      const rows = await zoneaseat.getbyzoneid(zoneId);
+      const list: SeatAvailable[] = (Array.isArray(rows) ? rows : []).map((s) => ({
+        ...s,
+        seatavailable_status: norm(s.seatavailable_status),
+      }));
+      setSeatRows(list);
+      // snapshot for diff
+      setInitialSeatRows(list.map((s) => ({ ...s })));
+    } catch (e: any) {
+      message.error(e?.message || "Load seats failed");
+    } finally {
+      setLoadingSeats(false);
+    }
   };
 
-  const openSeat = (zone: ZoneInterface) => {
+  // toggle one seat by seat_id, using normalized values
+  const toggleSeat = (seat: SeatAvailable) => {
+    setSeatRows((prev) =>
+      prev.map((s) =>
+        s.seat_id === seat.seat_id
+          ? {
+              ...s,
+              seatavailable_status: norm(s.seatavailable_status) === "available" ? "unavailable" : "available",
+            }
+          : s
+      )
+    );
+  };
+
+  /**
+   * Build a FULL zone payload from a zone row (explicit fields only).
+   * This prevents PUT from zeroing other columns on the server.
+   */
+  const buildFullZonePayload = (z: any, capacityOverride?: number) => {
+    const venueId = z?.venue_id ?? z?.venueId ?? z?.venue?.id;
+    const zoneTypeId = z?.zonetype_id ?? z?.zone_type_id ?? z?.zoneTypeId ?? z?.zone_type?.id ?? z?.ZoneType?.id;
+    const zonePrice = z?.zone_price ?? z?.zonePrice;
+
+    return {
+      showdate_id: Number(z?.showdate_id ?? showdateId), // fallback to current showdate
+      venue_id: Number(venueId ?? 0),
+      zonetype_id: Number(zoneTypeId ?? 0),
+      zone_name: String(z?.zone_name ?? "").trim(),
+      zone_price: zonePrice != null ? Number(zonePrice) : 0,
+      capacity: capacityOverride != null ? Number(capacityOverride) : Number(z?.capacity ?? 0),
+      seat_sold: Number(z?.seat_sold ?? 0),
+      pending_hold: Number(z?.pending_hold ?? 0),
+    };
+  };
+
+  const handleApplySeats = async () => {
+    if (!seatZoneId) return;
+    try {
+      setSavingSeats(true);
+
+      // find changed seats (match by seat_id, compare normalized status)
+      const delta = seatRows.filter((s) => {
+        const old = initialSeatRows.find((o) => o.seat_id === s.seat_id);
+        return old && norm(old.seatavailable_status) !== norm(s.seatavailable_status);
+      });
+
+      if (delta.length) {
+        await Promise.all(
+          delta.map((s) =>
+            zoneaseat.updatebyid(seatZoneId, s.seat_id, {
+              seatavailable_status: norm(s.seatavailable_status),
+            })
+          )
+        );
+      }
+
+      // recompute capacity = count of normalized available
+      const availableCount = seatRows.filter((s) => norm(s.seatavailable_status) === "available").length;
+
+      // update zone capacity with a full payload to avoid zeroing other fields
+      const source =
+        zones.find((z) => Number(normalizeId(z)) === Number(seatZoneId)) ?? editingZone;
+
+      if (!source) {
+        await Seat.update(seatZoneId, {
+          showdate_id: Number(showdateId),
+          zone_name: `Zone #${seatZoneId}`,
+          venue_id: 0,
+          zonetype_id: 0,
+          zone_price: 0,
+          seat_sold: 0,
+          pending_hold: 0,
+          capacity: availableCount,
+        });
+      } else {
+        const fullPayload = buildFullZonePayload(source, availableCount);
+        await Seat.update(seatZoneId, fullPayload);
+      }
+
+      message.success("Seats updated");
+      setIsSeatOpen(false);
+      if (showdateId) await fetchZones(showdateId);
+    } catch (e: any) {
+      console.error(e);
+      message.error(e?.message || "Apply failed");
+    } finally {
+      setSavingSeats(false);
+    }
+  };
+
+  const openSeat = async (zone: ZoneInterface) => {
     const id = Number(normalizeId(zone));
     if (!id) {
       message.error("Invalid zone");
       return;
     }
-    setEditingZone(zone);
+    setEditingZone(zone); // keep the source row around for full payload
     setSeatZoneId(id);
     setIsSeatOpen(true);
+    await loadSeats(id);
   };
-
-  
 
   const columns = [
     { title: "ID", key: "ID", render: (_: any, r: ZoneInterface) => normalizeId(r), width: 90 },
@@ -368,7 +495,7 @@ export default function ZoneBrowser() {
         />
       </Card>
 
-
+      {/* Add Zone */}
       <Modal open={isAddOpen} onCancel={() => setIsAddOpen(false)} footer={null} destroyOnClose>
         <AddZoneForm
           showdateId={showdateId!}
@@ -378,7 +505,7 @@ export default function ZoneBrowser() {
         />
       </Modal>
 
-
+      {/* Edit Zone */}
       <Modal
         open={isEditOpen}
         onCancel={() => {
@@ -401,16 +528,26 @@ export default function ZoneBrowser() {
       <Modal
         open={isSeatOpen}
         title={`Manage seats — ${editingZone?.zone_name ?? (seatZoneId ? `Zone #${seatZoneId}` : "")}`}
-        onCancel={() => {
-          setIsSeatOpen(false);
-        }}
-        
-        footer={null}
+        onCancel={() => setIsSeatOpen(false)}
+        footer={
+          <Space>
+            <Button onClick={() => setIsSeatOpen(false)}>Cancel</Button>
+            <Button type="primary" loading={savingSeats} onClick={handleApplySeats}>
+              Apply
+            </Button>
+          </Space>
+        }
         destroyOnHidden
         width={920}
       >
-      <SeatSelector></SeatSelector>
-      
+        <SeatGrid
+          seats={seatRows}
+          loading={loadingSeats}
+          onSeatClick={toggleSeat}
+          onCancel={() => setIsSeatOpen(false)}
+          onApply={handleApplySeats}
+          columnsPerRow={15}
+        />
       </Modal>
     </SidebarLayout>
   );
