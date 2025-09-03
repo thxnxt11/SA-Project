@@ -26,7 +26,7 @@ export const Refund = () => {
   };
   return (
     <div style={{ backgroundColor: "#ffffff" }}>
-      <Row 
+      <Row
         style={{
           width: 1300,
           margin: "20px auto 0 auto",
@@ -60,32 +60,41 @@ export const Refund = () => {
         form={form}
         style={{ width: 1300, margin: "0 auto" }}
       >
-        <Card style={{ borderRadius: 10, height: 500 }}>
-          <Row style={{ marginLeft: 100 }} >
+        <Card style={{ borderRadius: 10, height: 600 }}>
+          <Row style={{ marginLeft: 100 }}>
             <Form.Item
-              name="Booking ID"
+              name="BookingID"
               label="BookingID"
               layout="vertical"
               rules={[{ required: true }]}
-        
             >
               <Input style={{ width: 500, height: 40 }} />
             </Form.Item>
-            <Row >
+            <Row>
               <Form.Item
-                name="User ID"
-                label="UserID"
+                name="FirstName"
+                label="FirstName"
                 layout="vertical"
                 rules={[{ required: true }]}
               >
                 <Input style={{ width: 500, height: 40 }} />
               </Form.Item>
               <Form.Item
+                name="LastName"
+                label="LastName"
+                layout="vertical"
+                rules={[{ required: true }]}
+                style={{ marginLeft: 40 }}
+              >
+                <Input style={{ width: 500, height: 40 }} />
+              </Form.Item>
+            </Row>
+            <Row>
+              <Form.Item
                 name="Consume"
                 label="Consume"
                 layout="vertical"
                 rules={[{ required: true }]}
-                style={{ marginLeft: 40 }}
               >
                 <DatePicker
                   defaultValue={dayjs("0000-00-00", dateFormat)}
@@ -93,7 +102,7 @@ export const Refund = () => {
                 />
               </Form.Item>
             </Row>
-            <Row >
+            <Row>
               <Form.Item
                 name="Bank"
                 label="Bank"

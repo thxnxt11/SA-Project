@@ -8,7 +8,7 @@ import (
    "golang.org/x/crypto/bcrypt"
    "gorm.io/gorm"
    "github.com/yourname/went-back/connection"
-   "github.com/yourname/went-back/Entity"
+   "github.com/yourname/went-back/entity"
    "github.com/yourname/went-back/service"
 
 )
@@ -41,7 +41,7 @@ func SignUp(c *gin.Context) {
    }
 
    db := connection.DB()
-   var userCheck Entity.Members
+   var userCheck entity.Members
 
    // Check if the user with the provided email already exists
    result := db.Where("email = ?", payload.Email).First(&userCheck)
@@ -61,7 +61,7 @@ func SignUp(c *gin.Context) {
    // Hash the user's password
    hashedPassword, _ := connection.HashPassword(payload.Password)
    // Create a new user
-   user := Entity.Members{
+   user := entity.Members{
        FirstName: payload.FirstName,
        LastName:  payload.LastName,
        Email:     payload.Email,
@@ -81,7 +81,7 @@ func SignUp(c *gin.Context) {
 
 func SignIn(c *gin.Context) {
    var payload Authen
-   var user Entity.Members
+   var user entity.Members
    if err := c.ShouldBindJSON(&payload); err != nil {
        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
        return

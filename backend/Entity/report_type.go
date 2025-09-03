@@ -1,10 +1,8 @@
-package Entity
+package entity
 
-import (
-	"gorm.io/gorm"
-)
+import "gorm.io/gorm"
 
 type ReportType struct {
 	gorm.Model
-	Type_name string `json:"status_name"`
+	Type_name string `json:"type_name"`
 }
