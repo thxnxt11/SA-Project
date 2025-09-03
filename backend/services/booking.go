@@ -352,18 +352,26 @@ func (s *BookingService) ExpirePendingBookings() (int, error) {
 
 func RecalculateZoneCounters(db *gorm.DB, zoneID uint) error {
 	return db.Exec(`
-		UPDATE zones
+		UPDATE zones AS z
 		SET
 		  seat_sold = (
-		    SELECT COUNT(*) FROM seat_availables
-		    WHERE zone_id = ? AND seat_available_status = 'booked'
+		    SELECT COALESCE(COUNT(*), 0) FROM seat_availables s
+		    WHERE s.zone_id = z.id AND s.seat_available_status = 'booked'
+		  ) + (
+		    SELECT COALESCE(COUNT(*), 0) FROM bookings b
+		    WHERE b.zone_id = z.id AND b.booking_status_id = 2 AND b.queue_number > 0
+		    AND NOT EXISTS (SELECT 1 FROM seat_availables WHERE zone_id = z.id)
 		  ),
 		  pending_hold = (
-		    SELECT COUNT(*) FROM seat_availables
-		    WHERE zone_id = ? AND seat_available_status = 'locked'
+		    SELECT COALESCE(COUNT(*), 0) FROM seat_availables s
+		    WHERE s.zone_id = z.id AND s.seat_available_status = 'locked'
+		  ) + (
+		    SELECT COALESCE(COUNT(*), 0) FROM bookings b
+		    WHERE b.zone_id = z.id AND b.booking_status_id = 1 AND b.queue_number > 0
+		    AND NOT EXISTS (SELECT 1 FROM seat_availables WHERE zone_id = z.id)
 		  )
-		WHERE id = ?;
-	`, zoneID, zoneID, zoneID).Error
+		WHERE z.id = ?;
+	`, zoneID).Error
 }
 
 func RecalculateAllZones(db *gorm.DB) error {
@@ -371,12 +379,20 @@ func RecalculateAllZones(db *gorm.DB) error {
 		UPDATE zones AS z
 		SET
 		  seat_sold = (
-		    SELECT COUNT(*) FROM seat_availables s
+		    SELECT COALESCE(COUNT(*), 0) FROM seat_availables s
 		    WHERE s.zone_id = z.id AND s.seat_available_status = 'booked'
+		  ) + (
+		    SELECT COALESCE(COUNT(*), 0) FROM bookings b
+		    WHERE b.zone_id = z.id AND b.booking_status_id = 2 AND b.queue_number > 0
+		    AND NOT EXISTS (SELECT 1 FROM seat_availables WHERE zone_id = z.id)
 		  ),
 		  pending_hold = (
-		    SELECT COUNT(*) FROM seat_availables s
-		    WHERE s.zone_id = z.id AND s.seat_available_status = 'hold'
+		    SELECT COALESCE(COUNT(*), 0) FROM seat_availables s
+		    WHERE s.zone_id = z.id AND s.seat_available_status = 'locked'
+		  ) + (
+		    SELECT COALESCE(COUNT(*), 0) FROM bookings b
+		    WHERE b.zone_id = z.id AND b.booking_status_id = 1 AND b.queue_number > 0
+		    AND NOT EXISTS (SELECT 1 FROM seat_availables WHERE zone_id = z.id)
 		  );
 	`).Error
 }
