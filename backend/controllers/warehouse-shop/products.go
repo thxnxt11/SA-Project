@@ -11,15 +11,48 @@ import (
 func FindProductById(c *gin.Context) {
 	id := c.Param("id")
 	var product entity.Product
-	
-	if tx := connection.DB().Preload("Variants").Where("id = ?", id).First(&product); tx.RowsAffected == 0 {
+
+	// preload Variants และ join กับ Color และ Size
+	if tx := connection.DB().
+		Preload("Variants.Color").
+		Preload("Variants.Size").
+		Where("id = ?", id).
+		First(&product); tx.RowsAffected == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id not found"})
 		return
 	}
-	
-	c.JSON(http.StatusOK, product)
+
+	// สร้าง response object
+	type VariantResponse struct {
+		ID       uint   `json:"id"`
+		Color    string `json:"color"`
+		Size     string `json:"size"`
+		Quantity int    `json:"quantity"`
+		Picture  string `json:"picture"`
+	}
+
+	var variants []VariantResponse
+	for _, v := range product.Variants {
+		variants = append(variants, VariantResponse{
+			ID:       v.ID,
+			Color:    v.Color.Color, // ต้องแน่ใจว่า Color ถูก preload
+			Size:     v.Size.Size,   // ต้องแน่ใจว่า Size ถูก preload
+			Quantity: int(v.Quantity),
+			Picture:  v.Picture,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":          product.ID,
+		"product_name": product.ProductName,
+        "product_detail": product.ProductDetail,
+		"product_price": product.ProductPrice,
+		"minimum":      product.Minimum,
+		"total":        product.Total,
+		"variants":     variants,
+	})
 }
-	
+
 // GET /products
 func FindProducts(c *gin.Context) {
 	var products []entity.Product

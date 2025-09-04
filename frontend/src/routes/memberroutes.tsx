@@ -93,7 +93,7 @@ export default function MemberRoutes() {
       {/* shoppy (public) */}
       <Route path="shoppy" element={<Navbar />}>
         <Route index element={<ShoppingPage />} />
-        <Route path="detail" element={<ProductDetailPage />} />
+        <Route path="productdetail/:id" element={<ProductDetailPage />} />
         <Route path="cart" element={<CartPages />} />
         <Route path="payment" element={<PaymentOrderPage />} />
       </Route>

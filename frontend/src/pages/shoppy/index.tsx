@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Typography,  Row, Col, Card, Spin, Carousel, Button } from "antd";
 import { useNavigate } from "react-router-dom";
 import { productsAPI } from "./../../services/https";
+import type { ProductInterface } from "../../interface/product";
+
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -16,7 +18,7 @@ const contentStyle: React.CSSProperties = {
 };
 
 const ShoppingPage: React.FC = () => {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<ProductInterface[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -56,74 +58,65 @@ const ShoppingPage: React.FC = () => {
       <div style={{ textAlign: "center", marginBottom: 40 }}>
         <Title level={2}>New Arrivals</Title>
       </div>
-    <div style={{ margin: "0 auto", width:"80%"}}>
+      <div style={{ margin: "0 auto", width:"80%"}}>
+        <Carousel  
+          style={{ margin: "0 auto" }}
+          arrows
+        >
+          {pages.map((page, pageIndex) => (
+            <div key={pageIndex}>
+              <Row gutter={[24, 32]} justify="center" style={contentStyle}>
+                {page.map((product) => (
+                  <Col key={product.id}>
+                    <Card
+                      hoverable
+                      onClick={() => navigate(`/shoppy/productdetail/${product.id}`)}
+                      style={{
+                        width: 270,
+                        height: 380,
+                        background: "#f1f3f4",
+                        textAlign: "center",
+                        overflow: "hidden",
+                      }}
+                      bodyStyle={{ padding: 0 }}
+                    >
+                      {/* รูปสินค้า */}
+                      <div
+                        style={{
+                          flexGrow: 1,
+                          background: "#fff",
+                        }}
+                      >
+                        <img
+                          src={product.variants?.[0]?.picture || "/no-image.png"}
+                          alt={product.product_name}
+                          style={{
+                            height: 270,
+                            width: "100%",
+                            objectFit: "cover",
+                          }}
+                        />
+                      </div>
 
-              <Carousel  
-                style={{ margin: "0 auto" }}
-                arrows
-              >
-                {pages.map((page, pageIndex) => (
-                  <div key={pageIndex}>
-                    <Row gutter={[24, 32]} justify="center" style={contentStyle}>
-                      {page.map((product) => (
-                        <Col key={product.ProductID}>
-                          <Card
-                            hoverable
-                            onClick={() => navigate(`/shoppy/detail/${product.ProductID}`)}
-                            style={{
-                              width: 270,
-                              height: 380,
-                              background: "#f1f3f4",
-                              display: "flex",
-                              flexDirection: "column",
-                              justifyContent: "space-between",
-                              textAlign: "center",
-                              overflow: "hidden",
-                            }}
-                            bodyStyle={{ padding: 0 }}
-                          >
-                            {/* รูปสินค้า */}
-                            <div
-                              style={{
-                                flexGrow: 1,
-                                background: "#fff",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                overflow: "hidden",
-                              }}
-                            >
-                              <img
-                                src={product.variants?.[0]?.picture || "/no-image.png"}
-                                alt={product.product_name}
-                                style={{
-                                  height: 270,
-                                  width: "100%",
-                                  objectFit: "cover",
-                                }}
-                              />
-                            </div>
-
-                            {/* เนื้อหา */}
-                            <div style={{ background: "#f1f3f4", padding: 8 }}>
-                              <Paragraph
-                                ellipsis={{ rows: 2 }}
-                                style={{ fontSize: 16, marginBottom: 8, height: 44 }}
-                              >
-                                {product.product_name}
-                              </Paragraph>
-                              <Text strong style={{ color: "#2167ff", fontSize: 20 }}>
-                                ฿ {product.product_price?.toLocaleString()}
-                              </Text>
-                            </div>
-                          </Card>
-                        </Col>
-                      ))}
-                    </Row>
-                  </div>
+                      {/* เนื้อหา */}
+                      <div style={{ background: "#f1f3f4", padding: 8 }}>
+                        <Paragraph
+                          ellipsis={{ rows: 2 }}
+                          style={{ fontSize: 16, marginBottom: 8, height: 44 }}
+                        >
+                          {product.product_name}
+                        </Paragraph>
+                        <Text strong style={{ color: "#2167ff", fontSize: 20 }}>
+                          ฿ {product.product_price?.toLocaleString()}
+                        </Text>
+                      </div>
+                    </Card>
+                  </Col>
                 ))}
-              </Carousel>
-
+              </Row>
+            </div>
+          ))}
+        </Carousel>
         </div>
     </div>
   );
