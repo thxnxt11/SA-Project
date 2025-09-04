@@ -3,10 +3,11 @@ import type { SizeInterface} from "./size";
 import type { ProductInterface} from "./product"
 
 export interface VariantInterface {
+    id?: number
     ProductID?:	number    
     Product?:   ProductInterface
-    Color?:	    ColorInterface
-    Size?:      SizeInterface
+    color?:	    ColorInterface
+    size?:      SizeInterface
     quantity?:  number
-    Picture?:   string    
+    picture?:   string    
 }

@@ -1,3 +1,4 @@
 export interface ColorInterface {
-  Color?: string;
+  id?: number;
+  color?: string;
 }

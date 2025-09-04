@@ -69,18 +69,14 @@ const ShoppingPage: React.FC = () => {
                         <Col key={product.ProductID}>
                           <Card
                             hoverable
-                            onClick={() => navigate(`/shoppy/detail/${product.ProductID}`)}
+                            onClick={() => navigate(`/shopping/productdetail/${product.ID}`)}
                             style={{
                               width: 270,
                               height: 380,
                               background: "#f1f3f4",
-                              display: "flex",
-                              flexDirection: "column",
-                              justifyContent: "space-between",
                               textAlign: "center",
                               overflow: "hidden",
                             }}
-                            bodyStyle={{ padding: 0 }}
                           >
                             {/* รูปสินค้า */}
                             <div

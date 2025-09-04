@@ -8,7 +8,7 @@ const LandingPage: React.FC = () => {
   const navigate = useNavigate();
 
   const goToWarehouse = () => navigate("/warehouse/dashboardwarehouse");
-  const goToShopping = () => navigate("/shoppy");
+  const goToShopping = () => navigate("/shopping");
 
   return (
     <div style={{ height: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>

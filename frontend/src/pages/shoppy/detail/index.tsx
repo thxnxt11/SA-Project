@@ -1,45 +1,104 @@
-import React, { useState } from "react";
-import {
-  Card,
-  Typography,
-  Button,
-  Row,
-  Col,
-  Divider,
-  message,
-  InputNumber,
-} from "antd";
-
-import onceshirt from "../../../assets/onceshirt.jpg";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { Card, Row, Col, Typography, Button, Divider, message } from "antd";
 import { ShoppingCartOutlined } from "@ant-design/icons";
+import type { ProductInterface } from "../../../interface/product";
+import type { ColorInterface } from "../../../interface/color";
+import type { SizeInterface } from "../../../interface/size";
+import { productsAPI, cartAPI } from "../../../services/https";
+import { useAuth } from "../../../hook/authContext";
 
 const { Title, Text } = Typography;
 
-const mockProduct = {
-  id: 1,
-  name: "ONCE T-Shirt",
-  description: "เสื้อยืดสุดพิเศษสำหรับแฟนคลับ Eventix ผลิตจาก cotton 100%",
-  price: 1399,
-  image: onceshirt,
-  availableSizes: ["S", "M", "L", "XL", "XXL"],
-  availableColors: ["Red", "Black", "White"],
-};
-
 const ProductDetailPage: React.FC = () => {
-  const [selectedColor, setSelectedColor] = useState<string | undefined>();
-  const [selectedSize, setSelectedSize] = useState<string | undefined>();
-  const [quantity, setQuantity] = useState<number>(1); // ✅ เพิ่ม state สำหรับจำนวน
+  const { id } = useParams<{ id: string }>();
+  const productID = Number(id);
+  const [product, setProduct] = useState<ProductInterface | null>(null);
+  const [selectedColor, setSelectedColor] = useState<ColorInterface | null>(null);
+  const [selectedSize, setSelectedSize] = useState<SizeInterface | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleAddToCart = () => {
+  const { user } = useAuth(); // ดึง user ปัจจุบัน
+  const user_id = Number(user?.id);   // user_id ปัจจุบัน
+
+  // โหลดข้อมูลสินค้า
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const res = await productsAPI.getByProductID(productID);
+        setProduct(res.data);
+      } catch (err) {
+        console.error(err);
+        message.error("ไม่สามารถโหลดข้อมูลสินค้าได้");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [id]);
+
+  const availableColors: ColorInterface[] = Array.from(
+    new Map(
+      (product?.variants || [])
+        .map(v => v.color)
+        .filter((c): c is ColorInterface => !!c)
+        .map(c => [c.id, c])
+    ).values()
+  );
+
+  const availableSizes: SizeInterface[] = Array.from(
+    new Map(
+      (product?.variants || [])
+        .map(v => v.size)
+        .filter((s): s is SizeInterface => !!s)
+        .sort((a, b) => (a.id! - b.id!))
+        .map(s => [s.id, s])
+    ).values()
+  );
+
+  // Add to cart จริง
+  const handleAddToCart = async () => {
+    if (!product) {
+      message.warning("ยังไม่มีข้อมูลสินค้า");
+      return;
+    }
     if (!selectedColor || !selectedSize) {
-      message.warning("กรุณาเลือกสีและขนาดก่อนเพิ่มลงตะกร้า");
+      message.warning("กรุณาเลือกสีและขนาด");
+      return;
+    }
+    if (!user_id) {
+      message.error("กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้า");
       return;
     }
 
-    message.success(
-      `เพิ่ม ${mockProduct.name} [${selectedColor}/${selectedSize}] จำนวน ${quantity} ชิ้น ลงตะกร้าแล้ว!`
+    // หา variant ที่ตรงกับ product_id + color_id + size_id
+    const matchedVariant = product.variants?.find(
+      v => v.color?.id === selectedColor.id && v.size?.id === selectedSize.id
     );
+
+    if (!matchedVariant) {
+      message.error("ไม่พบสินค้าที่เลือกในสต๊อก");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await cartAPI.addToCart({
+        user_id,
+        variant_id: matchedVariant.id!,
+        quantity: 1,
+      });
+      message.success("เพิ่มสินค้าไปยังตะกร้าเรียบร้อย");
+    } catch (err) {
+      console.error(err);
+      message.error("เกิดข้อผิดพลาดในการเพิ่มสินค้า");
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   return (
     <Card style={{ maxWidth: 1000, margin: "40px auto", padding: 24 }}>
@@ -48,111 +107,81 @@ const ProductDetailPage: React.FC = () => {
         <Col xs={24} md={10}>
           <Card
             style={{
-              width: "100%",
-              height: 350,
+              width: 270,
+              height: 380,
               background: "#f1f3f4",
               display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              textAlign: "center",
-              padding: 0,
+              justifyContent: "center",
+              alignItems: "center",
               overflow: "hidden",
             }}
-            bodyStyle={{ padding: 0 }}
           >
-            <div
-              style={{
-                width: "100%",
-                height: "100%", // ✅ ให้ container สูงเต็ม Card
-                overflow: "hidden",
-              }}
-            >
-              <img
-                src={onceshirt}
-                alt="onceshirt"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover", // ✅ ทำให้รูปเต็มโดยไม่บิดเบี้ยว
-                  display: "block",
-                }}
-              />
-            </div>
+            <img
+              src={product?.variants?.[0]?.picture || "/no-image.png"}
+              alt={product?.product_name || "no-name"}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
           </Card>
         </Col>
 
         {/* รายละเอียดสินค้า */}
-        <Col xs={24} md={14} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-          {/* ส่วนบน: ชื่อ รายละเอียด */}
+        <Col
+          xs={24}
+          md={14}
+          style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}
+        >
           <div style={{ flexGrow: 1 }}>
-            <Title level={3}>{mockProduct.name}</Title>
-            <Text type="secondary">{mockProduct.description}</Text>
+            <Title level={3}>{product?.product_name || "No Name"}</Title>
+            <Text type="secondary">{product?.product_detail || "ไม่มีรายละเอียดสินค้า"}</Text>
           </div>
 
-          {/* ส่วนล่าง: ปุ่มต่าง ๆ ชิดด้านล่าง */}
           <div>
-            {/* เลือกสี */}
-            <div style={{ marginTop: 120 }}>
             <Divider />
-              <Text strong>Select Color:</Text>
-              {/* <Space wrap style={{ marginTop: 8 }}> */}
-                {mockProduct.availableColors.map((color) => (
-                  <Button
-                    key={color}
-                    type={selectedColor === color ? "primary" : "default"}
-                    onClick={() => setSelectedColor(color)}
-                    style={{ marginLeft: 8 }}
-                  >
-                    {color}
-                  </Button>
-                ))}
-              {/* </Space> */}
-            </div>
 
-            {/* เลือกขนาด */}
+            {/* เลือกสี */}
+            <Text strong>Select Color:</Text>
+            {availableColors.map((color) => (
+              <Button
+                key={`color-${color.id}`}
+                onClick={() => setSelectedColor(color)}
+                type={selectedColor?.id === color.id ? "primary" : "default"}
+                style={{ marginLeft: 8 }}
+              >
+                {color?.color || "Unknown"}
+              </Button>
+            ))}
+
+            {/* เลือกไซส์ */}
             <div style={{ marginTop: 16 }}>
               <Text strong>Select Size:</Text>
-              {/* <Space wrap style={{ marginTop: 8 }}> */}
-                {mockProduct.availableSizes.map((size) => (
-                  <Button
-                    key={size}
-                    type={selectedSize === size ? "primary" : "default"}
-                    onClick={() => setSelectedSize(size)}
-                    style={{ marginLeft: 8 }}
-                  >
-                    {size}
-                  </Button>
-                ))}
-              {/* </Space> */}
-                </div>
-
-            {/* จำนวน */}
-            {/* <div style={{ marginTop: 16 }}>
-              <Text strong>Quantity:</Text>
-                <InputNumber
-                  min={1}
-                  max={99}
-                  value={quantity}
-                  onChange={(value) => setQuantity(value || 1)}
+              {availableSizes.map((size) => (
+                <Button
+                  key={`size-${size.id}`}
+                  onClick={() => setSelectedSize(size)}
+                  type={selectedSize?.id === size.id ? "primary" : "default"}
                   style={{ marginLeft: 8 }}
-                />
-            </div> */}
+                >
+                  {size?.size || "Unknown"}
+                </Button>
+              ))}
+            </div>
 
-            <Divider style={{ marginTop: 16 , marginBottom: 16}} />
-            <Title level={4}>THB {mockProduct.price.toLocaleString()}</Title>
+            <Divider style={{ marginTop: 16, marginBottom: 16 }} />
+
+            {/* ราคา + ปุ่มตะกร้า */}
+            <Title level={4}>THB {product?.product_price?.toLocaleString() || 0}</Title>
             <Button
               type="primary"
               size="large"
-              style={{ marginTop: 6, width: "30%", backgroundColor: "#FF2F28"}}
+              style={{ marginTop: 6, width: "30%", backgroundColor: "#FF2F28" }}
               onClick={handleAddToCart}
-              
+              disabled={loading}
             >
               <ShoppingCartOutlined style={{ fontSize: 24, color: "white", cursor: "pointer" }} />
               Add to Cart
             </Button>
           </div>
         </Col>
-
       </Row>
     </Card>
   );
