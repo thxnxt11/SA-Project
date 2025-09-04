@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Table, Typography, Card, message } from "antd";
 import axios from "axios";
+import type { ColumnsType } from "antd/es/table";
 
 const { Text } = Typography;
 
@@ -43,28 +44,51 @@ const CheckWarehouse: React.FC = () => {
     fetchProducts();
   }, []);
 
-  const columns = [
-    {
-      title: "No",
-      key: "no",
-      render: (_: any, __: any, index: number) => index + 1,
-      sorter: (a: Row, b: Row) => a.total - b.total, // ใช้ total เรียง
-      defaultSortOrder: "ascend" as const,
-    },
-    { title: "Product ID", dataIndex: "product_id", key: "product_id" },
-    { title: "Name", dataIndex: "product_name", key: "product_name" },
-    { title: "Minimum Quantity", dataIndex: "minimum", key: "minimum" },
-    {
-      title: "Total",
-      dataIndex: "total",
-      key: "total",
-      render: (total: number, record: Row) => (
-        <span style={{ color: total < record.minimum ? "red" : "inherit" }}>
-          {total}
-        </span>
-      ),
-    },
-  ];
+const columns: ColumnsType<Row> = [
+  {
+    title: "No",
+    key: "no",
+    render: (_: any, __: any, index: number) => index + 1,
+    align: "center",
+  },
+  {
+    title: "Product ID",
+    dataIndex: "product_id",
+    key: "product_id",
+    align: "center",
+  },
+  {
+    title: "Name",
+    dataIndex: "product_name",
+    key: "product_name",
+    align: "center",
+  },
+  {
+    title: "Minimum Quantity",
+    dataIndex: "minimum",
+    key: "minimum",
+    align: "center",
+  },
+  {
+    title: "Total",
+    dataIndex: "total",
+    key: "total",
+    align: "center",
+    sorter: (a: Row, b: Row) => a.total - b.total,
+    render: (total: number, record: Row) => (
+      <div
+        style={{
+          backgroundColor: total < record.minimum ? "#ffcccc" : "inherit",
+          padding: "4px 8px",
+          borderRadius: 4,
+          textAlign: "right",
+        }}
+      >
+        {total}
+      </div>
+    ),
+  },
+];
 
   return (
     <Card style={{ background: "#fff", padding: 0 }}>

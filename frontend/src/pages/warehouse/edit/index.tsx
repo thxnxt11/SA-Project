@@ -34,6 +34,8 @@ import {
   sizesAPI,
   variantAPI,
 } from "../../../services/https";
+import { useAuth } from "../../../hook/authContext";
+
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -53,6 +55,7 @@ const EditWarehouse: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [colors, setColors] = useState<any[]>([]);
   const [sizes, setSizes] = useState<any[]>([]);
+  const { user } = useAuth(); // ดึง user ปัจจุบัน
 
   const onGetInitialData = async () => {
     try {
@@ -108,13 +111,15 @@ const EditWarehouse: React.FC = () => {
 
   // ✅ เปิด Modal แก้ไข
   const handleEdit = (record: any) => {
-    setEditingProduct(record);
+  setEditingProduct(record);
 
+  if ([1, 3].includes(record.category_id)) {
+    // ✅ กรณี Color + Size
     const groupedVariants = record.variants?.reduce((acc: any[], v: any) => {
       const existing = acc.find(item => item.color === v.color?.ID);
       if (existing) {
         existing.sizes[v.size_id] = v.quantity;
-        existing.IDs.push(v.ID); // เก็บหลาย ID สำหรับ update
+        existing.IDs.push(v.ID);
       } else {
         acc.push({
           color: v.color?.ID,
@@ -129,20 +134,41 @@ const EditWarehouse: React.FC = () => {
                 },
               ]
             : [],
-          IDs: [v.ID], // เก็บ ID เดิม
+          IDs: [v.ID],
         });
       }
       return acc;
     }, []);
-  
 
     form.setFieldsValue({
       ...record,
       category_id: record.category_id,
       variants: groupedVariants,
     });
-    setOpen(true); 
-  };
+  } else {
+    // ✅ กรณี category อื่น
+    const firstVariant = record.variants?.[0] || {};
+
+    form.setFieldsValue({
+      ...record,
+      category_id: record.category_id,
+      quantity: firstVariant.quantity || 0,
+      picture: firstVariant.picture
+        ? [
+            {
+              uid: firstVariant.ID?.toString() || "-1",
+              name: firstVariant.picture,
+              status: "done",
+              url: firstVariant.picture,
+            },
+          ]
+        : [],
+    });
+  }
+
+  setOpen(true);
+};
+
 
   // ✅ ลบ Variant
   const handleDeleteVariant = async (variantId: number) => {
@@ -158,101 +184,91 @@ const EditWarehouse: React.FC = () => {
 
   // ✅ บันทึกการแก้ไข
   const handleUpdate = async () => {
-    try {
-      const values = await form.validateFields();
-      const getBase64 = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = error => reject(error);
-        });
-      };
+  try {
+    const values = await form.validateFields();
 
-      const payloadVariants: any[] = [];
+    const getBase64 = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+      });
+    };
 
-    if (Array.isArray(values.variants)) {
-      for (const v of values.variants) {
-        let base64Image = "";
+    const payloadVariants: any[] = [];
 
-        // ✅ ถ้ามีรูป ให้แปลงเป็น base64
-        if (v.picture && v.picture.length > 0 && v.picture[0].originFileObj) {
-          base64Image = await getBase64(v.picture[0].originFileObj);
-        }
+    if ([1, 3].includes(values.category_id)) {
+      // ✅ Color + Size เหมือนเดิม
+      if (Array.isArray(values.variants)) {
+        for (const v of values.variants) {
+          let base64Image = "";
 
-        // ✅ วนเฉพาะ size + quantity
-        for (const [sizeId, quantity] of Object.entries(v.sizes || {})) {
-          const qty = Number(quantity);
-          const sid = Number(sizeId);
+          if (v.picture && v.picture.length > 0 && v.picture[0].originFileObj) {
+            base64Image = await getBase64(v.picture[0].originFileObj);
+          }
 
-          // หาตำแหน่ง index ของ sizeId ใน v.IDs
-          const sizeIndex = Object.keys(v.sizes).indexOf(sizeId);
-          const existingId = v.IDs?.[sizeIndex];
+          for (const [sizeId, quantity] of Object.entries(v.sizes || {})) {
+            const qty = Number(quantity);
+            const sid = Number(sizeId);
 
-          if (qty > 0 && !isNaN(sid)) {
-            // ✅ เก็บไว้สำหรับ update
-            payloadVariants.push({
-              ID: existingId || undefined,
-              color_id: Number(v.color),
-              size_id: sid,
-              quantity: qty,
-              picture: base64Image,
-            });
-          } else if (qty === 0 && existingId) {
-            // ✅ quantity = 0 -> ลบออกจาก backend
-            await variantAPI.deleteByID(existingId);
-            console.log("delete varianr id:", existingId);
+            const sizeIndex = Object.keys(v.sizes).indexOf(sizeId);
+            const existingId = v.IDs?.[sizeIndex];
+
+            if (qty > 0 && !isNaN(sid)) {
+              payloadVariants.push({
+                ID: existingId || undefined,
+                color_id: Number(v.color),
+                size_id: sid,
+                quantity: qty,
+                picture: base64Image,
+              });
+            } else if (qty === 0 && existingId) {
+              await variantAPI.deleteByID(existingId);
+            }
           }
         }
       }
+    } else {
+      // ✅ กรณี category อื่น (ไม่มีสี/ขนาด)
+      let base64Image = "";
+      if (values.picture && values.picture.length > 0 && values.picture[0].originFileObj) {
+        base64Image = await getBase64(values.picture[0].originFileObj);
+      }
+
+      // หา variant ตัวแรก (ถ้ามี)
+      const firstVariant = editingProduct?.variants?.[0] || {};
+
+      payloadVariants.push({
+        ID: firstVariant.ID || undefined,
+        color_id: null,
+        size_id: null,
+        quantity: values.quantity,
+        picture: base64Image || firstVariant.picture || null,
+      });
     }
-      // const payloadVariants = values.variants?.flatMap((v: any) => {
-      //   return Object.entries(v.sizes)
-      //     .filter(([_, quantity]) => Number(quantity) > 0) // ✅ เอาเฉพาะที่มากกว่า 0
-      //     .map(([sizeId, quantity], index) => ({
-      //       ID: v.IDs?.[index] || undefined, // update ถ้ามี ID เดิม
-      //       color_id: v.color,
-      //       size_id: Number(sizeId),
-      //       quantity: Number(quantity), // ✅ แปลงเป็น number
-      //       picture: v.picture?.[0]?.name || "",
-      //     }));
-      // }) || [];
 
-   
-      // const payloadVariants = values.variants?.flatMap((v: any) => {
-      //   return Object.entries(v.sizes)
-      //   .map(([sizeId, quantity], index) => ({
-      //     // if (quantity > 0 && !isNaN(sid))
-      //       ID: v.IDs?.[index] || undefined, // update ถ้ามี ID เดิม
-      //       color_id: v.color,
-      //       size_id: Number(sizeId),
-      //       quantity: quantity || 0,
-      //       picture: v.picture?.[0]?.name || "",
-      //   }));
-      // }) || [];
+    const payload = {
+      product_name: values.product_name,
+      category_id: values.category_id,
+      product_detail: values.product_detail,
+      product_price: values.product_price,
+      minimum: values.minimum,
+      concert_id: values.concert_id || null,
+      quantity: values.quantity || null,
+      staff_id: user?.id,
+      variants: payloadVariants,
+    };
 
-      const payload = {
-        product_name: values.product_name,
-        category_id: values.category_id,
-        product_detail: values.product_detail,
-        product_price: values.product_price,
-        minimum: values.minimum,
-        concert_id: values.concert_id || null,
-        quantity: values.quantity || null,
-        variants: payloadVariants,
-      };
-      console.log("Update response:", payload);
+    const response = await productsAPI.update(editingProduct.ID, payload);
+    messageApi.success("อัปเดตสินค้าสำเร็จ");
+    setOpen(false);
+    onGetInitialData();
+  } catch (err) {
+    messageApi.error("ไม่สามารถอัปเดตสินค้าได้");
+  }
+};
 
-      const response = await productsAPI.update(editingProduct.ID, payload);
-      console.log("Update response:", response.data);
-      messageApi.success("อัปเดตสินค้าสำเร็จ");
-      setOpen(false);
-      onGetInitialData();
-    } 
-    catch (err) {
-      messageApi.error("ไม่สามารถอัปเดตสินค้าได้");
-    }
-  };
 
   const filteredData = products.filter((item) =>
     (item.product_name ?? "").toLowerCase().includes(search.toLowerCase())
@@ -598,22 +614,48 @@ const EditWarehouse: React.FC = () => {
             </div>
           )}
 
-          {/* Quantity for other categories */}
+          {/* Quantity + Picture for other categories */}
           {category && ![1, 3].includes(category) && (
-            <div style={{ marginLeft: "2%", width: "45%" }}>
-              <Form.Item
-                label="Quantity to Add"
-                name="quantity"
-                rules={[{ required: true, message: "กรุณากรอกจำนวนสินค้า" }]}
-              >
-                <InputNumber min={1} style={{ width: "100%" }} />
-              </Form.Item>
+            <div style={{ margin:"0 auto",width:"100%"}}>
+              <Row justify="center" gutter={32} style={{ width: "100%", marginTop: 16 }}>
+                <Col span={8}>
+                  <Form.Item
+                    label="Quantity"
+                    name="quantity"
+                    rules={[{ required: true, message: "กรุณากรอกจำนวนสินค้า" }]}
+                  >
+                    <InputNumber min={1} style={{ width: "100%" }} />
+                  </Form.Item>
+                </Col>
+
+                <Col span={8} style={{ textAlign: "center" }}>
+                  <Form.Item
+                    label="Product Picture"
+                    name="picture"
+                    valuePropName="fileList"
+                    getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
+                    rules={[{ required: true, message: "กรุณาอัปโหลดรูปสินค้า" }]}
+                  >
+                    <Upload
+                      listType="picture-card"
+                      maxCount={1}
+                      beforeUpload={() => false}
+                    >
+                      <div>
+                        <UploadOutlined />
+                        <div>Upload</div>
+                      </div>
+                    </Upload>
+                  </Form.Item>
+                </Col>
+              </Row>
+
             </div>
           )}
         </Form>
         {contextHolder}
-      </Modal>
-    </Card>
+        </Modal>
+        </Card>
   );
 };
 

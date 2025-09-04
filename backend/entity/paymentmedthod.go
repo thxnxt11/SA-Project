@@ -4,7 +4,7 @@ import (
    "gorm.io/gorm"
 )
 
-type PaymentMedthod struct {
+type PaymentMethod struct {
    gorm.Model
-   Method   string   `json:"promotion_id"`
+   Method   string   `json:"method_id"`
 }

@@ -37,6 +37,7 @@ const CreateWarehouse: React.FC = () => {
   const [sizes, setSizes] = useState<any[]>([]);
   const [colors, setColors] = useState<any[]>([]);
   const [concerts, setConcerts] = useState<any[]>([]);
+  const { user } = useAuth(); // ดึง user ปัจจุบัน
   const onGetInitialData = async () => {
     try {
       const [concertsRes, categoriesRes, colorsRes, sizesRes] = await Promise.all([
@@ -86,7 +87,6 @@ const CreateWarehouse: React.FC = () => {
     });
   };
 
-  const { user } = useAuth(); // ดึง user ปัจจุบัน
 
 const onFinish = async (values: any) => {
   try {

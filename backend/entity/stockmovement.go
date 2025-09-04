@@ -5,15 +5,15 @@ import (
 )
 
 type StockMovement struct {
-   gorm.Model
-   ProductID uint     `json:"product_id"`
-   Product   *Product `gorm:"foreignKey:ProductID" json:"product"`
+    gorm.Model
+    VariantID uint     `json:"variant_id"`
+    Variant   *Variant `gorm:"foreignKey:VariantID" json:"variant"`
 
-   ActionID  uint     `json:"action_id"`
-   Action    *Action  `gorm:"foreignKey:ActionID" json:"action"`
+    ActionID  uint     `json:"action_id"`
+    Action    *Action  `gorm:"foreignKey:ActionID" json:"action"`
 
-   Amount    uint     `json:"amount"`
+    Amount    uint     `json:"amount"`
 
-   StaffID   uint     `json:"staff_id"`
-   Staff     *User    `gorm:"foreignKey:StaffID" json:"staff"`
+    StaffID   uint     `json:"staff_id"`
+    Staff     *User    `gorm:"foreignKey:StaffID" json:"staff"`
 }

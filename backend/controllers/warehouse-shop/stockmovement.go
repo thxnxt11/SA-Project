@@ -14,7 +14,14 @@ func GetStockMovements(c *gin.Context) {
     db := connection.DB()
 
     var movements []entity.StockMovement
-    if err := db.Preload("Staff").Preload("Product").Preload("Action").Find(&movements).Error; err != nil {
+    if err := db.Preload("Staff").
+        Preload("Variant").
+        Preload("Variant.Product").
+        Preload("Variant.Color").
+        Preload("Variant.Size").
+        Preload("Action").
+        Order("updated_at desc").
+        Find(&movements).Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
@@ -23,9 +30,21 @@ func GetStockMovements(c *gin.Context) {
     for _, m := range movements {
         productName := ""
         total := uint(0)
-        if m.Product != nil {
-            productName = m.Product.ProductName
-            total = m.Product.Total
+        variantName := ""
+        if m.Variant != nil {
+            if m.Variant.Product != nil {
+                productName = m.Variant.Product.ProductName
+                total = m.Variant.Product.Total
+            }
+            colorName := ""
+            sizeName := ""
+            if m.Variant.Color != nil {
+                colorName = m.Variant.Color.Color
+            }
+            if m.Variant.Size != nil {
+                sizeName = m.Variant.Size.Size
+            }
+            variantName = colorName + " - " + sizeName
         }
 
         staffName := ""
@@ -39,19 +58,20 @@ func GetStockMovements(c *gin.Context) {
         }
 
         response = append(response, map[string]interface{}{
-            "product_id":   m.ProductID,
+            "variant_id":   m.VariantID,
             "product_name": productName,
+            "variant_name": variantName,
             "amount":       m.Amount,
             "updated":      actionName,
             "total":        total,
             "staff_name":   staffName,
-            "created_at":   m.CreatedAt,
             "updated_at":   m.UpdatedAt,
         })
     }
 
     c.JSON(http.StatusOK, response)
 }
+
 
 
 

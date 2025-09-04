@@ -30,7 +30,7 @@ func SetupDatabase() {
         &entity.Category{},
         &entity.Color{},
         &entity.Concert{},
-        &entity.PaymentMedthod{},
+        &entity.PaymentMethod{},
         &entity.PaymentOrder{},
         &entity.PaymentStatus{},
         &entity.Product{},
@@ -126,7 +126,7 @@ func SetupDatabase() {
     // --- Payment Methods ---
     methods := []string{"Credit Card", "Bank Transfer", "PromptPay"}
     for _, m := range methods {
-        db.FirstOrCreate(&entity.PaymentMedthod{}, entity.PaymentMedthod{Method: m})
+        db.FirstOrCreate(&entity.PaymentMethod{}, entity.PaymentMethod{Method: m})
     }
 
     // --- Example Product ---

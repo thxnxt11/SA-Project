@@ -16,5 +16,4 @@ type Product struct {
    ConcertID        uint        `json:"concert_id"`
    Concert 		    *Concert  	`gorm:"foreignKey: concert_id" json:"concert"`
    Variants         []Variant   `gorm:"foreignKey:ProductID" json:"variants"`
-   Stockmovements   []StockMovement `json:"stockmovements"`
 }
