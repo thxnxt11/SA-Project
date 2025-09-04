@@ -1,11 +1,12 @@
 package connection
 
 import (
-   "fmt"
-   "time"
-   "github.com/yourname/went-back/entity"
-   "gorm.io/driver/sqlite"
-   "gorm.io/gorm"
+	"fmt"
+	"time"
+
+	"github.com/yourname/went-back/entity"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 var db *gorm.DB
@@ -15,18 +16,20 @@ func DB() *gorm.DB {
 }
 
 func ConnectionDB() {
-   database, err := gorm.Open(sqlite.Open("sa.db?cache=shared"), &gorm.Config{})
-   if err != nil {
-       panic("failed to connect database")
-   }
-   fmt.Println("connected database")
-   db = database
+    // ไฟล์ sa.db จะถูกสร้างใน folder backend
+    database, err := gorm.Open(sqlite.Open("sa.db"), &gorm.Config{})
+    if err != nil {
+        panic("failed to connect database")
+    }
+    fmt.Println("connected database")
+    db = database
 }
     
 func SetupDatabase() {
     db.AutoMigrate(
         &entity.Action{},
         &entity.Cart{},
+        &entity.CartItem{},
         &entity.Category{},
         &entity.Color{},
         &entity.Concert{},

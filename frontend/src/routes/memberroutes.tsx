@@ -10,7 +10,7 @@ import SignUp from "../pages/user/register";
 // import BookingDetail from "../pages/booking/BookingDetail";
 // import Payment from "../pages/payment";
 
-import NavbarShop from "../component/layout/SidebarLayout";
+import NavbarShop from "../component/layout/navshop";
 import LandingPage from "../pages/land";
 import Navbar from "../component/layout/navbar";
 import ShoppingPage from "../pages/shoppy";
@@ -91,7 +91,7 @@ export default function MemberRoutes() {
         }
       /> */}
       {/* shoppy (public) */}
-      <Route path="shoppy" element={<Navbar />}>
+      <Route path="shopping" element={<NavbarShop />}>
         <Route index element={<ShoppingPage />} />
         <Route path="productdetail/:id" element={<ProductDetailPage />} />
         <Route path="cart" element={<CartPages />} />

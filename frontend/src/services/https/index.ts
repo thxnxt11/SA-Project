@@ -176,3 +176,25 @@ export const variantAPI = {
 //     return axios.delete(`${BASE_URL}variant/${id}`);
 //   },
 // };
+
+export const cartAPI = {
+  // เพิ่มสินค้าเข้า Cart
+  addToCart: (payload: { user_id: number; variant_id: number; quantity: number }) => {
+    return axios.post(`${BASE_URL}/cart/add`, payload);
+  },
+
+  // ดึงตะกร้าของผู้ใช้
+  getCartByUserID: (user_id: number) => {
+    return axios.get(`${BASE_URL}/cart/${user_id}`);
+  },
+
+  // อัปเดตจำนวนสินค้าใน CartItem
+  updateCartItem: (item_id: number, quantity: number) => {
+    return axios.put(`${BASE_URL}/cart/item/${item_id}`, { quantity });
+  },
+
+  // ลบสินค้าออกจาก Cart
+  removeCartItem: (item_id: number) => {
+    return axios.delete(`${BASE_URL}/cart/item/${item_id}`);
+  },
+};

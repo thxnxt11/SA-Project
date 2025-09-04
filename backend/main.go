@@ -40,11 +40,21 @@ func main() {
 	r.GET("/colors", controllers.GetColors)
 	r.POST("/products", controllers.CreateProduct)
 	r.GET("/products", controllers.FindProducts)
-	r.GET("/products/:id", controllers.FindProductById)
+	r.GET("/products/:id", controllers.FindProductDetail)
 	r.PUT("/products/:id", controllers.UpdateProduct)
 	r.DELETE("/products/:id", controllers.DeleteProductById)
 	r.DELETE("/variant/:id", controllers.DeleteVariantById)
 	r.GET("/stockmovements", controllers.GetStockMovements)
+
+	
+
+	cartGroup := r.Group("/cart")
+	{
+		cartGroup.POST("/add", controllers.AddToCart)        // เพิ่มสินค้า
+		cartGroup.GET("/:user_id", controllers.GetCartByUserID) // แสดงตะกร้า
+		cartGroup.PUT("/item/:id", controllers.UpdateCartItem)  // อัปเดตจำนวน
+		cartGroup.DELETE("/item/:id", controllers.RemoveCartItem) // ลบสินค้า
+	}
 
 	r.Static("/uploads", "./uploads")
 	r.POST("/signup", user.SignUp)

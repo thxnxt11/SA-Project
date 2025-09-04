@@ -1,39 +1,33 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import {
-  Card,
-  Row,
-  Col,
-  Typography,
-  Button,
-  Divider,
-  message,
-} from "antd";
+import { Card, Row, Col, Typography, Button, Divider, message } from "antd";
 import { ShoppingCartOutlined } from "@ant-design/icons";
-import axios from "axios";
 import type { ProductInterface } from "../../../interface/product";
 import type { ColorInterface } from "../../../interface/color";
 import type { SizeInterface } from "../../../interface/size";
+import { productsAPI, cartAPI } from "../../../services/https";
+import { useAuth } from "../../../hook/authContext";
 
 const { Title, Text } = Typography;
 
-
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const productID = Number(id);
   const [product, setProduct] = useState<ProductInterface | null>(null);
   const [selectedColor, setSelectedColor] = useState<ColorInterface | null>(null);
   const [selectedSize, setSelectedSize] = useState<SizeInterface | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // ✅ โหลดข้อมูลสินค้า
+  const { user } = useAuth(); // ดึง user ปัจจุบัน
+  const user_id = Number(user?.id);   // user_id ปัจจุบัน
+
+  // โหลดข้อมูลสินค้า
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!id) return;
       try {
         setLoading(true);
-        const res = await axios.get<ProductInterface>(
-          `http://localhost:8000/products/${id}`
-        );
-        console.log(res.data);
+        const res = await productsAPI.getByProductID(productID);
         setProduct(res.data);
       } catch (err) {
         console.error(err);
@@ -42,25 +36,30 @@ const ProductDetailPage: React.FC = () => {
         setLoading(false);
       }
     };
+    fetchProduct();
+  }, [id]);
 
-if (id) {
-  fetchProduct();
-}
-}, [id]);
+  const availableColors: ColorInterface[] = Array.from(
+    new Map(
+      (product?.variants || [])
+        .map(v => v.color)
+        .filter((c): c is ColorInterface => !!c)
+        .map(c => [c.id, c])
+    ).values()
+  );
 
-  const availableColors: ColorInterface[] =
-    product?.variants
-      ?.map(v => v.color)
-      .filter((c): c is ColorInterface => !!c) || [];
+  const availableSizes: SizeInterface[] = Array.from(
+    new Map(
+      (product?.variants || [])
+        .map(v => v.size)
+        .filter((s): s is SizeInterface => !!s)
+        .sort((a, b) => (a.id! - b.id!))
+        .map(s => [s.id, s])
+    ).values()
+  );
 
-  const availableSizes: SizeInterface[] =
-    product?.variants
-      ?.map(v => v.size)
-      .filter((s): s is SizeInterface => !!s) || [];
-
-
-  // ✅ Add to cart
-  const handleAddToCart = () => {
+  // Add to cart จริง
+  const handleAddToCart = async () => {
     if (!product) {
       message.warning("ยังไม่มีข้อมูลสินค้า");
       return;
@@ -69,15 +68,37 @@ if (id) {
       message.warning("กรุณาเลือกสีและขนาด");
       return;
     }
+    if (!user_id) {
+      message.error("กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้า");
+      return;
+    }
 
-    // ส่งข้อมูลไปยัง cart (ตรงนี้คุณจะเชื่อม backend หรือ Redux ก็ได้)
-    console.log("Added to cart:", {
-      product_id: product.id,
-      color: selectedColor,
-      size: selectedSize,
-    });
-    message.success("เพิ่มสินค้าไปยังตะกร้าเรียบร้อย");
+    // หา variant ที่ตรงกับ product_id + color_id + size_id
+    const matchedVariant = product.variants?.find(
+      v => v.color?.id === selectedColor.id && v.size?.id === selectedSize.id
+    );
+
+    if (!matchedVariant) {
+      message.error("ไม่พบสินค้าที่เลือกในสต๊อก");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await cartAPI.addToCart({
+        user_id,
+        variant_id: matchedVariant.id!,
+        quantity: 1,
+      });
+      message.success("เพิ่มสินค้าไปยังตะกร้าเรียบร้อย");
+    } catch (err) {
+      console.error(err);
+      message.error("เกิดข้อผิดพลาดในการเพิ่มสินค้า");
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   return (
     <Card style={{ maxWidth: 1000, margin: "40px auto", padding: 24 }}>
@@ -86,8 +107,8 @@ if (id) {
         <Col xs={24} md={10}>
           <Card
             style={{
-              width: "100%",
-              height: 350,
+              width: 270,
+              height: 380,
               background: "#f1f3f4",
               display: "flex",
               justifyContent: "center",
@@ -98,11 +119,7 @@ if (id) {
             <img
               src={product?.variants?.[0]?.picture || "/no-image.png"}
               alt={product?.product_name || "no-name"}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-              }}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           </Card>
         </Col>
@@ -111,70 +128,56 @@ if (id) {
         <Col
           xs={24}
           md={14}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-          }}
+          style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}
         >
           <div style={{ flexGrow: 1 }}>
             <Title level={3}>{product?.product_name || "No Name"}</Title>
-            <Text type="secondary">
-              {product?.product_detail || "ไม่มีรายละเอียดสินค้า"}
-            </Text>
+            <Text type="secondary">{product?.product_detail || "ไม่มีรายละเอียดสินค้า"}</Text>
           </div>
 
           <div>
             <Divider />
 
             {/* เลือกสี */}
-{availableColors.map((color) => (
-  <Button
-    key={color.id}
-    onClick={() => setSelectedColor(color)}
-    type={selectedColor?.id === color.id ? "primary" : "default"}
-    style={{ marginLeft: 8 }}
-  >
-    {color.color || "Unknown"}
-  </Button>
-))}
+            <Text strong>Select Color:</Text>
+            {availableColors.map((color) => (
+              <Button
+                key={`color-${color.id}`}
+                onClick={() => setSelectedColor(color)}
+                type={selectedColor?.id === color.id ? "primary" : "default"}
+                style={{ marginLeft: 8 }}
+              >
+                {color?.color || "Unknown"}
+              </Button>
+            ))}
 
-{/* เลือกไซส์ */}
-{availableSizes.map((size) => (
-  <Button
-    key={size.id}
-    onClick={() => setSelectedSize(size)}
-    type={selectedSize?.id === size.id ? "primary" : "default"}
-    style={{ marginLeft: 8 }}
-  >
-    {size.size || "Unknown"}
-  </Button>
-))}
+            {/* เลือกไซส์ */}
+            <div style={{ marginTop: 16 }}>
+              <Text strong>Select Size:</Text>
+              {availableSizes.map((size) => (
+                <Button
+                  key={`size-${size.id}`}
+                  onClick={() => setSelectedSize(size)}
+                  type={selectedSize?.id === size.id ? "primary" : "default"}
+                  style={{ marginLeft: 8 }}
+                >
+                  {size?.size || "Unknown"}
+                </Button>
+              ))}
+            </div>
 
             <Divider style={{ marginTop: 16, marginBottom: 16 }} />
 
             {/* ราคา + ปุ่มตะกร้า */}
-            <Title level={4}>
-              THB {product?.product_price?.toLocaleString() || 0}
-            </Title>
+            <Title level={4}>THB {product?.product_price?.toLocaleString() || 0}</Title>
             <Button
               type="primary"
               size="large"
-              style={{
-                marginTop: 6,
-                width: "30%",
-                backgroundColor: "#FF2F28",
-              }}
+              style={{ marginTop: 6, width: "30%", backgroundColor: "#FF2F28" }}
               onClick={handleAddToCart}
               disabled={loading}
             >
-              <ShoppingCartOutlined
-                style={{
-                  fontSize: 24,
-                  color: "white",
-                  cursor: "pointer",
-                }}
-              />
+              <ShoppingCartOutlined style={{ fontSize: 24, color: "white", cursor: "pointer" }} />
               Add to Cart
             </Button>
           </div>

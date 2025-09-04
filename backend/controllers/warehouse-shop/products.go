@@ -2,67 +2,141 @@ package controllers
 
 import (
 	"net/http"
-	"github.com/yourname/went-back/connection"
-    "github.com/yourname/went-back/entity"
+
 	"github.com/gin-gonic/gin"
+	"github.com/yourname/went-back/connection"
+	"github.com/yourname/went-back/entity"
 )
 
 // GET /product/:id
 func FindProductById(c *gin.Context) {
-	id := c.Param("id")
-	var product entity.Product
+    id := c.Param("id")
+    var product entity.Product
+    db := connection.DB()
 
-	// preload Variants และ join กับ Color และ Size
-	if tx := connection.DB().
-		Preload("Variants.Color").
-		Preload("Variants.Size").
-		Where("id = ?", id).
-		First(&product); tx.RowsAffected == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "id not found"})
-		return
-	}
+    if err := db.Preload("Category").
+        Preload("Concert").
+        Preload("Variants").
+        Where("id = ?", id).
+        First(&product).Error; err != nil {
 
-	// สร้าง response object
-	type VariantResponse struct {
-		ID       uint   `json:"id"`
-		Color    string `json:"color"`
-		Size     string `json:"size"`
-		Quantity int    `json:"quantity"`
-		Picture  string `json:"picture"`
-	}
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Product not found"})
+        return
+    }
 
-	var variants []VariantResponse
-	for _, v := range product.Variants {
-		variants = append(variants, VariantResponse{
-			ID:       v.ID,
-			Color:    v.Color.Color, // ต้องแน่ใจว่า Color ถูก preload
-			Size:     v.Size.Size,   // ต้องแน่ใจว่า Size ถูก preload
-			Quantity: int(v.Quantity),
-			Picture:  v.Picture,
-		})
-	}
+    // แปลง Variants ให้ส่งเฉพาะ field ที่ต้องการ
+    var variants []map[string]interface{}
+    for _, v := range product.Variants {
+        var color map[string]interface{}
+        if v.Color != nil {
+            color = map[string]interface{}{
+                "id":    v.Color.ID,
+                "color": v.Color.Color,
+            }
+        }
+        var size map[string]interface{}
+        if v.Size != nil {
+            size = map[string]interface{}{
+                "id":   v.Size.ID,
+                "size": v.Size.Size,
+            }
+        }
 
-	c.JSON(http.StatusOK, gin.H{
-		"id":          product.ID,
-		"product_name": product.ProductName,
+        variants = append(variants, map[string]interface{}{
+            "id":       v.ID,
+            "product_id": v.ProductID,
+            "color_id":    v.Color.ID,
+            "color":    color,
+            "size_id":   v.Size.ID,
+            "size":     size,
+            "quantity": v.Quantity,
+            "picture":  v.Picture,
+        })
+    }
+
+    // สร้าง response ใหม่
+    response := map[string]interface{}{
+        "id":          product.ID,
+        "product_name": product.ProductName,
+        "category":     product.Category,
+        "concert":      product.Concert,
         "product_detail": product.ProductDetail,
-		"product_price": product.ProductPrice,
-		"minimum":      product.Minimum,
-		"total":        product.Total,
-		"variants":     variants,
-	})
+        "product_price":  product.ProductPrice,
+        "minimum":        product.Minimum,
+        "sales":          product.Sales,
+        "total":          product.Total,
+        "variants":       variants,
+    }
+
+    c.JSON(http.StatusOK, response)
 }
 
+// GET /product/:id
+func FindProductDetail(c *gin.Context) {
+    id := c.Param("id")
+    var product entity.Product
+    db := connection.DB()
+
+    // Preload color/size ของ variants
+    if err := db.Preload("Variants.Color").
+        Preload("Variants.Size").
+        Where("id = ?", id).
+        First(&product).Error; err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Product not found"})
+        return
+    }
+
+    var variantsResp []map[string]interface{}
+    for _, v := range product.Variants {
+        color := map[string]interface{}{}
+        size := map[string]interface{}{}
+
+        if v.Color != nil {
+            color = map[string]interface{}{
+                "id":    v.Color.ID,
+                "color": v.Color.Color,
+            }
+        }
+        if v.Size != nil {
+            size = map[string]interface{}{
+                "id":   v.Size.ID,
+                "size": v.Size.Size,
+            }
+        }
+
+        variantsResp = append(variantsResp, map[string]interface{}{
+            "id":         v.ID,
+            "product_id": v.ProductID,
+            "color":      color,
+            "size":       size,
+            "quantity":   v.Quantity,
+            "picture":    v.Picture,
+        })
+    }
+
+    response := map[string]interface{}{
+        "id":            product.ID,
+        "product_name":  product.ProductName,
+        "product_detail": product.ProductDetail,
+        "product_price": product.ProductPrice,
+        "variants":      variantsResp,
+    }
+
+    c.JSON(http.StatusOK, response)
+}
+
+
+	
 // GET /products
 func FindProducts(c *gin.Context) {
 	var products []entity.Product
 	db := connection.DB()
 
-	if err := db.Preload("Category").           // ดึง Category ของ Product
-					Preload("Concert").            // ดึง Concert ของ Product
-					Preload("Variants.Color").     // ดึง Color ของแต่ละ Variant
-					Preload("Variants.Size").      // ดึง Size ของแต่ละ Variant
-					Find(&products).Error; err != nil {
+	if err := db.Preload("Category").
+            Preload("Concert").
+            Preload("Variants.Color").
+            Preload("Variants.Size").
+            Find(&products).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
@@ -79,7 +153,7 @@ type ProductPayload struct {
     ProductPrice uint            `json:"product_price"`
     Minimum     uint             `json:"minimum"`
     ConcertID   *uint            `json:"concert_id"`
-    StaffID     uint             `json:"staff_id"` // <-- เพิ่มตรงนี้
+    StaffID     uint             `json:"staff_id"` 
     Variants    []entity.Variant `json:"variants"`
 }
 
