@@ -16,7 +16,7 @@ const PublicRoute: React.FC<React.PropsWithChildren> = ({ children }) => {
     if (redirectTo && redirectTo !== "/signin") {
       return <Navigate to={redirectTo} replace />;
     }
-    return <Navigate to="/concerts" replace />; // ค่า default ของคุณ
+    return <Navigate to="/Eventix" replace />; // ค่า default ของคุณ
   }
 
   return <>{children}</>;

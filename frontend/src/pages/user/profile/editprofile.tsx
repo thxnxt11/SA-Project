@@ -339,11 +339,7 @@ const EditProfile: React.FC = () => {
                   </Col>
                   <Col xs={24} md={12}>
                     <Form.Item label="Age" name="age">
-                      <Input
-                        placeholder="Age"
-                        type="number"
-                        min={0}
-                      />
+                      <Input placeholder="Age" type="number" min={0} />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -355,13 +351,19 @@ const EditProfile: React.FC = () => {
           {!loading && (
             <div style={footerBar}>
               <Space>
-                <Button onClick={() => originalData && form.setFieldsValue(originalData)}>Reset</Button>
+                <Button
+                  onClick={() =>
+                    originalData && form.setFieldsValue(originalData)
+                  }
+                >
+                  Reset
+                </Button>
                 <Button
                   type="primary"
                   onClick={() => form.submit()}
                   loading={submitting}
                 >
-                  บันทึกการเปลี่ยนแปลง
+                  Save
                 </Button>
               </Space>
             </div>

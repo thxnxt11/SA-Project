@@ -16,11 +16,11 @@ const App: React.FC = () => {
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<Navigate to="/concerts" replace />} />
+          <Route path="/" element={<Navigate to="/Eventix" replace />} />
           <Route path="/*" element={<MemberRoutes />} />
           <Route path="/organizer/*" element={<OrganizerRoutes />} />
           <Route path="/forbidden" element={<div>403 Not access right</div>} />
-          <Route path="*" element={<Navigate to="/concerts" replace />} />
+          <Route path="*" element={<Navigate to="/Eventix" replace />} />
         </Routes>
       </Router>
     </AuthProvider>

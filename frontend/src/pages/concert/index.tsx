@@ -1,21 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Row,
-  Col,
-  Card,
-  Typography,
-  Spin,
-  message,
-  Button,
-  Carousel,
-  Grid,
-} from "antd";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import React, { useEffect, useState } from "react";
+import { Row, Col, Card, Typography, Spin, message, Button } from "antd";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../component/layout/navbar";
 import type { ConcertInterface } from "../../interface/concert";
 import { concertAPI } from "../../services/https";
-import type { CarouselRef } from "antd/es/carousel";
 
 const { Title, Paragraph } = Typography;
 
@@ -23,8 +11,6 @@ const Concert: React.FC = () => {
   const [concerts, setConcerts] = useState<ConcertInterface[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const navigate = useNavigate();
-  const screens = Grid.useBreakpoint();
-  const carouselRef = useRef<CarouselRef>(null);
 
   useEffect(() => {
     const fetchConcerts = async (): Promise<void> => {
@@ -38,7 +24,9 @@ const Concert: React.FC = () => {
         }
 
         const data: ConcertInterface[] = response.data || [];
-        setConcerts(data.slice(0, 12));
+        // setConcerts(data.slice(0, 6)); //แสดง concerts แบบจำกัด
+        setConcerts(data);
+        console.log("all Concerts: ", data);
       } catch (err) {
         console.error("Error fetching concerts:", err);
         message.error("ไม่สามารถโหลดข้อมูลคอนเสิร์ตได้");
@@ -52,6 +40,7 @@ const Concert: React.FC = () => {
 
   const handleConcertClick = (concertId: number): void => {
     if (!concertId) {
+      console.error("Concert ID is undefined");
       message.error("ไม่สามารถเปิดหน้ารายละเอียดคอนเสิร์ตได้");
       return;
     }
@@ -95,7 +84,7 @@ const Concert: React.FC = () => {
   };
 
   const parseLocalYMD = (s: string): Date => {
-    const ymd = s.split("T")[0] || s;
+    const ymd = s.split("T")[0] || s; // กันมีเวลา
     const [y, m, d] = ymd.split(/[-/]/).map((n) => parseInt(n, 10));
     return new Date(y, (m || 1) - 1, d || 1);
   };
@@ -103,17 +92,20 @@ const Concert: React.FC = () => {
   const isConcertEnded = (showDates?: { show_date: string }[]): boolean => {
     if (!showDates || showDates.length === 0) return false;
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0); // เทียบเป็นรายวัน
+    // จบแล้ว = ทุก show_date < วันนี้
     return showDates.every((sd) => parseLocalYMD(sd.show_date) < today);
   };
 
+  // ฟังก์ชันเช็ควันขายบัตร
   const isOnSaleStarted = (onsaleDate?: string): boolean => {
-    if (!onsaleDate) return true;
+    if (!onsaleDate) return true; // ถ้าไม่มี onsale_date ให้ถือว่าขายได้
     const now = new Date();
     const saleDateTime = new Date(onsaleDate);
     return now >= saleDateTime;
   };
 
+  // ฟังก์ชันกำหนดสถานะปุ่มและข้อความ
   const getButtonState = (concert: ConcertInterface) => {
     const ended = isConcertEnded(concert.ShowDates);
     const onSaleStarted = isOnSaleStarted(concert.onsale_date);
@@ -130,7 +122,7 @@ const Concert: React.FC = () => {
         text: "Coming Soon",
         disabled: false,
         type: "default" as const,
-        clickable: true,
+        clickable: true, // ยังคลิกเข้าหน้า detail ได้
       };
     } else {
       return {
@@ -141,16 +133,6 @@ const Concert: React.FC = () => {
       };
     }
   };
-
-  const perSlide = screens.xl ? 3 : screens.md ? 2 : 1;
-
-  const slides = useMemo(() => {
-    const out: ConcertInterface[][] = [];
-    for (let i = 0; i < concerts.length; i += perSlide) {
-      out.push(concerts.slice(i, i + perSlide));
-    }
-    return out;
-  }, [concerts, perSlide]);
 
   if (loading) {
     return (
@@ -174,158 +156,135 @@ const Concert: React.FC = () => {
   return (
     <>
       <Navbar />
-      <div style={{ padding: "20px 40px", position: "relative" }}>
+      <div style={{ padding: "20px 40px" }}>
         <Title level={2} style={{ marginBottom: 24, marginLeft: "6%" }}>
-          🎶 Recommended Concerts
+          🎶All Concerts
         </Title>
 
-        {slides.length === 0 ? (
+        {concerts.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px 0" }}>
             <Paragraph type="secondary">ไม่พบข้อมูลคอนเสิร์ต</Paragraph>
           </div>
         ) : (
-          <div style={{ position: "relative" }}>
-            {/* ปุ่มซ้าย */}
-            <Button
-              shape="circle"
-              size="large"
-              icon={<LeftOutlined />}
-              onClick={() => carouselRef.current?.prev()}
+          // คอนเทนเนอร์ “กึ่งกลางหน้า” และจำกัดความกว้าง
+          <div style={{ width: "100%" }}>
+            <div
               style={{
-                position: "absolute",
-                top: "40%",
-                left: "50px",
-                zIndex: 10,
-                background: "rgba(0,0,0,0.6)",
-                borderColor: "transparent",
-                color: "#fff",
+                maxWidth: 1300,
+                width: "100%",
+                margin: "0 auto",
+                padding: "0 34px",
               }}
-            />
+            >
+              <Row gutter={[16, 20]} justify="start" wrap>
+                {concerts.map((concert) => {
+                  const buttonState = getButtonState(concert);
 
-            {/* ปุ่มขวา */}
-            <Button
-              shape="circle"
-              size="large"
-              icon={<RightOutlined />}
-              onClick={() => carouselRef.current?.next()}
-              style={{
-                position: "absolute",
-                top: "40%",
-                right: "50px",
-                zIndex: 10,
-                background: "rgba(0,0,0,0.6)",
-                borderColor: "transparent",
-                color: "#fff",
-              }}
-            />
+                  const baseBtnStyle: React.CSSProperties = {
+                    height: 48,
+                    fontSize: 18,
+                    width: "230px",
+                    borderRadius: 15,
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                  };
+                  const grayBtnStyle: React.CSSProperties = {
+                    ...baseBtnStyle,
+                    backgroundColor: "#d9d9d9",
+                    borderColor: "#d9d9d9",
+                    color: "#fff",
+                  };
 
-            <Carousel ref={carouselRef} dots={false} infinite={false}>
-              {slides.map((group, idx) => (
-                <div key={idx}>
-                  <Row
-                    gutter={[16, 20]}
-                    justify="center"
-                    style={{ maxWidth: 1300, margin: "0 auto" }}
-                  >
-                    {group.map((concert) => {
-                      const buttonState = getButtonState(concert);
-
-                      const baseBtnStyle: React.CSSProperties = {
-                        height: 48,
-                        fontSize: 18,
-                        width: 230,
-                        borderRadius: 15,
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                      };
-                      const grayBtnStyle: React.CSSProperties = {
-                        ...baseBtnStyle,
-                        backgroundColor: "#d9d9d9",
-                        borderColor: "#d9d9d9",
-                        color: "#fff",
-                      };
-
-                      return (
-                        <Col key={concert.ID}>
+                  return (
+                    // ให้คอลัมน์กว้าง “คงที่” เท่ากับความกว้างการ์ด จะได้ห่อขึ้นบรรทัดใหม่พอดี
+                    <Col key={concert.ID} flex="0 0 230px">
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: "12px",
+                        }}
+                      >
+                        <Card
+                          hoverable={buttonState.clickable}
+                          cover={
+                            <img
+                              alt={concert.concert_name || "Concert"}
+                              src={`http://localhost:8000${concert.concert_poster_url}`}
+                              style={{ height: 280, objectFit: "cover" }}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "/placeholder-image.jpg";
+                              }}
+                            />
+                          }
+                          style={{
+                            width: 230,
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            cursor: buttonState.clickable
+                              ? "pointer"
+                              : "not-allowed",
+                            opacity: buttonState.clickable ? 1 : 0.9,
+                          }}
+                          onClick={() =>
+                            buttonState.clickable &&
+                            handleConcertClick(concert.ID)
+                          }
+                        >
                           <div
                             style={{
+                              minHeight: 135,
                               display: "flex",
                               flexDirection: "column",
-                              alignItems: "center",
-                              gap: 12,
+                              justifyContent: "flex-start",
                             }}
                           >
-                            <Card
-                              hoverable={buttonState.clickable}
-                              cover={
-                                <img
-                                  alt={concert.concert_name || "Concert"}
-                                  src={`http://localhost:8000${concert.concert_poster_url}`}
-                                  style={{ height: 280, objectFit: "cover" }}
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src =
-                                      "/placeholder-image.jpg";
-                                  }}
-                                />
-                              }
-                              style={{
-                                width: 230,
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "space-between",
-                                cursor: buttonState.clickable
-                                  ? "pointer"
-                                  : "not-allowed",
-                                opacity: buttonState.clickable ? 1 : 0.9,
-                              }}
-                              onClick={() =>
-                                buttonState.clickable &&
-                                handleConcertClick(concert.ID)
-                              }
-                            >
-                              <Title level={5} ellipsis={{ rows: 2 }}>
-                                {concert.concert_name || "ไม่ระบุชื่อคอนเสิร์ต"}
-                              </Title>
+                            <Title level={5} ellipsis={{ rows: 2 }}>
+                              {concert.concert_name || "ไม่ระบุชื่อคอนเสิร์ต"}
+                            </Title>
 
-                              {concert.artist && (
-                                <Paragraph type="secondary" ellipsis>
-                                  {concert.artist}
-                                </Paragraph>
-                              )}
+                            {concert.artist && (
+                              <Paragraph type="secondary" ellipsis>
+                                {concert.artist}
+                              </Paragraph>
+                            )}
 
-                              {concert.ShowDates && (
-                                <Paragraph style={{ marginBottom: 0 }}>
-                                  📅{" "}
-                                  {formatDateRange(
-                                    concert.ShowDates.map((sd) => sd.show_date)
-                                  )}
-                                </Paragraph>
-                              )}
-                            </Card>
-
-                            <Button
-                              onClick={() =>
-                                buttonState.clickable &&
-                                handleConcertClick(concert.ID)
-                              }
-                              type={buttonState.type}
-                              size="large"
-                              disabled={buttonState.disabled}
-                              style={
-                                buttonState.disabled
-                                  ? grayBtnStyle
-                                  : baseBtnStyle
-                              }
-                            >
-                              {buttonState.text}
-                            </Button>
+                            {concert.ShowDates && (
+                              <Paragraph
+                                style={{ marginBottom: 0 }}
+                                ellipsis={{ rows: 2 }}
+                              >
+                                📅{" "}
+                                {formatDateRange(
+                                  concert.ShowDates.map((sd) => sd.show_date)
+                                )}
+                              </Paragraph>
+                            )}
                           </div>
-                        </Col>
-                      );
-                    })}
-                  </Row>
-                </div>
-              ))}
-            </Carousel>
+                        </Card>
+
+                        <Button
+                          onClick={() =>
+                            buttonState.clickable &&
+                            handleConcertClick(concert.ID)
+                          }
+                          type={buttonState.type}
+                          size="large"
+                          disabled={buttonState.disabled}
+                          style={
+                            buttonState.disabled ? grayBtnStyle : baseBtnStyle
+                          }
+                        >
+                          {buttonState.text}
+                        </Button>
+                      </div>
+                    </Col>
+                  );
+                })}
+              </Row>
+            </div>
           </div>
         )}
       </div>

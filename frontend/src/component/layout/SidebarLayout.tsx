@@ -16,7 +16,6 @@ import {
   Dropdown,
   Avatar,
   Typography,
-  Badge,
   Divider,
 } from "antd";
 import {
@@ -26,12 +25,7 @@ import {
   MdAssignment,
 } from "react-icons/md";
 import { LuTicketPercent } from "react-icons/lu";
-import {
-  FaRegCalendarAlt,
-  FaUserCircle,
-  FaBell,
-  FaBuilding,
-} from "react-icons/fa";
+import { FaRegCalendarAlt, FaUserCircle, FaBuilding } from "react-icons/fa";
 import logo from "../../assets/logo.png";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hook/authContext";
@@ -225,11 +219,14 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             borderBottom: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          <img
-            src={logo}
-            alt="Eventix logo"
-            style={{ width: 32, height: 32, objectFit: "contain" }}
-          />
+          <Link to={"/Eventix"}>
+            <img
+              src={logo}
+              alt="Eventix logo"
+              style={{ width: 32, height: 32, objectFit: "contain" }}
+            />
+          </Link>
+
           {!collapsed && (
             <Typography.Text style={{ color: "white", fontWeight: 700 }}>
               Concert Management
@@ -359,15 +356,6 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
               gap: 8,
             }}
           >
-            <Badge dot offset={[-2, 2]}>
-              <Button
-                type="text"
-                aria-label="Notifications"
-                icon={<FaBell />}
-                style={{ width: 40, height: 40, fontSize: 18 }}
-              />
-            </Badge>
-
             <Divider type="vertical" style={{ height: 24, marginInline: 8 }} />
 
             {!user ? (

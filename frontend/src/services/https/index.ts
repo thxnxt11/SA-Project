@@ -2,7 +2,7 @@ import axios from "axios";
 import type { AxiosResponse, AxiosError } from "axios";
 import type { PromotionInterface } from "../../interface/promotion";
 import type { bookingInterface } from "../../interface/booking";
-import type { UserInterface } from "../../interface/user";
+
 
 const ORGANIZER_API_URL = "http://localhost:8000/organizer";
 const PUBLIC_API_URL = "http://localhost:8000/api";

@@ -1,28 +1,39 @@
-import React from "react";
-import { Form, Input, Button, message, Card } from "antd";
+import React, { useState } from "react";
+import { Form, Input, Button, message, Card, Typography, Space } from "antd";
 import { useNavigate, Link, useLocation } from "react-router-dom";
+import {
+  EyeInvisibleOutlined,
+  EyeTwoTone,
+  UserOutlined,
+  LockOutlined,
+} from "@ant-design/icons";
 import { useAuth } from "../../hook/authContext";
+import "./auth.css";
+
+const { Title, Text } = Typography;
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
 
   const onFinish = async (values: any) => {
+    setLoading(true);
     try {
       const result = await login(values.email, values.password);
       console.log("result from login():", result);
 
-      message.success("Signed in!");
+      message.success("Signed in successfully!");
 
       const redirectTo =
         location.state?.from?.pathname ||
         new URLSearchParams(location.search).get("redirect");
-
+      console.log("Redirect To Path: ",redirectTo)
       if (redirectTo && redirectTo !== "/signin") {
         console.log("redirecting to:", redirectTo);
         navigate(redirectTo, { replace: true });
-        return; // สำคัญ! ต้อง return เพื่อไม่ให้รันโค้ดต่อ
+        return;
       }
 
       // ถ้าไม่มี redirect URL ให้ใช้ logic เดิมตาม role
@@ -41,7 +52,7 @@ const SignIn: React.FC = () => {
 
       const target =
         rid === 2 || rname === "member"
-          ? "/concerts"
+          ? "/Eventix"
           : rid === 1 || rname === "organizer"
           ? "/organizer/dashboard"
           : rid === 3 || rname === "admin"
@@ -55,55 +66,111 @@ const SignIn: React.FC = () => {
     } catch (e: any) {
       console.error("signin error:", e?.response || e);
       message.error(e?.response?.data?.message || "Sign in failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Card
-      style={{
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        width: 500,
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-      }}
-    >
-      <h1 style={{ fontSize: 30, display: "flex", justifyContent: "center" }}>
-        Sign In
-      </h1>
-      <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
-        <Form.Item
-          label="Email"
-          name="email"
-          rules={[
-            { type: "email", message: "Invalid email" },
-            { pattern: /.+@.+\.com$/, message: "Must end with .com" },
-            { required: true, message: "Please enter your email" },
-          ]}
-        >
-          <Input />
-        </Form.Item>
+    <div className="signin-container">
+      <div className="signin-background">
+        <div className="floating-shapes">
+          <div className="shape shape-1"></div>
+          <div className="shape shape-2"></div>
+          <div className="shape shape-3"></div>
+          <div className="shape shape-4"></div>
+          <div className="shape shape-5"></div>
+        </div>
+      </div>
 
-        <Form.Item
-          label="Password"
-          name="password"
-          hasFeedback
-          rules={[{ required: true, message: "Please enter your password" }]}
-        >
-          <Input.Password />
-        </Form.Item>
+      <div className="signin-content">
+        <Card className="signin-card">
+          <div className="signin-header">
+            <div className="logo-container">
+              <div className="logo">
+                <UserOutlined />
+              </div>
+            </div>
+            <Title level={2} className="signin-title">
+              Sign In
+            </Title>
+            <Text className="signin-subtitle">
+              Sign in to your account to continue
+            </Text>
+          </div>
 
-        <Form.Item>
-          <Button type="primary" htmlType="submit" block size="large">
-            Sign In
-          </Button>
-        </Form.Item>
-        <Form.Item>
-          <Link to="/signup">Don't have an account?</Link>
-        </Form.Item>
-      </Form>
-    </Card>
+          <Form
+            layout="vertical"
+            onFinish={onFinish}
+            requiredMark={false}
+            className="signin-form"
+            size="large"
+          >
+            <Form.Item
+              label="Email Address"
+              name="email"
+              rules={[
+                {
+                  type: "email",
+                  message: "Please enter a valid email address",
+                },
+                { pattern: /.+@.+\.com$/, message: "Email must end with .com" },
+                { required: true, message: "Email is required" },
+              ]}
+            >
+              <Input
+                prefix={<UserOutlined className="input-icon" />}
+                placeholder="Enter your email"
+                className="custom-input"
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="Password"
+              name="password"
+              rules={[{ required: true, message: "Password is required" }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined className="input-icon" />}
+                placeholder="Enter your password"
+                iconRender={(visible) =>
+                  visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
+                }
+                className="custom-input"
+              />
+            </Form.Item>
+
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                block
+                size="large"
+                loading={loading}
+                className="signin-button"
+              >
+                {loading ? "Signing In..." : "Sign In"}
+              </Button>
+            </Form.Item>
+
+            <div className="signin-footer">
+              <Space
+                direction="vertical"
+                align="center"
+                style={{ width: "100%" }}
+              >
+                <Text className="signup-text">
+                  Don't have an account?{" "}
+                  <Link to="/signup" className="signup-link">
+                    Create one here
+                  </Link>
+                </Text>
+              </Space>
+            </div>
+          </Form>
+        </Card>
+      </div>
+    </div>
   );
 };
 

@@ -113,10 +113,10 @@ const MyETicket: React.FC = () => {
       <Navbar />
 
       {/* Header โปรไฟล์ */}
-      <Row style={{ marginBottom: 16 }}>
+      <Row style={{ marginBottom: 16, padding: "30px" }}>
         <Card
           style={{
-            height: 200,
+            height: 150,
             width: "100%",
             display: "flex",
             alignItems: "center",
@@ -145,7 +145,7 @@ const MyETicket: React.FC = () => {
               type="primary"
               shape="round"
               size="large"
-              onClick={() => navigate(`/profile/${user?.id}/edit`)}
+              onClick={() => navigate(`/user/profile`)}
               style={{ paddingInline: 20 }}
             >
               Edit Profile
@@ -153,9 +153,13 @@ const MyETicket: React.FC = () => {
           </Row>
         </Card>
       </Row>
-
+      <div style={{ marginTop: 30 }}>
+        <Title level={3} style={{ color: "#002766", marginLeft: 120 }}>
+          🎟️ My E-Ticket
+        </Title>
+      </div>
       {/* Tickets Section */}
-      <div style={{ padding: "20px 0" }}>
+      <div>
         {error ? (
           <div style={{ textAlign: "center", padding: "50px 0" }}>
             <Text type="danger" style={{ fontSize: 16 }}>
@@ -180,13 +184,13 @@ const MyETicket: React.FC = () => {
               คุณยังไม่มีตั๋วในระบบ
             </Text>
             <div style={{ marginTop: 16 }}>
-              <Button type="primary" onClick={() => navigate("/concerts")}>
+              <Button type="primary" onClick={() => navigate("/Eventix")}>
                 ซื้อตั๋วคอนเสิร์ต
               </Button>
             </div>
           </div>
         ) : (
-          <Row gutter={[16, 20]} justify="start">
+          <Row gutter={[16, 0]} justify="start" style={{ marginTop: -35 }}>
             {etickets.map((ticket, index) => {
               const ended = isConcertEnded(ticket.date_iso);
               return (

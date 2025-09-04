@@ -233,15 +233,13 @@ const ConcertDetail: React.FC = () => {
   return (
     <>
       <Navbar />
-      <div
-        style={{ display: "flex", flexDirection: "column", padding: "24px" }}
-      >
+      <div style={{ display: "flex", flexDirection: "column" }}>
         <Card
           style={{
             backgroundColor: "#ffffffff",
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
             borderRadius: 12,
-            padding: "16px",
+            // padding: "16px",
           }}
         >
           <Row gutter={[24, 24]} align="middle">
@@ -251,10 +249,10 @@ const ConcertDetail: React.FC = () => {
                 alt={concert.concert_name || "Concert"}
                 src={`http://localhost:8000${concert.concert_poster_url}`}
                 style={{
-                  width: "100%",
+                  width: "660px",
                   height: "420px",
                   objectFit: "cover",
-                  objectPosition: "bottom",
+                  objectPosition: "50% 80%",
                   borderRadius: 12,
                 }}
                 onError={(e) => {
@@ -269,7 +267,7 @@ const ConcertDetail: React.FC = () => {
               <div
                 style={{
                   borderRadius: 16,
-                  padding: "20px 24px",
+                  padding: "20px 48px",
                   minHeight: 420,
                 }}
               >
