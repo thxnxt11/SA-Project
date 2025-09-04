@@ -131,7 +131,7 @@ const SeatGrid: React.FC<Props> = ({
       setSelectedIds(new Set());
     }
 
-    // prevent text selection
+
     e.preventDefault();
   };
 

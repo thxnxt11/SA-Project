@@ -15,6 +15,7 @@ const API_ORG = "http://localhost:8000/organizer";
 
 // normalize API ids
 const normalizeId = (x: any) => x?.id ?? x?.ID;
+console.log("idk : ",normalizeId)
 
 // normalize seat status to a strict union
 const norm = (x?: string) =>
@@ -375,8 +376,6 @@ export default function ZoneBrowser() {
   };
 
   const columns = [
-    { title: "ID", key: "ID", render: (_: any, r: ZoneInterface) => normalizeId(r), width: 90 },
-    { title: "ShowDateID", dataIndex: "showdate_id", key: "showdate_id", width: 110 },
     { title: "Zone Name", dataIndex: "zone_name", key: "zone_name" },
     {
       title: "Venue",
