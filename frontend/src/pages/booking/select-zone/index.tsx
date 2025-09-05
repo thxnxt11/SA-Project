@@ -26,7 +26,7 @@ const extractTime = (raw?: string): string => {
   });
 };
 
-// แปลงวันที่แบบอ่านง่าย "15 November 2025" (หรือปรับเป็น th-TH ได้)
+// แปลงวันที่แบบอ่านง่าย "15 November 2025" 
 const formatDateLong = (iso?: string): string => {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -57,7 +57,7 @@ const calcAvailableSeats = (zone: ZoneInterface): number => {
     return Math.max(0, available);
   }
 
-  // fallback สุดท้าย: ถ้าไม่มีข้อมูลอะไรเลย
+  // ถ้าไม่มีข้อมูลอะไรเลย
   return 0;
 };
 
@@ -69,7 +69,6 @@ const zoneNameText = (z: ZoneInterface): string => {
   return "Zone";
 };
 
-// แก้ไขการดึง zone_type ให้ตรงกับ response จาก backend
 const zoneTypeText = (z: ZoneInterface): string => {
   if (z.zone_type) {
     return z.zone_type;

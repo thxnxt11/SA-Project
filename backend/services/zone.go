@@ -18,7 +18,7 @@ type SeatAvailableDTO struct {
 	SeatCode           string `json:"seat_code"`
 	SeatAvailableStatus string `json:"seatavailable_status"` 
 }
-
+	
 type ZoneWithSeatsDTO struct {
 	ID             uint                `json:"id"`
 	ZoneName       string              `json:"zone_name"`

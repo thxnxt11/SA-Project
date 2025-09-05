@@ -28,10 +28,6 @@ func (h *ETicketController) GetETicketByBookingID(c *gin.Context){
 	
 	etickets, err := h.service.GetETicketByBookingID(uint(bookingID))
 	if err != nil {
-		// if err.Error() == "no tickets found for this booking" {
-		// 	c.JSON(http.StatusNotFound, gin.H{"error": err.Error(),})
-		// 	return
-		// }
 		if err.Error() == "tickets are not paid or invalid" {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error(),})
 			return
@@ -91,7 +87,6 @@ func (h *ETicketController) GetETicketByShowID(c *gin.Context) {
 		return
 	}
 
-	// สร้าง response structure ที่มีข้อมูลครบถ้วน
 	if len(tickets) == 0 {
 		c.JSON(404, gin.H{"error": "No tickets found", "success": false})
 		return

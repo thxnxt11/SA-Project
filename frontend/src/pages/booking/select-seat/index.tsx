@@ -36,7 +36,7 @@ type SeatCell = {
   seatAvailableId: number;
   seatNumber: string;
   code: string; // รหัสที่นั่ง เช่น "A1", "B2"
-  status: "available" | "booked" | "locked";
+  status: "available" | "booked" | "locked" | "unavailable";
 };
 
 type SeatRow = {
@@ -48,12 +48,12 @@ const thb = new Intl.NumberFormat("th-TH");
 
 const normalizeStatus = (
   s?: string | null
-): "available" | "booked" | "locked" => {
+): "available" | "booked" | "locked" | "unavailable" => {
   const v = (s ?? "").trim().toLowerCase();
-
   if (v === "booked") return "booked";
-  else if (v === "locked") return "locked";
-  else return "available";
+  if (v === "locked") return "locked";
+  if (v === "unavailable") return "unavailable";
+  return "available";
 };
 
 // สร้างกริดที่นั่งจาก SeatFromAPI[]
@@ -182,10 +182,11 @@ const SelectSeat: React.FC = () => {
       });
     }
   };
+
   const [loadingBooking, setLoadingBooking] = useState(false);
   const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
 
-  //แปลง seatcode เป็น seatId
+  //แปลง seatcode เป็น seatAvailableId
   const codeToId = useMemo(() => {
     const m = new Map<string, number>();
     seatRows.forEach((row) =>
@@ -246,7 +247,6 @@ const SelectSeat: React.FC = () => {
       }
 
       message.success("Booking successful!");
-
       setShowFullScreenLoader(true);
 
       const bookingData = res?.data?.data ?? res?.data ?? null;
@@ -302,6 +302,7 @@ const SelectSeat: React.FC = () => {
     borderColor: "#d3d3d3ff",
     margin: "10px 0",
   };
+
   return (
     <>
       <Navbar />
@@ -406,50 +407,69 @@ const SelectSeat: React.FC = () => {
                             }}
                           >
                             {rowObj.seats.map((seat) => {
+                              // unavailable = ไม่แสดง ทำเป็น “ที่นั่งโปร่งใส” 
+                              if (seat.status === "unavailable") {
+                                return (
+                                  <div
+                                    key={seat.id}
+                                    style={{
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: "50%",
+                                      opacity: 0,
+                                      pointerEvents: "none",
+                                      border: "2px solid transparent",
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                );
+                              }
+
                               const isSelected = selectedSeats.includes(
                                 seat.code
                               );
+                              const isBookedOrLocked =
+                                seat.status === "booked" ||
+                                seat.status === "locked";
+
                               return (
                                 <Card
                                   key={seat.id}
                                   onClick={() =>
+                                    !isBookedOrLocked &&
                                     handleSeatClick(seat.code, seat.status)
                                   }
                                   style={{
-                                    width: "40px",
-                                    height: "40px",
+                                    width: 40,
+                                    height: 40,
                                     borderRadius: "50%",
                                     position: "relative",
                                     display: "flex",
                                     justifyContent: "center",
                                     alignItems: "center",
-                                    cursor:
-                                      seat.status === "available"
-                                        ? "pointer"
-                                        : "not-allowed",
-                                    backgroundColor:
-                                      seat.status === "booked"
-                                        ? "white"
-                                        : isSelected
-                                        ? "#ffffffff"
-                                        : "#2c48ffff",
-                                    borderColor:
-                                      seat.status === "booked"
-                                        ? "#333"
-                                        : isSelected
-                                        ? "#ffffffff"
-                                        : "#ffffffff",
-                                    borderWidth: "2px",
+                                    cursor: isBookedOrLocked
+                                      ? "not-allowed"
+                                      : "pointer",
+                                    backgroundColor: isBookedOrLocked
+                                      ? "white"
+                                      : isSelected
+                                      ? "#ffffffff"
+                                      : "#2c48ffff",
+                                    borderColor: isBookedOrLocked
+                                      ? "#333"
+                                      : isSelected
+                                      ? "#ffffffff"
+                                      : "#ffffffff",
+                                    borderWidth: 2,
                                     borderStyle: "solid",
                                     transition: "all 0.6s ease",
                                     flexShrink: 0,
                                   }}
                                 >
-                                  {seat.status === "booked" ||
-                                  seat.status === "locked" ? (
+                                  {isBookedOrLocked ? (
                                     <RxCrossCircled
                                       style={{
-                                        fontSize: "40px",
+                                        fontSize: 40,
                                         backgroundColor: "#ffffffff",
                                         borderRadius: "50%",
                                         color: "#ff0000ff",
@@ -460,7 +480,7 @@ const SelectSeat: React.FC = () => {
                                   ) : isSelected ? (
                                     <FaCircleCheck
                                       style={{
-                                        fontSize: "40px",
+                                        fontSize: 40,
                                         color: "#00b60fff",
                                         display: "flex",
                                         alignItems: "center",
@@ -469,7 +489,7 @@ const SelectSeat: React.FC = () => {
                                   ) : (
                                     <span
                                       style={{
-                                        fontSize: "14px",
+                                        fontSize: 14,
                                         fontWeight: "bold",
                                         color: "white",
                                       }}

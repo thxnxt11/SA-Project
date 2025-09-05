@@ -57,7 +57,7 @@ const row: React.CSSProperties = {
 };
 
 const footerBrand: React.CSSProperties = {
-  background: "linear-gradient(0deg,#e7f0ff,#e7f0ff)",
+  background: "linear-gradient(180deg, #00306e 30%, #004a8f 100%)",
   padding: "10px 14px",
   display: "flex",
   alignItems: "center",
@@ -174,7 +174,7 @@ const TicketCard: React.FC<{ t: Ticket }> = ({ t }) => {
           alt="Eventix"
           style={{ width: 18, height: 18, objectFit: "contain" }}
         />
-        <Text strong style={{ color: "#00306E" }}>
+        <Text strong style={{ color: "#ffffffff" }}>
           Eventix
         </Text>
       </div>

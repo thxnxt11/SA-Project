@@ -74,6 +74,9 @@ func main() {
 		api.GET("/e-tickets/booking/:booking_id",eTicketCtl.GetETicketByBookingID)
 		api.GET("/e-tickets/:user_id/user",eTicketCtl.GetMyTicketCards)
 		api.GET("/eticket/user/:user_id/concert/:concert_id/show/:show_date_id",eTicketCtl.GetETicketByShowID)
+		api.GET("/user/:user_id",user.GetUserDataById)
+		api.GET("/genders",user.GetAllGender)
+		api.PUT("/user/:user_id",user.UpdateUserDataById)
 		
 	}
 	r.Static("/uploads", "./uploads")

@@ -20,7 +20,12 @@ import type { UploadFile, UploadProps } from "antd";
 import { promotionAPI, uploadAPI } from "../../../services/https";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../hook/authContext";
-
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Bangkok");
 const { Option } = Select;
 
 const AddPromotion: React.FC = () => {
@@ -66,52 +71,53 @@ const AddPromotion: React.FC = () => {
     }
   };
 
-  const handlePromotionTypeChange = (value: number) => {
-    setSelectedType(value);
-    form.setFieldsValue({ concert: undefined, code: undefined }); // reset fields
+  const handlePromotionTypeChange = (value?: number) => {
+    setSelectedType(value ?? null);
+    form.setFieldsValue({
+      concert: undefined,
+      promotion_code: undefined,
+    });
   };
 
-const handleFileUpload = async (file: File) => {
-  setLoading(true);
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
+  const handleFileUpload = async (file: File) => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-    // ✅ เรียกผ่าน service
-    const res = await uploadAPI.upload(formData);
-    const data = res?.data;
+      const res = await uploadAPI.upload(formData);
+      const data = res?.data;
 
-    // รองรับทั้งสองรูปแบบ response: { success, data:{url} } หรือ { url }
-    const success = data?.success ?? Boolean(data?.data?.url || data?.url);
-    const uploadedUrl = data?.data?.url ?? data?.url ?? "";
+      // รองรับทั้งสองรูปแบบ response: { success, data:{url} } หรือ { url }
+      const success = data?.success ?? Boolean(data?.data?.url || data?.url);
+      const uploadedUrl = data?.data?.url ?? data?.url ?? "";
 
-    if (success && uploadedUrl) {
-      setPosterUrl(uploadedUrl);
-      form.setFieldsValue({ poster_url: uploadedUrl });
-      messageApi.success("อัปโหลดรูปภาพสำเร็จ!");
-      return true;
+      if (success && uploadedUrl) {
+        setPosterUrl(uploadedUrl);
+        form.setFieldsValue({ poster_url: uploadedUrl });
+        messageApi.success("อัปโหลดรูปภาพสำเร็จ!");
+        return true;
+      }
+
+      messageApi.error(data?.error || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
+      return false;
+    } catch (err: any) {
+      if (err.response) {
+        messageApi.error(
+          `อัปโหลดรูปภาพไม่สำเร็จ: ${err.response?.status ?? ""} ${
+            err.response?.statusText ?? ""
+          }`
+        );
+        console.error("Upload error:", err.response?.data || err.message);
+      } else {
+        messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
+        console.error("Upload error:", err);
+      }
+      return false;
+    } finally {
+      setLoading(false);
     }
-
-    messageApi.error(data?.error || "เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ");
-    return false;
-  } catch (err: any) {
-    if (err.response) {
-      messageApi.error(
-        `อัปโหลดรูปภาพไม่สำเร็จ: ${err.response?.status ?? ""} ${
-          err.response?.statusText ?? ""
-        }`
-      );
-      console.error("Upload error:", err.response?.data || err.message);
-    } else {
-      messageApi.error("เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์");
-      console.error("Upload error:", err);
-    }
-    return false;
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   // Ant Design Upload onChange handler
   const handleAntdUploadChange: UploadProps["onChange"] = ({
@@ -128,6 +134,14 @@ const handleFileUpload = async (file: File) => {
   const onFinish = async (values: any) => {
     setLoading(true);
     try {
+      const startStr = dayjs(values.start_date)
+        .tz("Asia/Bangkok")
+        .format("YYYY-MM-DDTHH:mm:ssZ"); // -> 2025-09-01T10:30:00+07:00
+
+      const endStr = dayjs(values.end_date)
+        .tz("Asia/Bangkok")
+        .format("YYYY-MM-DDTHH:mm:ssZ");
+
       const payload = {
         promotion_name: values.promotion_name,
         promotion_description: values.description,
@@ -135,8 +149,8 @@ const handleFileUpload = async (file: File) => {
         promotion_code: values.promotion_code,
         discount: values.discount,
         limit: parseInt(values.limit),
-        start_date: values.start_date.toISOString(),
-        end_date: values.end_date.toISOString(),
+        start_date: startStr,
+        end_date: endStr,
         promotion_status: values.promotion_status,
         concert_id: values.promotion_type === 3 ? values.concert : null,
         poster_url: posterUrl,
@@ -186,6 +200,12 @@ const handleFileUpload = async (file: File) => {
     onGetInitialData();
     return () => {};
   }, []);
+
+  useEffect(() => {
+    if (Number(selectedType) !== 3) {
+      form.setFieldsValue({ concert: undefined });
+    }
+  }, [selectedType, form]);
 
   return (
     <>
@@ -274,16 +294,12 @@ const handleFileUpload = async (file: File) => {
                       <Form.Item
                         name="concert"
                         label="Concert"
-                        rules={
-                          selectedType === 3
-                            ? [
-                                {
-                                  required: true,
-                                  message: "Please select a concert",
-                                },
-                              ]
-                            : []
-                        }
+                        rules={[
+                          {
+                            required: true,
+                            message: "Please select a concert",
+                          },
+                        ]}
                       >
                         <Select
                           placeholder="Select a Concert"
@@ -291,7 +307,7 @@ const handleFileUpload = async (file: File) => {
                           allowClear
                         >
                           {concerts.map((concert) => (
-                            <Option key={concert.ID} value={concert.ID}>
+                            <Option key={concert.id} value={Number(concert.id)}>
                               {concert.concert_name}
                             </Option>
                           ))}

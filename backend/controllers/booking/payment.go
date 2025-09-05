@@ -87,7 +87,7 @@ func CreatePayment(c *gin.Context) {
 }	
 
 func UpdatePaymentReceipt(c *gin.Context) {
-    // รับ id จาก path: PUT /payments/:id/receipt
+
     id := c.Param("id")
     if id == "" {
         c.JSON(http.StatusBadRequest, gin.H{"error": "missing id in path"})
@@ -121,7 +121,6 @@ func UpdatePaymentReceipt(c *gin.Context) {
 	svc := services.NewPaymentService()
 	updated, err := svc.UpdatePaymentStatusToPaid(payment.ID)
 	if err != nil {
-		// ถ้าอยาก rollback การอัปเดต receipt_url ด้วย ให้ใช้ transaction (ดูตัวอย่างด้านล่าง)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to mark payment as paid"})
 		return
 	}

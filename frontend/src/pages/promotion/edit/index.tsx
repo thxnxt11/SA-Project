@@ -17,9 +17,14 @@ import {
   type UploadFile,
   type UploadProps,
 } from "antd";
-import dayjs from "dayjs";
 import { concertAPI, promotionAPI, uploadAPI } from "../../../services/https";
 import { PlusOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Bangkok");
 
 const { Option } = Select;
 
@@ -200,8 +205,10 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
         promotion_code: v.promotion_code || "",
         discount: v.discount,
         limit: parseInt(v.limit),
-        start_date: v.start_date.toISOString(),
-        end_date: v.end_date.toISOString(),
+        start_date: dayjs(v.start_date)
+          .tz("Asia/Bangkok")
+          .format("YYYY-MM-DDTHH:mm:ssZ"),
+        end_date: dayjs(v.end_date).tz("Asia/Bangkok").format("YYYY-MM-DDTHH:mm:ssZ"),
         promotion_status: v.promotion_status,
         concert_id: v.promotion_type === 3 ? v.concert : null,
         poster_url: posterUrl, // path (เช่น /uploads/xxx.png)
@@ -304,18 +311,18 @@ const EditPromotionModal: React.FC<EditPromotionModalProps> = ({
               </Col>
             </Row>
 
-              <Row gutter={[50, 0]}>
-                <Col span={24}>
-                  <Form.Item
-                    name="promotion_code"
-                    label="Discount Code"
-                    rules={[{ required: true, message: "Please enter a code" }]}
-                  >
-                    <Input placeholder="Enter your code" />
-                  </Form.Item>
-                </Col>
-              </Row>
-            
+            <Row gutter={[50, 0]}>
+              <Col span={24}>
+                <Form.Item
+                  name="promotion_code"
+                  label="Discount Code"
+                  rules={[{ required: true, message: "Please enter a code" }]}
+                >
+                  <Input placeholder="Enter your code" />
+                </Form.Item>
+              </Col>
+            </Row>
+
             {selectedType === 3 && (
               <Row gutter={[50, 0]}>
                 <Col span={24}>

@@ -1,0 +1,433 @@
+.signin-container {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signin-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #001a4d 0%, #00306e 50%, #004a8f 100%);
+  z-index: 1;
+}
+
+.floating-shapes {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.shape {
+  position: absolute;
+  opacity: 0.1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  animation: float 20s infinite linear;
+}
+
+.shape-1 {
+  width: 80px;
+  height: 80px;
+  top: 10%;
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.shape-2 {
+  width: 120px;
+  height: 120px;
+  top: 20%;
+  right: 10%;
+  animation-delay: -5s;
+}
+
+.shape-3 {
+  width: 60px;
+  height: 60px;
+  bottom: 30%;
+  left: 20%;
+  animation-delay: -10s;
+}
+
+.shape-4 {
+  width: 100px;
+  height: 100px;
+  bottom: 20%;
+  right: 20%;
+  animation-delay: -15s;
+}
+
+.shape-5 {
+  width: 40px;
+  height: 40px;
+  top: 50%;
+  left: 50%;
+  animation-delay: -7s;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-30px) rotate(120deg);
+  }
+  66% {
+    transform: translateY(30px) rotate(240deg);
+  }
+}
+
+.signin-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 480px;
+  padding: 24px;
+}
+
+.signin-card {
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.signin-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.2), 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.signin-card .ant-card-body {
+  padding: 48px 40px 40px;
+}
+
+.signin-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.logo-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #001a4d 0%, #00306e 50%, #004a8f 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: white;
+  box-shadow: 0 8px 24px rgba(0, 74, 143, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.logo:hover {
+  transform: scale(1.05) rotate(5deg);
+  box-shadow: 0 12px 32px rgba(0, 74, 143, 0.6);
+}
+
+.signin-title {
+  margin: 0 0 8px 0;
+  font-weight: 700;
+  background: linear-gradient(90deg, #001a4d 0%, #00306e 50%, #004a8f 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 32px;
+  line-height: 1.2;
+}
+
+.signin-subtitle {
+  color: #64748b;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.signin-form {
+  margin-top: 32px;
+}
+
+.signin-form .ant-form-item-label > label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.custom-input {
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  /* padding: 12px 16px ; */
+  font-size: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #fafbfc;
+}
+
+.custom-input:hover {
+  border-color: #004a8f;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 74, 143, 0.1);
+}
+
+.custom-input:focus {
+  border-color: #004a8f;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 74, 143, 0.1), 0 4px 12px rgba(0, 74, 143, 0.15);
+}
+
+.custom-input .ant-input {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  font-size: 16px;
+}
+
+.custom-input .ant-input:focus {
+  border: none;
+  box-shadow: none;
+}
+
+.input-icon {
+  color: #9ca3af;
+  font-size: 16px;
+  transition: color 0.3s ease;
+}
+
+.custom-input:focus .input-icon {
+  color: #004a8f;
+}
+
+.signin-button {
+  border-radius: 12px;
+  background: linear-gradient(90deg, #001a4d 0%, #00306e 50%, #004a8f 100%);
+  border: none;
+  height: 52px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 8px;
+  box-shadow: 0 8px 24px rgba(0, 74, 143, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.signin-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 74, 143, 0.4);
+  background: linear-gradient(90deg, #001a4d 0%, #002a5c 50%, #003d7a 100%);
+}
+
+.signin-button:active {
+  transform: translateY(0px);
+  box-shadow: 0 6px 20px rgba(0, 74, 143, 0.3);
+}
+
+.signin-button:disabled {
+  opacity: 0.7;
+  transform: none;
+  box-shadow: 0 4px 12px rgba(0, 74, 143, 0.2);
+}
+
+.signin-footer {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.signup-text {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.signup-link {
+  color: #004a8f;
+  text-decoration: none;
+  font-weight: 600;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.signup-link::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #001a4d 0%, #00306e 50%, #004a8f 100%);
+  transition: width 0.3s ease;
+}
+
+.signup-link:hover::after {
+  width: 100%;
+}
+
+.signup-link:hover {
+  color: #00306e;
+  transform: translateY(-1px);
+}
+
+/* Form validation styles */
+.ant-form-item-has-error .custom-input {
+  border-color: #ef4444;
+  background: #fef2f2;
+  animation: shake 0.5s ease-in-out;
+}
+
+.ant-form-item-has-error .input-icon {
+  color: #ef4444;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+/* Loading animation */
+.signin-button .anticon-loading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .signin-content {
+    max-width: 100%;
+    padding: 16px;
+  }
+
+  .signin-card .ant-card-body {
+    padding: 32px 24px 24px;
+  }
+
+  .signin-title {
+    font-size: 28px;
+  }
+
+  .logo {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .signin-card .ant-card-body {
+    padding: 24px 20px 20px;
+  }
+
+  .signin-title {
+    font-size: 24px;
+  }
+
+  .logo {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+}
+
+/* Enhanced focus states for accessibility */
+.custom-input:focus-within {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 74, 143, 0.1);
+}
+
+.signin-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 74, 143, 0.3), 0 8px 24px rgba(0, 74, 143, 0.3);
+}
+
+/* Success message styling */
+.ant-message-success .ant-message-notice-content {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 12px;
+  color: white;
+  font-weight: 500;
+}
+
+/* Error message styling */
+.ant-message-error .ant-message-notice-content {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-radius: 12px;
+  color: white;
+  font-weight: 500;
+}
+
+.signup-container {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signup-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #001a4d 0%, #00306e 50%, #004a8f 100%);
+  z-index: 1;
+}
+
+.signup-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 620px; /* กว้างกว่าหน้า Sign In */
+  padding: 24px;
+}
+
+.signup-card {
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.signup-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.2), 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.signup-card .ant-card-body {
+  padding: 48px 40px 40px;
+}

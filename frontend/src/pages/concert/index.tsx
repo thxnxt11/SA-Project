@@ -24,7 +24,8 @@ const Concert: React.FC = () => {
         }
 
         const data: ConcertInterface[] = response.data || [];
-        setConcerts(data.slice(0, 5));
+        // setConcerts(data.slice(0, 6)); //แสดง concerts แบบจำกัด
+        setConcerts(data);
         console.log("all Concerts: ", data);
       } catch (err) {
         console.error("Error fetching concerts:", err);
@@ -157,7 +158,7 @@ const Concert: React.FC = () => {
       <Navbar />
       <div style={{ padding: "20px 40px" }}>
         <Title level={2} style={{ marginBottom: 24, marginLeft: "6%" }}>
-          🎶 Recommended Concerts
+          🎶All Concerts
         </Title>
 
         {concerts.length === 0 ? (
@@ -165,113 +166,125 @@ const Concert: React.FC = () => {
             <Paragraph type="secondary">ไม่พบข้อมูลคอนเสิร์ต</Paragraph>
           </div>
         ) : (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              width: "100%",
-            }}
-          >
-            <Row
-              gutter={[16, 20]}
-              justify="center"
-              style={{ maxWidth: "1300px", width: "100%" }}
+          // คอนเทนเนอร์ “กึ่งกลางหน้า” และจำกัดความกว้าง
+          <div style={{ width: "100%" }}>
+            <div
+              style={{
+                maxWidth: 1300,
+                width: "100%",
+                margin: "0 auto",
+                padding: "0 34px",
+              }}
             >
-              {concerts.map((concert) => {
-                // const ended = isConcertEnded(concert.ShowDates);
-                const buttonState = getButtonState(concert);
+              <Row gutter={[16, 20]} justify="start" wrap>
+                {concerts.map((concert) => {
+                  const buttonState = getButtonState(concert);
 
-                const baseBtnStyle: React.CSSProperties = {
-                  height: 48,
-                  fontSize: 18,
-                  width: "230px",
-                  borderRadius: 15,
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                };
-                const grayBtnStyle: React.CSSProperties = {
-                  ...baseBtnStyle,
-                  backgroundColor: "#d9d9d9",
-                  borderColor: "#d9d9d9",
-                  color: "#fff",
-                };
+                  const baseBtnStyle: React.CSSProperties = {
+                    height: 48,
+                    fontSize: 18,
+                    width: "230px",
+                    borderRadius: 15,
+                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                  };
+                  const grayBtnStyle: React.CSSProperties = {
+                    ...baseBtnStyle,
+                    backgroundColor: "#d9d9d9",
+                    borderColor: "#d9d9d9",
+                    color: "#fff",
+                  };
 
-                return (
-                  <Col key={concert.ID}>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: "12px",
-                      }}
-                    >
-                      <Card
-                        hoverable={buttonState.clickable}
-                        cover={
-                          <img
-                            alt={concert.concert_name || "Concert"}
-                            src={`http://localhost:8000${concert.concert_poster_url}`}
-                            style={{ height: 280, objectFit: "fill" }}
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = "/placeholder-image.jpg";
-                            }}
-                          />
-                        }
+                  return (
+                    // ให้คอลัมน์กว้าง “คงที่” เท่ากับความกว้างการ์ด จะได้ห่อขึ้นบรรทัดใหม่พอดี
+                    <Col key={concert.ID} flex="0 0 230px">
+                      <div
                         style={{
-                          width: "230px",
                           display: "flex",
                           flexDirection: "column",
-                          justifyContent: "space-between",
-                          cursor: buttonState.clickable
-                            ? "pointer"
-                            : "not-allowed",
-                          opacity: buttonState.clickable ? 1 : 0.9,
+                          alignItems: "center",
+                          gap: "12px",
                         }}
-                        onClick={() =>
-                          buttonState.clickable &&
-                          handleConcertClick(concert.ID)
-                        }
                       >
-                        <Title level={5} ellipsis={{ rows: 2 }}>
-                          {concert.concert_name || "ไม่ระบุชื่อคอนเสิร์ต"}
-                        </Title>
+                        <Card
+                          hoverable={buttonState.clickable}
+                          cover={
+                            <img
+                              alt={concert.concert_name || "Concert"}
+                              src={`http://localhost:8000${concert.concert_poster_url}`}
+                              style={{ height: 280, objectFit: "cover" }}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "/placeholder-image.jpg";
+                              }}
+                            />
+                          }
+                          style={{
+                            width: 230,
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            cursor: buttonState.clickable
+                              ? "pointer"
+                              : "not-allowed",
+                            opacity: buttonState.clickable ? 1 : 0.9,
+                          }}
+                          onClick={() =>
+                            buttonState.clickable &&
+                            handleConcertClick(concert.ID)
+                          }
+                        >
+                          <div
+                            style={{
+                              minHeight: 135,
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "flex-start",
+                            }}
+                          >
+                            <Title level={5} ellipsis={{ rows: 2 }}>
+                              {concert.concert_name || "ไม่ระบุชื่อคอนเสิร์ต"}
+                            </Title>
 
-                        {concert.artist && (
-                          <Paragraph type="secondary" ellipsis>
-                            {concert.artist}
-                          </Paragraph>
-                        )}
-
-                        {concert.ShowDates && (
-                          <Paragraph style={{ marginBottom: 0 }}>
-                            📅{" "}
-                            {formatDateRange(
-                              concert.ShowDates.map((sd) => sd.show_date)
+                            {concert.artist && (
+                              <Paragraph type="secondary" ellipsis>
+                                {concert.artist}
+                              </Paragraph>
                             )}
-                          </Paragraph>
-                        )}
-                      </Card>
 
-                      <Button
-                        onClick={() =>
-                          buttonState.clickable &&
-                          handleConcertClick(concert.ID)
-                        }
-                        type={buttonState.type}
-                        size="large"
-                        disabled={buttonState.disabled}
-                        style={
-                          buttonState.disabled ? grayBtnStyle : baseBtnStyle
-                        }
-                      >
-                        {buttonState.text}
-                      </Button>
-                    </div>
-                  </Col>
-                );
-              })}
-            </Row>
+                            {concert.ShowDates && (
+                              <Paragraph
+                                style={{ marginBottom: 0 }}
+                                ellipsis={{ rows: 2 }}
+                              >
+                                📅{" "}
+                                {formatDateRange(
+                                  concert.ShowDates.map((sd) => sd.show_date)
+                                )}
+                              </Paragraph>
+                            )}
+                          </div>
+                        </Card>
+
+                        <Button
+                          onClick={() =>
+                            buttonState.clickable &&
+                            handleConcertClick(concert.ID)
+                          }
+                          type={buttonState.type}
+                          size="large"
+                          disabled={buttonState.disabled}
+                          style={
+                            buttonState.disabled ? grayBtnStyle : baseBtnStyle
+                          }
+                        >
+                          {buttonState.text}
+                        </Button>
+                      </div>
+                    </Col>
+                  );
+                })}
+              </Row>
+            </div>
           </div>
         )}
       </div>

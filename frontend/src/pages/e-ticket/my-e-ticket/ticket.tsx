@@ -20,7 +20,6 @@ export function TicketCardRow({
   posterUrl,
   ticketCount = 1,
   onClick,
-  ended = false,
 }: Props) {
   const d = dayjs(dateISO);
   const day = d.format("DD");
@@ -28,28 +27,32 @@ export function TicketCardRow({
 
   return (
     <Card
-      hoverable={!ended}
-      onClick={!ended ? onClick : undefined}
+      // hoverable={!ended}
+      onClick={onClick}
       style={{
-        position: "sticky",
-        left: 150,
-        marginTop: 60,
+        // position: "sticky",
+        // left: 150,
+        marginTop: 10,
         width: 380,
         borderRadius: 12,
         boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-        cursor: ended ? "not-allowed" : "pointer",
-        opacity: ended ? 0.8 : 1,
         overflow: "hidden",
-        marginLeft: "120px",
+        marginLeft: "70px",
       }}
       bodyStyle={{ padding: 0 }}
     >
-      <div style={{ display: "flex", gap: 0, alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 0,
+          alignItems: "center",
+        }}
+      >
         <img
           src={`http://localhost:8000${posterUrl}`}
           alt={posterUrl}
           style={{
-            width: 110,
+            width: 140,
             height: 170,
             objectFit: "cover",
             borderRadius: "11px 0 0 11px", // ขอบมนเฉพาะซ้ายบนและซ้ายล่าง

@@ -8,6 +8,7 @@ export type User = {
   id?: number | string;
   firstname?: string;
   lastname?: string;
+  phonenum?: string;
   name?: string;
   email?: string;
   role?: string | number;
@@ -24,7 +25,7 @@ type LoginResult = {
 type AuthContextType = {
   user: User | null;
   token: string | null;
-  authReady: boolean; // 
+  authReady: boolean; //
   login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
 };
@@ -48,7 +49,6 @@ const isJwtExpired = (token: string | null | undefined) => {
   if (!exp) return false;
   return Date.now() >= exp * 1000;
 };
-
 
 const combineNames = (
   firstname?: string,
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
           setUser(null);
         }
       }
-      // เก็บ role/role_id ไว้ใน state user ถ้าต้องการ (ไม่จำเป็นตรงนี้เพราะมักอยู่ใน user อยู่แล้ว)
+
     } else {
       // token หมดอายุ/ไม่มี → ล้างทิ้ง
       localStorage.removeItem("token");
@@ -172,7 +172,6 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
             : null;
       }
     }
-
 
     setToken(token);
     setUser(userObj);
