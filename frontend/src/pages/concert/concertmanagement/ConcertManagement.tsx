@@ -7,6 +7,12 @@ import AddConcertForm from "./add/consert";
 import type { ConcertInterface } from "../../../interface/concert";
 import dayjs from "dayjs"
 
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 
 import {
@@ -74,16 +80,23 @@ const fetchConcerts = async () => {
 const handleEditFinish = async (values: any) => {
   if (!editingConcert) return;
 
+
+
   const payload = {
     ...editingConcert,
     ...values,
     onsale_date: values.onsale_date
-      ? values.onsale_date.toDate().toISOString()
+      ? dayjs(values.onsale_date).tz("Asia/Bangkok").format("YYYY-MM-DDTHH:mm:ss.SSSSSSZ")
       : editingConcert.onsale_date,
+
     offsale_date: values.offsale_date
-      ? values.offsale_date.toDate().toISOString()
+      ? dayjs(values.offsale_date).tz("Asia/Bangkok").format("YYYY-MM-DDTHH:mm:ss.SSSSSSZ")
       : editingConcert.offsale_date,
+
+
   };
+  console.log(payload)
+  
 
   const newDates = [
     values.date1, values.date2, values.date3,
@@ -98,7 +111,7 @@ const handleEditFinish = async (values: any) => {
       await Showdate.add({
         concert_id: Number(editingConcert.ID),
         venue_id: Number(values.venue_id),
-        show_date: d.toDate().toISOString(),
+        show_date: dayjs(d).tz("Asia/Bangkok").format("YYYY-MM-DDTHH:mm:ss.SSSSSSZ"),
       });
     }
 
@@ -163,8 +176,8 @@ const handleDelete = (id: number) =>
     concert_name: values.concert_name,
     artist: values.artist,
     venue_id: Number(values.venue_id),
-    onsale_date: values.onsale_date ? dayjs(values.onsale_date).toISOString() : undefined,
-    offsale_date: values.offsale_date ? dayjs(values.offsale_date).toISOString() : undefined,
+    onsale_date: values.onsale_date ? dayjs(values.offsale_date).tz("Asia/Bangkok").format("YYYY-MM-DDTHH:mm:ss.SSSSSSZ") : undefined,
+    offsale_date: values.offsale_date ? dayjs(values.offsale_date).tz("Asia/Bangkok").format("YYYY-MM-DDTHH:mm:ss.SSSSSSZ") : undefined,
     concert_poster_url: values.concert_poster_url ?? "",
     user_id,
   } as const;
@@ -187,7 +200,7 @@ const handleDelete = (id: number) =>
           await Showdate.add({
           concert_id: Number(concertId),
           venue_id: Number(values.venue_id),
-          show_date: inx[i] ? dayjs(inx[i]).toISOString() : undefined,  
+          show_date: inx[i] ? dayjs(inx[i]).tz("Asia/Bangkok").format("YYYY-MM-DDTHH:mm:ss.SSSSSSZ") : undefined,  
           });
         }
         console.log("showdate  created ID :",i);
