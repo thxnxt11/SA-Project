@@ -87,7 +87,6 @@ func (h *ETicketController) GetETicketByShowID(c *gin.Context) {
 		return
 	}
 
-	// สร้าง response structure ที่มีข้อมูลครบถ้วน
 	if len(tickets) == 0 {
 		c.JSON(404, gin.H{"error": "No tickets found", "success": false})
 		return

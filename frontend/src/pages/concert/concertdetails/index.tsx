@@ -233,27 +233,29 @@ const ConcertDetail: React.FC = () => {
   return (
     <>
       <Navbar />
-      <div style={{ display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", flexDirection: "column", padding: 12 }}>
         <Card
           style={{
             backgroundColor: "#ffffffff",
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-            borderRadius: 12,
-            // padding: "16px",
+            borderRadius: 16,
+            overflow: "hidden",
+            padding: 0,
           }}
+          bodyStyle={{ padding: 0 }}
         >
-          <Row gutter={[24, 24]} align="middle">
-            {/* ซ้าย: Poster */}
-            <Col xs={24} md={10}>
+          <Row style={{ height: "420px" }}>
+            {/* ซ้าย: รูปภาพ */}
+            <Col xs={24} md={10} style={{ height: "100%" }}>
               <img
                 alt={concert.concert_name || "Concert"}
                 src={`http://localhost:8000${concert.concert_poster_url}`}
                 style={{
-                  width: "660px",
-                  height: "420px",
+                  width: "110%",
+                  height: "100%",
                   objectFit: "cover",
                   objectPosition: "50% 80%",
-                  borderRadius: 12,
+                  borderRadius: "12px 0 0 12px",
                 }}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -263,15 +265,17 @@ const ConcertDetail: React.FC = () => {
             </Col>
 
             {/* ขวา: ข้อมูลคอนเสิร์ต */}
-            <Col xs={24} md={14}>
+            <Col xs={24} md={14} style={{ height: "100%" }}>
               <div
                 style={{
-                  borderRadius: 16,
-                  padding: "20px 48px",
-                  minHeight: 420,
+                  padding: "20px 48px 20px 80px", // เพิ่ม padding ซ้ายให้มากขึ้น
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
                 }}
               >
-                <h1 style={{ marginBottom: "24px", textAlign: "center" }}>
+                <h1 style={{ marginBottom: "8px", textAlign: "center" }}>
                   {concert.concert_name}
                 </h1>
                 <Divider style={{ borderColor: "#000000ff" }}></Divider>
@@ -326,7 +330,7 @@ const ConcertDetail: React.FC = () => {
                 )}
                 <div
                   style={{
-                    marginTop: "80px",
+                    marginTop: "auto", // ดันปุ่มลงล่าง
                     display: "flex",
                     justifyContent: "center",
                   }}

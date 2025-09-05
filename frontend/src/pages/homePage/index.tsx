@@ -19,7 +19,7 @@ import {
   GiftOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../component/layout/navbar";
 import type { ConcertInterface } from "../../interface/concert";
 import { concertAPI, promotionAPI } from "../../services/https";
@@ -227,7 +227,7 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const perSlide = screens.xl ? 3 : screens.md ? 2 : 1;
+  const perSlide = screens.xl ? 5 : screens.md ? 2 : 1;
 
   const concertslides = useMemo(() => {
     const out: ConcertInterface[][] = [];
@@ -367,9 +367,28 @@ const HomePage: React.FC = () => {
 
       {/* ======= Recommended Concerts ======= */}
       <div style={{ padding: "20px 40px", position: "relative" }}>
-        <Title level={2} style={{ marginBottom: 24, marginLeft: "6%" }}>
-          🎶 Recommended Concerts
-        </Title>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "end",
+            margin: "0 10%",
+          }}
+        >
+          <Title level={2}>🎶 Recommended Concerts</Title>
+          <Link to="/concerts">
+            <Text
+              style={{
+                fontSize: "18px",
+                color: "#001a4d",
+                cursor: "pointer",
+                fontWeight: "bold",
+              }}
+            >
+              All Concert
+            </Text>
+          </Link>
+        </div>
 
         {concertslides.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px 0" }}>
@@ -386,7 +405,7 @@ const HomePage: React.FC = () => {
               style={{
                 position: "absolute",
                 top: "40%",
-                left: "50px",
+                left: "20px",
                 zIndex: 10,
                 background: "rgba(0,0,0,0.6)",
                 borderColor: "transparent",
@@ -403,7 +422,7 @@ const HomePage: React.FC = () => {
               style={{
                 position: "absolute",
                 top: "40%",
-                right: "50px",
+                right: "20px",
                 zIndex: 10,
                 background: "rgba(0,0,0,0.6)",
                 borderColor: "transparent",
@@ -417,7 +436,7 @@ const HomePage: React.FC = () => {
                   <Row
                     gutter={[16, 20]}
                     justify="center"
-                    style={{ maxWidth: 1300, margin: "0 auto" }}
+                    style={{ maxWidth: 1300, margin: "0 auto", marginTop: 18 }}
                   >
                     {group.map((concert) => {
                       const buttonState = getButtonState(concert);
@@ -539,7 +558,7 @@ const HomePage: React.FC = () => {
 
       {/* ======= Promotions ======= */}
       <div style={{ padding: "20px 40px", position: "relative" }}>
-        <Title level={2} style={{ marginBottom: 24, marginLeft: "6%" }}>
+        <Title level={2} style={{ marginBottom: 24, marginLeft: "10%" }}>
           🎟️ Promotion Code
         </Title>
 
@@ -560,7 +579,7 @@ const HomePage: React.FC = () => {
               style={{
                 position: "absolute",
                 top: "40%",
-                left: "50px",
+                left: "20px",
                 zIndex: 10,
                 background: "rgba(0,0,0,0.6)",
                 borderColor: "transparent",
@@ -575,7 +594,7 @@ const HomePage: React.FC = () => {
               style={{
                 position: "absolute",
                 top: "40%",
-                right: "50px",
+                right: "20px",
                 zIndex: 10,
                 background: "rgba(0,0,0,0.6)",
                 borderColor: "transparent",
@@ -587,7 +606,7 @@ const HomePage: React.FC = () => {
               {promoSlides.map((group, idx) => (
                 <div key={idx}>
                   <Row
-                    gutter={[32, 32]}
+                    gutter={[48, 48]}
                     justify="center"
                     style={{ maxWidth: 1300, margin: "0 auto" }}
                   >
@@ -677,7 +696,7 @@ const HomePage: React.FC = () => {
                                   flex: 1,
                                   minWidth: 0,
                                   padding: 12,
-                                  paddingLeft: 12,
+                                  paddingLeft: 24,
                                   display: "flex",
                                   flexDirection: "column",
                                 }}
@@ -722,7 +741,7 @@ const HomePage: React.FC = () => {
                                   {name}
                                 </Title>
 
-                                {/* อธิบายว่าใช้กับอะไรได้ + ชื่อคอนเสิร์ต */}
+                                {/* อธิบายว่าใช้ส่วนลดนี้กับอะไรได้บ้าง */}
                                 <Tooltip title={explain}>
                                   <Paragraph
                                     type="secondary"
@@ -730,7 +749,7 @@ const HomePage: React.FC = () => {
                                   >
                                     {explain}
                                     {p?.concert?.artist
-                                      ? ` (${p.concert.artist})`
+                                      ? ` ${p.concert.artist}`
                                       : ""}
                                   </Paragraph>
                                 </Tooltip>

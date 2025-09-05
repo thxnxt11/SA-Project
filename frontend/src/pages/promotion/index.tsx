@@ -1,9 +1,9 @@
 import SidebarLayout from "../../component/layout/SidebarLayout";
 import type React from "react";
 import { useState, useEffect } from "react";
-import { Button, Flex, Space, Table, Tag, message, Modal } from "antd";
+import { Button, Space, Table, Tag, message, Modal } from "antd";
 import type { TableProps } from "antd";
-import { SearchOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import { ExclamationCircleOutlined } from "@ant-design/icons";
 import type { PromotionInterface } from "../../interface/promotion";
 import { FaEdit } from "react-icons/fa";
 import { RiDeleteBin6Line } from "react-icons/ri";
@@ -72,19 +72,22 @@ const Promotion: React.FC = () => {
       key: "promotion_type",
       dataIndex: "promotion_type_id",
       render: (_, record) => {
-        const typeMap: Record<number, string> = {
-          1: "Early Bird",
-          2: "Code",
-          3: "Concert",
+        const typeMap: Record<number, { label: string; color: string }> = {
+          2: { label: "Code", color: "purple-inverse" },
+          3: { label: "Concert", color: "volcano-inverse" },
         };
+
         const typeId = record.promotion_type_id;
+        const typeInfo = typeId ? typeMap[typeId] : null;
+
         return (
-          <Tag color="#0048ffc7">
-            {typeId ? typeMap[typeId] || "Unknown" : "-"}
+          <Tag color={typeInfo?.color || "default"}>
+            {typeInfo?.label || "Unknown"}
           </Tag>
         );
       },
     },
+
     {
       title: "Discount (%)",
       dataIndex: "discount",
@@ -235,23 +238,6 @@ const Promotion: React.FC = () => {
             </Button>
           </Link>
         </div>
-
-        <Flex gap="small" vertical>
-          <Button
-            icon={<SearchOutlined />}
-            style={{
-              display: "flex",
-              justifyContent: "left",
-              height: 45,
-              fontSize: 17,
-              marginTop: 20,
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-            }}
-          >
-            Search
-          </Button>
-        </Flex>
-
         <Table<PromotionInterface>
           columns={columns}
           dataSource={promotions}

@@ -16,9 +16,6 @@ func NewZoneController(s *services.ZoneService) *ZoneController {
 	return &ZoneController{svc: s}
 }
 
-// GET /api/showdate/:id/zones
-// คืน zones ของ showdate พร้อม seat_available (ถ้าเป็น seating)
-// และ available_count (ถ้าเป็น standing)
 func (h *ZoneController) GetZonesAvailableByShowDate(c *gin.Context) {
 	idStr := c.Param("id")
 	if idStr == "" {

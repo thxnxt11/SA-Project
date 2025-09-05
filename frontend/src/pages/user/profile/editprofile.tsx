@@ -14,6 +14,7 @@ import {
   Divider,
   Tooltip,
   Skeleton,
+  Avatar,
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
 import { FaUserCircle } from "react-icons/fa";
@@ -51,9 +52,9 @@ const cardStyle: React.CSSProperties = {
 };
 
 const headerWrap: React.CSSProperties = {
-  background:
-    "radial-gradient(1200px 200px at 50% -20%, #e6f0ff, transparent), linear-gradient(135deg, #f5f7ff 0%, #edf4ff 100%)",
+  background: "linear-gradient(135deg, #001a4d 0%, #00306e 50%, #004a8f 100%)",
   padding: "28px 28px 16px 28px",
+  color: "#fff",
 };
 
 const footerBar: React.CSSProperties = {
@@ -197,27 +198,44 @@ const EditProfile: React.FC = () => {
         <Card style={cardStyle} bodyStyle={{ padding: 0 }}>
           {/* Header */}
           <div style={headerWrap}>
-            <Space align="center" size={16} wrap>
-              <div
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 16,
-                  background: "#fff",
-                  display: "grid",
-                  placeItems: "center",
-                  boxShadow: "0 6px 18px rgba(24, 144, 255, 0.15)",
-                }}
-              >
-                <FaUserCircle style={{ fontSize: 64, color: "#1677ff" }} />
-              </div>
-              <div>
-                <Title level={3} style={{ margin: 0 }}>
-                  {userName || "Your Profile"}
-                </Title>
-                <Text type="secondary">{user?.email}</Text>
-              </div>
-            </Space>
+            <Col>
+              <Space size={24} align="center">
+                <Avatar
+                  size={80}
+                  icon={<UserOutlined />}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.15)",
+                    color: "white",
+                    fontSize: 32,
+                    border: "3px solid rgba(255, 255, 255, 0.2)",
+                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+                  }}
+                />
+                <div>
+                  <Title
+                    level={2}
+                    style={{
+                      margin: 0,
+                      color: "white",
+                      fontSize: 28,
+                      fontWeight: 700,
+                      textShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
+                    }}
+                  >
+                    {userName}
+                  </Title>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      color: "rgba(255, 255, 255, 0.8)",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {user?.email}
+                  </Text>
+                </div>
+              </Space>
+            </Col>
           </div>
 
           <Divider style={{ margin: 0 }} />
