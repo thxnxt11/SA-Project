@@ -158,7 +158,7 @@ func (s *BookingService) CreateBooking(in CreateBookingInput) (*entity.Booking, 
     if in.HoldMinutes > 0 {
         exp = now.Add(time.Duration(in.HoldMinutes) * time.Minute)
     }else{
-		exp = now.Add(2 * time.Minute) // default 15 นาที (test 2 นาที)
+		exp = now.Add(15 * time.Minute) // default 15 นาที (test 2 นาที)
 	}
 
     //LOCK โซนเสมอเพื่อคุม PendingHold/Capacity ----
