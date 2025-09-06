@@ -30,7 +30,7 @@ type Props = {
 const statusColor = (s: string) => {
   const v = (s || "").toLowerCase();
   if (v === "available") return "#6ef47dff";
-  if (v === "unavailable") return "#5d57fbff";
+  if (v === "unavailable") return "#b7b7b7ff";
   return "#dc3a3aff";
 };
 
@@ -48,8 +48,6 @@ const SeatGrid: React.FC<Props> = ({
   onSeatClick,
   columnsPerRow = 15,
 }) => {
-
-  
   const sorted = React.useMemo(() => {
     const clone = [...seats];
     clone.sort((a, b) => {
@@ -96,14 +94,25 @@ const SeatGrid: React.FC<Props> = ({
     },
     [onSeatClick, selectedIds, sorted]
   );
-  const markAvailable = React.useCallback(() => bulkSet("available"), [bulkSet]);
-  const markUnavailable = React.useCallback(() => bulkSet("unavailable"), [bulkSet]);
+  const markAvailable = React.useCallback(
+    () => bulkSet("available"),
+    [bulkSet]
+  );
+  const markUnavailable = React.useCallback(
+    () => bulkSet("unavailable"),
+    [bulkSet]
+  );
 
   // ----- drag (box select) -----
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const gridRef = React.useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = React.useState(false);
-  const [dragRect, setDragRect] = React.useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [dragRect, setDragRect] = React.useState<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
 
   const dragStartRef = React.useRef<{ x: number; y: number } | null>(null);
   const startSelectedRef = React.useRef<Set<number>>(new Set());
@@ -111,8 +120,14 @@ const SeatGrid: React.FC<Props> = ({
   const draggedRef = React.useRef<boolean>(false);
   const DRAG_THRESHOLD = 3;
 
-  const intersects = (a: DOMRect, b: { left: number; top: number; right: number; bottom: number }) =>
-    a.right >= b.left && a.left <= b.right && a.bottom >= b.top && a.top <= b.bottom;
+  const intersects = (
+    a: DOMRect,
+    b: { left: number; top: number; right: number; bottom: number }
+  ) =>
+    a.right >= b.left &&
+    a.left <= b.right &&
+    a.bottom >= b.top &&
+    a.top <= b.bottom;
 
   const handleMouseDown: React.MouseEventHandler<HTMLDivElement> = (e) => {
     if (e.button !== 0) return;
@@ -227,7 +242,9 @@ const SeatGrid: React.FC<Props> = ({
     if (idx < 0) return; // target seat not in this dataset
 
     // locate the element
-    const el = grid.querySelector<HTMLElement>(`[data-seat-id="${TARGET_SEAT_ID}"]`);
+    const el = grid.querySelector<HTMLElement>(
+      `[data-seat-id="${TARGET_SEAT_ID}"]`
+    );
     if (!el) return;
 
     // ensure any previous padding is cleared before measuring scroll
@@ -240,8 +257,15 @@ const SeatGrid: React.FC<Props> = ({
       if (canScrollHoriz) {
         // center by scroll
         const elCenterX = el.offsetLeft + el.offsetWidth / 2;
-        const targetScrollLeft = Math.max(0, elCenterX - container.clientWidth / 2);
-        container.scrollTo({ left: targetScrollLeft, top: 0, behavior: "auto" });
+        const targetScrollLeft = Math.max(
+          0,
+          elCenterX - container.clientWidth / 2
+        );
+        container.scrollTo({
+          left: targetScrollLeft,
+          top: 0,
+          behavior: "auto",
+        });
       } else {
         // compute padding-left needed to align target seat to container center
         const containerCenter = container.clientWidth / 2;
@@ -258,8 +282,7 @@ const SeatGrid: React.FC<Props> = ({
   }, [sorted]);
 
   // grid total width (useful for debugging/consistency)
-  const gridWidth =
-    columnsPerRow * CELL_SIZE + (columnsPerRow - 1) * CELL_GAP;
+  const gridWidth = columnsPerRow * CELL_SIZE + (columnsPerRow - 1) * CELL_GAP;
 
   return (
     <Card size="small" style={{ minHeight: 420 }}>
@@ -277,7 +300,7 @@ const SeatGrid: React.FC<Props> = ({
           </Tooltip>
           <Flex gap={8} align="right" style={{ marginRight: 8 }}>
             <Tag color="green">Available</Tag>
-            <Tag color="blue">Unavailable</Tag>
+            <Tag color="#b7b7b7ff">Unavailable</Tag>
           </Flex>
         </Flex>
       </Flex>
@@ -317,7 +340,8 @@ const SeatGrid: React.FC<Props> = ({
             {sorted.map((s) => {
               const label = s.seat?.seat_code ?? s.seat?.seat_name ?? s.seat_id;
               const bg = statusColor(s.seatavailable_status);
-              const isAvail = (s.seatavailable_status || "").toLowerCase() === "available";
+              const isAvail =
+                (s.seatavailable_status || "").toLowerCase() === "available";
               const isSelected = selectedIds.has(s.seat_id);
               const isTarget = s.seat_id === TARGET_SEAT_ID;
 
@@ -360,14 +384,17 @@ const SeatGrid: React.FC<Props> = ({
                         : isAvail
                         ? "0 1px 0 rgba(0,0,0,0.05)"
                         : "none",
-                    transition: "transform 80ms ease, border 80ms ease, box-shadow 200ms ease",
+                    transition:
+                      "transform 80ms ease, border 80ms ease, box-shadow 200ms ease",
                     outline: isSelected ? "2px solid rgba(0,0,0,0.2)" : "none",
                   }}
                   onMouseDown={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.transform = "scale(0.98)";
+                    (e.currentTarget as HTMLDivElement).style.transform =
+                      "scale(0.98)";
                   }}
                   onMouseUp={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.transform = "scale(1)";
+                    (e.currentTarget as HTMLDivElement).style.transform =
+                      "scale(1)";
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -401,8 +428,9 @@ const SeatGrid: React.FC<Props> = ({
       )}
 
       <div style={{ marginTop: 8, fontSize: 12, color: "rgba(0,0,0,0.55)" }}>
-        Tip: drag to box-select (hold Ctrl/Cmd to add). Ctrl/Cmd-click toggles selection without changing status.
-        Press <b>A</b> to mark available, <b>U</b> to mark unavailable, <b>Esc</b> to clear selection.
+        Tip: drag to box-select (hold Ctrl/Cmd to add). Ctrl/Cmd-click toggles
+        selection without changing status. Press <b>A</b> to mark available,{" "}
+        <b>U</b> to mark unavailable, <b>Esc</b> to clear selection.
       </div>
     </Card>
   );

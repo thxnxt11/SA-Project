@@ -1,11 +1,21 @@
 // src/pages/zones/ZoneBrowser.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Card, Col, Row, Select, Space, Table, Modal, Button, message, Form } from "antd";
+import {
+  Card,
+  Col,
+  Row,
+  Select,
+  Space,
+  Table,
+  Modal,
+  Button,
+  message,
+  Form,
+} from "antd";
 import SidebarLayout from "../../component/layout/SidebarLayout";
 import type { ZoneInterface } from "../../interface/zone";
-import { Seat, Get } from "../../services/https/seat";
-import { venueoption } from "../../services/https/concert";
-import { zoneaseat } from "../../services/https/seat";
+import { venueoption, zoneApi } from "../../services/https";
+import { seatAPI } from "../../services/https";
 
 import AddZoneForm from "./add/seat";
 import EditZoneForm from "./edit/seat";
@@ -15,15 +25,13 @@ import { FaEdit } from "react-icons/fa";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { MdEventSeat } from "react-icons/md";
 
-const API_ORG = "http://localhost:8000/organizer";
-
 // normalize API ids
 const normalizeId = (x: any) => x?.id ?? x?.ID;
-console.log("idk : ",normalizeId)
+console.log("idk : ", normalizeId);
 
 // normalize seat status to a strict union
 const norm = (x?: string) =>
-  ((x ?? "").trim().toLowerCase() === "available" ? "available" : "unavailable");
+  (x ?? "").trim().toLowerCase() === "available" ? "available" : "unavailable";
 
 const fmtDate = (iso?: string) => {
   if (!iso || iso.startsWith("0001-")) return "—";
@@ -38,8 +46,18 @@ const fmtDate = (iso?: string) => {
   }).format(d);
 };
 
-type ConcertPick = { id?: number; ID?: number; concert_name?: string; ConcertName?: string };
-type ShowDatePick = { id?: number; ID?: number; show_date?: string; ShowDate?: string };
+type ConcertPick = {
+  id?: number;
+  ID?: number;
+  concert_name?: string;
+  ConcertName?: string;
+};
+type ShowDatePick = {
+  id?: number;
+  ID?: number;
+  show_date?: string;
+  ShowDate?: string;
+};
 type Option = { value: number; label: string };
 
 export default function ZoneBrowser() {
@@ -81,7 +99,10 @@ export default function ZoneBrowser() {
     () =>
       concerts.map((c) => {
         const id = normalizeId(c);
-        return { value: id, label: c.concert_name ?? c.ConcertName ?? `Concert #${id}` };
+        return {
+          value: id,
+          label: c.concert_name ?? c.ConcertName ?? `Concert #${id}`,
+        };
       }),
     [concerts]
   );
@@ -98,7 +119,7 @@ export default function ZoneBrowser() {
   const fetchConcerts = async (uid: string) => {
     try {
       setLoading(true);
-      const rows = await Seat.getconbyuser(uid);
+      const rows = await zoneApi.getconbyuser(uid);
       setConcerts(Array.isArray(rows) ? rows : []);
     } catch (e: any) {
       message.error(e?.message || "Load concerts failed");
@@ -110,7 +131,7 @@ export default function ZoneBrowser() {
   const fetchShowdates = async (cid: number) => {
     try {
       setLoading(true);
-      const rows = await Seat.getshowbycon(cid);
+      const rows = await zoneApi.getshowbycon(cid);
       setShowdates(Array.isArray(rows) ? rows : []);
     } catch (e: any) {
       message.error(e?.message || "Load showdates failed");
@@ -122,7 +143,7 @@ export default function ZoneBrowser() {
   const fetchZones = async (sid: number) => {
     try {
       setLoading(true);
-      const rows = await Seat.getzonebyshow(sid);
+      const rows = await zoneApi.getzonebyshow(sid);
       setZones(Array.isArray(rows) ? rows : []);
     } catch (e: any) {
       message.error(e?.message || "Load zones failed");
@@ -139,10 +160,10 @@ export default function ZoneBrowser() {
     }));
     setVenueOptions(vOpts);
 
-    const zt = await Get(`${API_ORG}/zonetype`);
-    const zRows = zt?.data || [];
+    const zt = await zoneApi.getzonetype();
+    const zRows = zt;
     const ztOpts: Option[] = (zRows || []).map((z: any) => ({
-      value: z.id ?? z.ID,
+      value: z.id,
       label: z.zone_type,
     }));
     setZoneTypeOptions(ztOpts);
@@ -159,7 +180,7 @@ export default function ZoneBrowser() {
 
   const handleAddZone = async (values: any) => {
     try {
-      const created = await Seat.add(values);
+      const created = await zoneApi.add(values);
       const newZoneId = created?.id ?? created?.ID;
 
       message.success("Zone created");
@@ -168,7 +189,7 @@ export default function ZoneBrowser() {
       // Only seed seats when seating type (here == 2)
       if (newZoneId && Number(values.zonetype_id) === 2) {
         try {
-          await zoneaseat.addbyid(newZoneId);
+          await seatAPI.addbyid(newZoneId);
         } catch (e) {
           // ignore conflicts etc.
           console.warn("Seeding seats failed:", e);
@@ -211,12 +232,15 @@ export default function ZoneBrowser() {
         zonetype_id: Number(values.zonetype_id),
         zone_name: String(values.zone_name).trim(),
       };
-      if (values.zone_price != null) payload.zone_price = Number(values.zone_price);
+      if (values.zone_price != null)
+        payload.zone_price = Number(values.zone_price);
       if (values.capacity != null) payload.capacity = Number(values.capacity);
-      if (values.seat_sold != null) payload.seat_sold = Number(values.seat_sold);
-      if (values.pending_hold != null) payload.pending_hold = Number(values.pending_hold);
+      if (values.seat_sold != null)
+        payload.seat_sold = Number(values.seat_sold);
+      if (values.pending_hold != null)
+        payload.pending_hold = Number(values.pending_hold);
 
-      await Seat.update(id, payload);
+      await zoneApi.update(id, payload);
       message.success("Zone updated");
       setIsEditOpen(false);
       setEditingZone(null);
@@ -229,9 +253,16 @@ export default function ZoneBrowser() {
   const getZoneTypeName = (r: any): string | undefined => {
     const nameFromRow = r?.zone_type?.zone_type ?? r?.ZoneType?.zone_type;
     if (nameFromRow) return String(nameFromRow);
-    const id = r?.zonetype_id ?? r?.zone_type_id ?? r?.zoneTypeId ?? r?.zone_type?.id ?? r?.ZoneType?.id;
+    const id =
+      r?.zonetype_id ??
+      r?.zone_type_id ??
+      r?.zoneTypeId ??
+      r?.zone_type?.id ??
+      r?.ZoneType?.id;
     if (id == null) return undefined;
-    const opt = (zoneTypeOptions || []).find((o) => Number(o.value) === Number(id));
+    const opt = (zoneTypeOptions || []).find(
+      (o) => Number(o.value) === Number(id)
+    );
     return opt?.label;
   };
 
@@ -245,9 +276,9 @@ export default function ZoneBrowser() {
         try {
           // best-effort remove seats; safe for zones without seats
           try {
-            await zoneaseat.deletebyid(zoneId);
+            await seatAPI.deletebyid(zoneId);
           } catch {}
-          await Seat.delete(zoneId);
+          await zoneApi.delete(zoneId);
           message.success("Zone deleted");
           if (showdateId) fetchZones(showdateId);
         } catch (e: any) {
@@ -262,11 +293,13 @@ export default function ZoneBrowser() {
   const loadSeats = async (zoneId: number) => {
     try {
       setLoadingSeats(true);
-      const rows = await zoneaseat.getbyzoneid(zoneId);
-      const list: SeatAvailable[] = (Array.isArray(rows) ? rows : []).map((s) => ({
-        ...s,
-        seatavailable_status: norm(s.seatavailable_status),
-      }));
+      const rows = await seatAPI.getbyzoneid(zoneId);
+      const list: SeatAvailable[] = (Array.isArray(rows) ? rows : []).map(
+        (s) => ({
+          ...s,
+          seatavailable_status: norm(s.seatavailable_status),
+        })
+      );
       setSeatRows(list);
       // snapshot for diff
       setInitialSeatRows(list.map((s) => ({ ...s })));
@@ -284,7 +317,10 @@ export default function ZoneBrowser() {
         s.seat_id === seat.seat_id
           ? {
               ...s,
-              seatavailable_status: norm(s.seatavailable_status) === "available" ? "unavailable" : "available",
+              seatavailable_status:
+                norm(s.seatavailable_status) === "available"
+                  ? "unavailable"
+                  : "available",
             }
           : s
       )
@@ -297,7 +333,12 @@ export default function ZoneBrowser() {
    */
   const buildFullZonePayload = (z: any, capacityOverride?: number) => {
     const venueId = z?.venue_id ?? z?.venueId ?? z?.venue?.id;
-    const zoneTypeId = z?.zonetype_id ?? z?.zone_type_id ?? z?.zoneTypeId ?? z?.zone_type?.id ?? z?.ZoneType?.id;
+    const zoneTypeId =
+      z?.zonetype_id ??
+      z?.zone_type_id ??
+      z?.zoneTypeId ??
+      z?.zone_type?.id ??
+      z?.ZoneType?.id;
     const zonePrice = z?.zone_price ?? z?.zonePrice;
 
     return {
@@ -306,7 +347,10 @@ export default function ZoneBrowser() {
       zonetype_id: Number(zoneTypeId ?? 0),
       zone_name: String(z?.zone_name ?? "").trim(),
       zone_price: zonePrice != null ? Number(zonePrice) : 0,
-      capacity: capacityOverride != null ? Number(capacityOverride) : Number(z?.capacity ?? 0),
+      capacity:
+        capacityOverride != null
+          ? Number(capacityOverride)
+          : Number(z?.capacity ?? 0),
       seat_sold: Number(z?.seat_sold ?? 0),
       pending_hold: Number(z?.pending_hold ?? 0),
     };
@@ -320,13 +364,15 @@ export default function ZoneBrowser() {
       // find changed seats (match by seat_id, compare normalized status)
       const delta = seatRows.filter((s) => {
         const old = initialSeatRows.find((o) => o.seat_id === s.seat_id);
-        return old && norm(old.seatavailable_status) !== norm(s.seatavailable_status);
+        return (
+          old && norm(old.seatavailable_status) !== norm(s.seatavailable_status)
+        );
       });
 
       if (delta.length) {
         await Promise.all(
           delta.map((s) =>
-            zoneaseat.updatebyid(seatZoneId, s.seat_id, {
+            seatAPI.updatebyid(seatZoneId, s.seat_id, {
               seatavailable_status: norm(s.seatavailable_status),
             })
           )
@@ -334,26 +380,29 @@ export default function ZoneBrowser() {
       }
 
       // recompute capacity = count of normalized available
-      const availableCount = seatRows.filter((s) => norm(s.seatavailable_status) === "available").length;
+      const availableCount = seatRows.filter(
+        (s) => norm(s.seatavailable_status) === "available"
+      ).length;
 
       // update zone capacity with a full payload to avoid zeroing other fields
       const source =
-        zones.find((z) => Number(normalizeId(z)) === Number(seatZoneId)) ?? editingZone;
+        zones.find((z) => Number(normalizeId(z)) === Number(seatZoneId)) ??
+        editingZone;
 
       if (!source) {
-        await Seat.update(seatZoneId, {
+        await zoneApi.update(seatZoneId, {
           showdate_id: Number(showdateId),
           zone_name: `Zone #${seatZoneId}`,
           venue_id: 0,
           zonetype_id: 0,
           zone_price: 0,
           seat_sold: 0,
-          pending_hold: 0,
+          pending_holds: 0,
           capacity: availableCount,
         });
       } else {
         const fullPayload = buildFullZonePayload(source, availableCount);
-        await Seat.update(seatZoneId, fullPayload);
+        await zoneApi.update(seatZoneId, fullPayload);
       }
 
       message.success("Seats updated");
@@ -433,22 +482,25 @@ export default function ZoneBrowser() {
 
         return (
           <Space>
-            <FaEdit 
+            <FaEdit
               style={{ fontSize: 20, color: "#0048ffff", cursor: "pointer" }}
-              onClick={() => openEdit(r)}>
+              onClick={() => openEdit(r)}
+            >
               Edit
             </FaEdit>
 
-            <RiDeleteBin6Line  
+            <RiDeleteBin6Line
               style={{ fontSize: 20, color: "#ff0000ff", cursor: "pointer" }}
-              onClick={() => handleDelete(Number(id))}>
+              onClick={() => handleDelete(Number(id))}
+            >
               Delete
             </RiDeleteBin6Line>
 
             {!isStanding && (
-              <MdEventSeat 
+              <MdEventSeat
                 style={{ fontSize: 20, color: "#1abb78ff", cursor: "pointer" }}
-                onClick={() => openSeat(r)}>
+                onClick={() => openSeat(r)}
+              >
                 Seat
               </MdEventSeat>
             )}
@@ -507,7 +559,12 @@ export default function ZoneBrowser() {
       </Card>
 
       {/* Add Zone */}
-      <Modal open={isAddOpen} onCancel={() => setIsAddOpen(false)} footer={null} destroyOnClose>
+      <Modal
+        open={isAddOpen}
+        onCancel={() => setIsAddOpen(false)}
+        footer={null}
+        destroyOnClose
+      >
         <AddZoneForm
           showdateId={showdateId!}
           venueOptions={venueOptions}
@@ -538,12 +595,18 @@ export default function ZoneBrowser() {
       {/* Seat Manage */}
       <Modal
         open={isSeatOpen}
-        title={`Manage seats — ${editingZone?.zone_name ?? (seatZoneId ? `Zone #${seatZoneId}` : "")}`}
+        title={`Manage seats — ${
+          editingZone?.zone_name ?? (seatZoneId ? `Zone #${seatZoneId}` : "")
+        }`}
         onCancel={() => setIsSeatOpen(false)}
         footer={
           <Space>
             <Button onClick={() => setIsSeatOpen(false)}>Cancel</Button>
-            <Button type="primary" loading={savingSeats} onClick={handleApplySeats}>
+            <Button
+              type="primary"
+              loading={savingSeats}
+              onClick={handleApplySeats}
+            >
               Apply
             </Button>
           </Space>

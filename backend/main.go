@@ -69,35 +69,8 @@ func main() {
 		router.PUT("/promotion/:id", promotion.UpdatePromotion)
 		router.GET("/promotion", promotion.GetAllPromotions)
 		router.DELETE("/promotion/:id", promotion.DeletePromotion)
-
 		// concerts CRUD
-		router.GET("/concerts", concert.GetAllConcerts)
-		router.POST("/concerts", concert.AddConcert)
-		router.PUT("/concerts/:id", concert.UpdateConcert)
-		router.DELETE("/concerts/:id", concert.DeleteConcert)
-		router.GET("/venues/option",concert.GetAllVenues)
-
-		router.POST("/showdate", concert.AddShowdate)
-		router.PUT("/showdate/:id", concert.UpdateShowdate)
-		router.DELETE("/showdate/:id", concert.DeleteShowdate)
-		router.DELETE("/showdateid/:id",concert.DeleteShowdatebyid)
-
-		router.GET("/zoneconcert/:user_id", zone.GetConcertsByUserID)
-		router.GET("/zoneshowdate/:id", zone.GetShowDatesByConcertID)
-		router.GET("/zonetype", zone.ListZoneTypes)
-
-		router.GET("/zone/:id", zone.GetZonesByShowDateID)
-		router.PUT("/zone/:id", zone.UpdateZone)
-		router.POST("/zone", zone.AddZone)
-		router.DELETE("/zone/:id",zone.DeleteZone)
-
-		router.GET("/seatzone/:id",zone.GetseatzonesByzoneID)
-		router.POST("/seatzone/:id",zone.Addseatzone)
-		router.DELETE("/seatzone/:id",zone.Deleteseatzone)
-		router.PUT("/seatzone/:id/seat/:seat_id",zone.UpdateSeatzone)
-
 	}
-
 	// public API
 	api := r.Group("/api")
 	{
@@ -106,6 +79,28 @@ func main() {
 		api.POST("/upload", promotion.UploadFile)
 		api.GET("/concert/:id", booking.GetConcertByID)
 		api.GET("/showdate/:id/zones", booking.GetZonesByShowDate)
+
+		api.POST("/concerts", concert.AddConcert)
+		api.PUT("/concerts/:id", concert.UpdateConcert)
+		api.DELETE("/concerts/:id", concert.DeleteConcert)
+		api.POST("/showdate", concert.AddShowdate)
+		api.PUT("/showdate/:id", concert.UpdateShowdate)
+		api.DELETE("/showdate/:id", concert.DeleteShowdate)
+		api.GET("/venues/option",concert.GetAllVenues)
+
+		api.GET("/zoneconcert/:user_id", zone.GetConcertsByUserID)
+		api.GET("/zoneshowdate/:id", zone.GetShowDatesByConcertID)
+		api.GET("/zonetype", zone.ListZoneTypes)
+
+		api.GET("/zone/:id", zone.GetZonesByShowDateID)
+		api.PUT("/zone/:id", zone.UpdateZone)
+		api.POST("/zone", zone.AddZone)
+		api.DELETE("/zone/:id",zone.DeleteZone)
+		
+		api.GET("/seatzone/:id",zone.GetseatzonesByzoneID)
+		api.POST("/seatzone/:id",zone.Addseatzone)
+		api.DELETE("/seatzone/:id",zone.Deleteseatzone)
+		api.PUT("/seatzone/:id/seat/:seat_id",zone.UpdateSeatzone)
 	}
 
 	// static uploads
