@@ -46,10 +46,10 @@ export default function ConcertManagement() {
     try {
       setLoading(true);
       const rows = await concertAPI.getAll(); // returns .data already
-      const concertData = rows?.data
+      const concertData = rows?.data;
       setConcerts(Array.isArray(concertData) ? concertData : []);
-      console.log("concert: ",rows)
-      console.log("setconcert: ",concerts)
+      console.log("concert: ", rows);
+      console.log("setconcert: ", concerts);
     } catch (e: any) {
       console.error(e);
       message.error("cant load concerts list :(");
@@ -238,19 +238,19 @@ export default function ConcertManagement() {
     { title: "Concert Name", dataIndex: "concert_name", key: "concert_name" },
     { title: "Artist", dataIndex: "artist", key: "artist" },
     {
-      title: "On sale",
+      title: "On Sale Ticket",
       dataIndex: "onsale_date",
       key: "onsale_date",
       render: (d?: string) => fmtDate(d),
     },
     {
-      title: "Off sale",
+      title: "Off Sale Ticket",
       dataIndex: "offsale_date",
       key: "offsale_date",
       render: (d?: string) => fmtDate(d),
     },
     {
-      title: "Show time",
+      title: "Show Date",
       key: "show_time",
       render: (_: any, record: any) => {
         const items = record.show_dates ?? record.ShowDates ?? [];
@@ -288,11 +288,11 @@ export default function ConcertManagement() {
       render: (_: any, r: ConcertInterface) =>
         (r as any)?.venue?.venue_name ?? "—",
     },
-    {
-      title: "user_id(test)",
-      dataIndex: "user_id",
-      key: "user_id",
-    },
+    // {
+    //   title: "CraeteBy",
+    //   dataIndex: "user_id",
+    //   key: "user_id",
+    // },
     {
       title: "Actions",
       key: "actions",

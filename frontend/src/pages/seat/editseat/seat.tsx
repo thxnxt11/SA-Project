@@ -330,11 +330,11 @@ const SeatGrid: React.FC<Props> = ({
               gridTemplateColumns: `repeat(${columnsPerRow}, ${CELL_SIZE}px)`,
               gap: CELL_GAP,
               justifyItems: "center",
-              // This is the trick: if we couldn’t scroll, we add padding-left
-              // so the target seat’s center aligns with container’s center.
+              justifyContent: "center",
               paddingLeft: leftPad,
               // Optional: prevent the grid from stretching weirdly
               width: gridWidth,
+              margin: "0 auto",
             }}
           >
             {sorted.map((s) => {

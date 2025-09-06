@@ -124,24 +124,13 @@ const ReportForm: React.FC = () => {
         ]);
       }
 
-      api.success({
-        message: "สำเร็จ",
-        description: "ส่งรายงาน/ความคิดเห็นของคุณเรียบร้อยแล้ว!",
-        placement: "top",
-        icon: <CheckCircleTwoTone twoToneColor="#52c41a" />,
-      });
+      message.success("ส่งรายงาน/ความคิดเห็นของคุณเรียบร้อยแล้ว!");
 
       form.resetFields();
       setFileList([]);
     } catch (error: any) {
       console.error("Submit error:", error);
-      api.error({
-        message: "เกิดข้อผิดพลาด",
-        description:
-          error.response?.data?.error ||
-          error.message ||
-          "ไม่สามารถส่งรายงานได้",
-      });
+      message.error("ไม่สามารถส่งรายงานได้");
     } finally {
       setLoading(false);
     }

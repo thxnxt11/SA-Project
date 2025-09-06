@@ -25,7 +25,6 @@ type SuccessProps = {
   open: boolean;
   tickets: Ticket[];
   onClose: () => void;
-  /** ถ้า true จะไม่โชว์ข้อความสำเร็จ */
   suppressToast?: boolean;
 };
 

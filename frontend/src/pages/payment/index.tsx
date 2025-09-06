@@ -131,7 +131,7 @@ const Payment: React.FC = () => {
   );
 
   // Countdown for payment
-  const PAY_TIMELEFT = 600; // 10 mins
+  const PAY_TIMELEFT = 900; // 10 mins
   const countdownKey = `booking_start_time_${bookingId ?? "temp"}`;
   const [paymentTimeLeft, setPaymentTimeLeft] = useState(PAY_TIMELEFT);
 
@@ -328,7 +328,7 @@ const Payment: React.FC = () => {
   const handleOpenUploadModal = () => setUploadModalOpen(true);
   const handleCloseUploadModal = () => setUploadModalOpen(false);
   const handleCloseTicket = () => {
-    navigate("/concerts");
+    navigate("/Eventix");
   };
   const TextStyle = {
     fontSize: "18px",
