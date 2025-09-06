@@ -13,7 +13,7 @@ import SeatGrid, { type SeatAvailable } from "./editseat/seat";
 
 import { FaEdit } from "react-icons/fa";
 import { RiDeleteBin6Line } from "react-icons/ri";
-import { IoAdd } from "react-icons/io5";
+import { MdEventSeat } from "react-icons/md";
 
 const API_ORG = "http://localhost:8000/organizer";
 
@@ -446,11 +446,11 @@ export default function ZoneBrowser() {
             </RiDeleteBin6Line>
 
             {!isStanding && (
-              <IoAdd 
+              <MdEventSeat 
                 style={{ fontSize: 20, color: "#1abb78ff", cursor: "pointer" }}
                 onClick={() => openSeat(r)}>
                 Seat
-              </IoAdd>
+              </MdEventSeat>
             )}
           </Space>
         );
