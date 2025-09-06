@@ -2,18 +2,20 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/controllers/booking"
 	"github.com/yourname/went-back/controllers/concert"
-	"github.com/yourname/went-back/controllers/zone"
 	"github.com/yourname/went-back/controllers/promotion"
-	"github.com/yourname/went-back/controllers/user"
-	"github.com/yourname/went-back/services"
 	refund "github.com/yourname/went-back/controllers/refund"
 	controllers "github.com/yourname/went-back/controllers/report"
+	"github.com/yourname/went-back/controllers/user"
+	"github.com/yourname/went-back/controllers/zone"
+	"github.com/yourname/went-back/services"
 )
 
 func main() {
@@ -23,6 +25,10 @@ func main() {
 	if err := services.RecalculateAllZones(connection.DB()); err != nil {
         panic(fmt.Sprintf("failed to recalc zone counters: %v", err))
     }
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
+	}
+
 
 	// seed seats (keep yours)
 	connection.SeedSeats(1, []string{
