@@ -32,8 +32,8 @@ func Addseatzone(c *gin.Context) {
 		return
 	}
 
-	seats := make([]entity.SeatAvailable, 0, 285)
-	for i := 1; i <= 285; i++ {
+	seats := make([]entity.SeatAvailable, 0, 195)
+	for i := 1; i <= 195; i++ {
 		seats = append(seats, entity.SeatAvailable{
 			ZoneID:              uint(zid),
 			SeatID:              uint(i),

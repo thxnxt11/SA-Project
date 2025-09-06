@@ -7,9 +7,11 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import MemberRoutes from "./routes/memberRoutes";
+import MemberRoutes from "./routes/memberroutes";
 import OrganizerRoutes from "./routes/organizerRoutes";
 import { AuthProvider } from "./hook/authContext";
+import Loader from "./component/loader/loader";
+import { useServerReady } from "./component/loader/preparesever";
 
 const App: React.FC = () => {
   const serverReady = useServerReady("http://localhost:8000/healthz");

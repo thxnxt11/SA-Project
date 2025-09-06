@@ -11,7 +11,10 @@ import BookingDetail from "../pages/booking/BookingDetail";
 import Payment from "../pages/payment";
 
 import RequireAuth from "../hook/RequireAuth";
-import PublicRoute from "./publicRoute";
+import PublicRoute from "./publicRoutes";
+import MyETicket from "../pages/e-ticket/my-e-ticket";
+import EditProfile from "../pages/user/profile/editprofile";
+import HomePage from "../pages/homePage";
 
 export default function MemberRoutes() {
   return (
@@ -35,10 +38,27 @@ export default function MemberRoutes() {
       />
 
       {/* public */}
+      <Route path="/Eventix" element={<HomePage />} />
       <Route path="/concerts" element={<Concert />} />
       <Route path="/concert/:id" element={<ConcertDetail />} />
 
       {/* protected */}
+      <Route
+        path="/user/profile"
+        element={
+          <RequireAuth>
+            <EditProfile />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/my-e-ticket"
+        element={
+          <RequireAuth>
+            <MyETicket />
+          </RequireAuth>
+        }
+      />
       <Route
         path="/concert/:id/selectzone"
         element={
@@ -73,7 +93,7 @@ export default function MemberRoutes() {
       />
 
       {/* 404 fallback for public */}
-      <Route path="*" element={<Navigate to="/concerts" replace />} />
+      <Route path="*" element={<Navigate to="/Eventix" replace />} />
     </Routes>
   );
 }

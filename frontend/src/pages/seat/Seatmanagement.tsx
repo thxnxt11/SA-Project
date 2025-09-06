@@ -88,7 +88,7 @@ export default function ZoneBrowser() {
   useEffect(() => {
     const uStr = localStorage.getItem("user") ?? localStorage.getItem("User");
     const user = uStr ? JSON.parse(uStr) : null;
-    const uid = user?.user_id;
+    const uid = user?.id;
     if (uid) {
       setUserId(uid);
       fetchConcerts(uid);
@@ -120,6 +120,7 @@ export default function ZoneBrowser() {
     try {
       setLoading(true);
       const rows = await zoneApi.getconbyuser(uid);
+      console.log("concert: ", rows);
       setConcerts(Array.isArray(rows) ? rows : []);
     } catch (e: any) {
       message.error(e?.message || "Load concerts failed");

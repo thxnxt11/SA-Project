@@ -181,6 +181,19 @@ export const seatAPI = {
 export const ShowDateAPI = {
   getZonesByShowDateId: (id: number) =>
     Get(`${PUBLIC_API_URL}/showdate/${id}/zones`, false),
+  add: async (data: Partial<ShowDatesInterface>) => {
+    const r = await Post(`${PUBLIC_API_URL}/showdate`, data);
+    return r?.data;
+  },
+
+  update: async (id: number | string, data: Partial<ShowDatesInterface>) => {
+    const r = await Update(`${PUBLIC_API_URL}/showdate/${id}`, data);
+    return r?.data;
+  },
+  delete: async (id: number | string) => {
+    const r = await Delete(`${PUBLIC_API_URL}/showdate/${id}`);
+    return r?.data;
+  },
 };
 
 export const bookingAPI = {
@@ -222,19 +235,6 @@ export const userApi = {
   updateById: (user_id: number | string | undefined, data: any) =>
     Update(`${PUBLIC_API_URL}/user/${user_id}`, data),
   getAllGender: () => Get(`${PUBLIC_API_URL}/genders`),
-  add: async (data: Partial<ShowDatesInterface>) => {
-    const r = await Post(`${PUBLIC_API_URL}/showdate`, data);
-    return r?.data;
-  },
-
-  update: async (id: number | string, data: Partial<ShowDatesInterface>) => {
-    const r = await Update(`${PUBLIC_API_URL}/showdate/${id}`, data);
-    return r?.data;
-  },
-  delete: async (id: number | string) => {
-    const r = await Delete(`${PUBLIC_API_URL}/showdate/${id}`);
-    return r?.data;
-  },
 };
 
 export async function venueoption(): Promise<VenueOptions[]> {

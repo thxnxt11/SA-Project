@@ -7,6 +7,8 @@ import Dashboard from "../pages/dashboard";
 
 import RequireAuth from "../hook/RequireAuth";
 import RequireRole from "../hook/RequireRole";
+import ConcertManagement from "../pages/concert/concertmanagement/ConcertManagement";
+import ZoneBrowser from "../pages/seat/Seatmanagement";
 
 export default function OrganizerRoutes() {
   return (
@@ -19,7 +21,9 @@ export default function OrganizerRoutes() {
         path="dashboard"
         element={
           <RequireAuth>
-            <RequireRole allow={["organizer"]}> {/*สามารถเพิ่ม role อื่นได้ */}
+            <RequireRole allow={["organizer"]}>
+              {" "}
+              {/*สามารถเพิ่ม role อื่นได้ */}
               <Dashboard />
             </RequireRole>
           </RequireAuth>
@@ -56,6 +60,26 @@ export default function OrganizerRoutes() {
                 onSuccess={() => {}}
                 promotionId={null}
               />
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="concerts"
+        element={
+          <RequireAuth>
+            <RequireRole allow={["organizer"]}>
+              <ConcertManagement />
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="seatmanagement"
+        element={
+          <RequireAuth>
+            <RequireRole allow={["organizer"]}>
+              <ZoneBrowser />
             </RequireRole>
           </RequireAuth>
         }

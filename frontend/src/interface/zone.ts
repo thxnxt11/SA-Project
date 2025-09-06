@@ -2,6 +2,7 @@ export interface ZoneInterface {
   ID?: number;
   zone_name?: string;
   zone_price?: number | string;
+  zonetype_id?: number;
   zone_type?: string;
   seat_available?: Array<{ seatavailable_status?: string | null }> | null;
   showdate_id?: number;

@@ -42,7 +42,7 @@ const handleSubmit = (values: any) => {
 const zonetime = Form.useWatch("zonetype_id", form);// if zonetype = seat set capactiy = 0
   useEffect(() => {
     if (zonetime === 2) {
-      form.setFieldsValue({ capacity: 285 });
+      form.setFieldsValue({ capacity: 195 });
       Modal.warning({
         title : "you select zone type = seat",
         content : "if you select zone type as seat you can manage later using thrid button count from left",
