@@ -1,8 +1,11 @@
 import axios from "axios";
 import type { AxiosResponse, AxiosError } from "axios";
 import type { PromotionInterface } from "../../interface/promotion";
+import type { ConcertInterface } from "../../interface/concert";
+import type { ShowDatesInterface } from "../../interface/showdate";
+import type { VenueOptions } from "../../interface/venue";
+import type { ZoneInterface } from "../../interface/zone";
 import type { bookingInterface } from "../../interface/booking";
-
 
 const ORGANIZER_API_URL = "http://localhost:8000/organizer";
 const PUBLIC_API_URL = "http://localhost:8000/api";
@@ -131,10 +134,48 @@ export const promotionAPI = {
 export const concertAPI = {
   getAll: () => Get(`${PUBLIC_API_URL}/concerts`, false),
   getById: (id: number) => Get(`${PUBLIC_API_URL}/concert/${id}`, false),
+  create: async (data: Partial<ConcertInterface>) => {
+    const r = await Post(`${PUBLIC_API_URL}/concerts`, data);
+    return r?.data;
+  },
+  update: async (id: number | string, data: Partial<ConcertInterface>) => {
+    const r = await Update(`${PUBLIC_API_URL}/concerts/${id}`, data);
+    return r?.data;
+  },
+  delete: async (id: number | string) => {
+    const r = await Delete(`${PUBLIC_API_URL}/concerts/${id}`);
+    return r?.data;
+  },
 };
 
 export const seatAPI = {
-  getByZoneId: (id: number) => Get(`${PUBLIC_API_URL}/zone/${id}/seats`),
+  getByZoneId: (id: number) => Get(`${PUBLIC_API_URL}/zone/${id}/seats`, false),
+  getbyzoneid: async (id: number | string) => {
+    const r = await Get(`${PUBLIC_API_URL}/seatzone/${id}`);
+    return r?.data;
+  },
+
+  updatebyid: async (
+    id: number | string,
+    seat_id: number | string,
+    data: { seatavailable_status: string }
+  ) => {
+    const r = await Update(
+      `${PUBLIC_API_URL}/seatzone/${id}/seat/${seat_id}`,
+      data
+    );
+    return r?.data;
+  },
+
+  deletebyid: async (id: number | string) => {
+    const r = await Delete(`${PUBLIC_API_URL}/seatzone/${id}`);
+    return r?.data;
+  },
+
+  addbyid: async (id: number | string) => {
+    const r = await Post(`${PUBLIC_API_URL}/seatzone/${id}`, {});
+    return r?.data;
+  },
 };
 
 export const ShowDateAPI = {
@@ -181,4 +222,59 @@ export const userApi = {
   updateById: (user_id: number | string | undefined, data: any) =>
     Update(`${PUBLIC_API_URL}/user/${user_id}`, data),
   getAllGender: () => Get(`${PUBLIC_API_URL}/genders`),
+  add: async (data: Partial<ShowDatesInterface>) => {
+    const r = await Post(`${PUBLIC_API_URL}/showdate`, data);
+    return r?.data;
+  },
+
+  update: async (id: number | string, data: Partial<ShowDatesInterface>) => {
+    const r = await Update(`${PUBLIC_API_URL}/showdate/${id}`, data);
+    return r?.data;
+  },
+  delete: async (id: number | string) => {
+    const r = await Delete(`${PUBLIC_API_URL}/showdate/${id}`);
+    return r?.data;
+  },
+};
+
+export async function venueoption(): Promise<VenueOptions[]> {
+  const res = await axios.get(`${PUBLIC_API_URL}/venues/option`);
+  return res.data;
+}
+
+export const zoneApi = {
+  getconbyuser: async (user_id: number | string) => {
+    const r = await Get(`${PUBLIC_API_URL}/zoneconcert/${user_id}`);
+    return r?.data;
+  },
+
+  getshowbycon: async (id: number | string) => {
+    const r = await Get(`${PUBLIC_API_URL}/zoneshowdate/${id}`);
+    return r?.data;
+  },
+
+  getzonebyshow: async (id: number | string) => {
+    const r = await Get(`${PUBLIC_API_URL}/zone/${id}`);
+    return r?.data;
+  },
+
+  add: async (data: Partial<ZoneInterface>) => {
+    const r = await Post(`${PUBLIC_API_URL}/zone`, data);
+    return r?.data; // created Zone
+  },
+
+  update: async (id: number | string, data: Partial<ZoneInterface>) => {
+    const r = await Update(`${PUBLIC_API_URL}/zone/${id}`, data);
+    return r?.data;
+  },
+
+  delete: async (id: number | string) => {
+    const r = await Delete(`${PUBLIC_API_URL}/zone/${id}`);
+    return r?.data;
+  },
+
+  getzonetype: async () => {
+    const r = await Get(`${PUBLIC_API_URL}/zonetype`);
+    return r?.data;
+  },
 };

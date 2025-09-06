@@ -12,6 +12,10 @@ import OrganizerRoutes from "./routes/organizerRoutes";
 import { AuthProvider } from "./hook/authContext";
 
 const App: React.FC = () => {
+  const serverReady = useServerReady("http://localhost:8000/healthz");
+  if (!serverReady) {
+    return <Loader />;
+  }
   return (
     <AuthProvider>
       <Router>

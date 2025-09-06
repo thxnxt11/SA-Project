@@ -10,4 +10,5 @@ export interface ConcertInterface {
   concert_poster_url: string;
   chart_image: string;
   ShowDates?: ShowDatesInterface[];
+  user_id?: number;
 }
