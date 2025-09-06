@@ -1,8 +1,22 @@
-import { Button, Card, Form, Row, Select, message, Spin, Input } from "antd";
+import {
+  Button,
+  Card,
+  Form,
+  Row,
+  Col,
+  Select,
+  message,
+  Spin,
+  Input,
+} from "antd";
 import Title from "antd/es/typography/Title";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import type { BankOption, BookingInfo, RefundRequest } from "../../interface/refund";
+import type {
+  Bank,
+  RefundRequest,
+  RefundableBooking,
+} from "../../interface/refund";
 import { refundAPI } from "../../services/https";
 import Navbar from "../../component/layout/navbar";
 import { useAuth } from "../../hook/authContext";
@@ -16,121 +30,147 @@ export const Refund = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
-  const [bookings, setBookings] = useState<BookingInfo[]>([]);
-  const [banks, setBanks] = useState<BankOption[]>([]);
-  const [selectedBooking, setSelectedBooking] = useState<BookingInfo | null>(null);
+  const [refundableBookings, setRefundableBookings] = useState<
+    RefundableBooking[]
+  >([]);
+  const [banks, setBanks] = useState<Bank[]>([]);
+  const [selectedBookingCode, setSelectedBookingCode] = useState<string | null>(
+    null
+  );
+  const [selectedBankId, setSelectedBankId] = useState<number | undefined>(
+    undefined
+  );
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
 
-  // ดึงข้อมูล bookings และ banks เมื่อ userId โหลด
+  // ดึง refundable bookings
   useEffect(() => {
-    if (!userId) return; // ยังไม่โหลด user
-    fetchUserBookings();
-    fetchBankOptions();
+    if (!userId) return;
+
+    const fetchRefundableBookings = async () => {
+      try {
+        setLoading(true);
+        const data = await refundAPI.getRefundableBookings(Number(userId));
+        setRefundableBookings(data.refundable_bookings ?? []);
+
+        if (data.refundable_bookings.length === 0) {
+          message.info("คุณไม่มีการจองที่สามารถขอคืนเงินได้");
+        } else {
+          setSelectedBookingCode(
+            data.refundable_bookings[0]?.booking_code ?? null
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching refundable bookings:", error);
+        setRefundableBookings([]);
+        message.error("ไม่สามารถดึงข้อมูลการจองได้");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRefundableBookings();
   }, [userId]);
 
-  const fetchUserBookings = async () => {
-    try {
-      setLoading(true);
-      const response = await refundAPI.getUserBookings(Number(userId));
-      if (response?.status === 200) {
-        setBookings(response.data?.bookings ?? []);
-      } else {
-        setBookings([]);
-        message.error('ไม่สามารถดึงข้อมูลการจองได้');
-      }
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
-      setBookings([]);
-      message.error('ไม่สามารถดึงข้อมูลการจองได้');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchBankOptions = async () => {
-    try {
-      const response = await refundAPI.getBankOptions();
-      if (response?.status === 200) {
-        setBanks(response.data?.banks ?? []);
-      } else {
+  // ดึงธนาคาร
+  useEffect(() => {
+    const fetchBanks = async () => {
+      try {
+        const data = await refundAPI.getBanks();
+        setBanks(data ?? []);
+      } catch (error) {
+        console.error("Error fetching banks:", error);
         setBanks([]);
-        message.error('ไม่สามารถดึงข้อมูลธนาคารได้');
+        message.error("ไม่สามารถดึงข้อมูลธนาคารได้");
       }
-    } catch (error) {
-      console.error('Error fetching banks:', error);
-      setBanks([]);
-      message.error('ไม่สามารถดึงข้อมูลธนาคารได้');
-    }
-  };
+    };
+
+    fetchBanks();
+  }, []);
 
   const handleBookingChange = (bookingCode: string) => {
-    const booking = bookings.find(b => b.booking_code === bookingCode);
-    setSelectedBooking(booking || null);
-
-    if (booking && !booking.can_refund) {
-      message.warning('การจองนี้ไม่สามารถขอคืนเงินได้');
-    }
+    setSelectedBookingCode(bookingCode);
   };
-
+  const handleBankChange = (value: number) => {
+    setSelectedBankId(value);
+  };
   const handleSubmit = async (values: RefundRequest) => {
     if (!userId) {
       message.error("กรุณาเข้าสู่ระบบก่อนทำรายการ");
       return;
     }
-    if (!selectedBooking?.can_refund) {
-      message.error('การจองนี้ไม่สามารถขอคืนเงินได้');
+
+    if (!values.booking_code) {
+      message.error("กรุณาเลือกการจอง");
       return;
     }
-
+    if (!values.bank_id) {
+      message.error("กรุณาเลือกธนาคาร");
+      return;
+    }
+    console.log({
+      booking_code: values.booking_code,
+      reason: values.reason,
+      bank_number: values.bank_number,
+      bank_id: values.bank_id,
+    });
     try {
       setSubmitLoading(true);
-      const response = await refundAPI.createRefund(Number(userId), {
+      await refundAPI.createRefund(Number(userId), {
         booking_code: values.booking_code,
         reason: values.reason,
         bank_number: values.bank_number,
-        bank_id: values.bank_id
+        bank_id: Number(values.bank_id), // แปลงเป็น number แน่นอน
       });
-
-      if (response?.status === 201) {
-        message.success('ส่งคำขอคืนเงินสำเร็จแล้ว');
-        form.resetFields();
-        setSelectedBooking(null);
-        navigate("/historyrefund");
-      } else {
-        message.error(response?.data?.error || 'เกิดข้อผิดพลาดในการส่งคำขอคืนเงิน');
-      }
+      message.success("ส่งคำขอคืนเงินสำเร็จแล้ว");
+      form.resetFields();
+      navigate("/");
     } catch (error: any) {
-      console.error('Error creating refund:', error);
-      message.error('เกิดข้อผิดพลาดในการส่งคำขอคืนเงิน');
+      console.error(error.response?.data || error.message);
+      message.error("เกิดข้อผิดพลาดในการส่งคำขอคืนเงิน");
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  const goToHistory = () => {
-    navigate("/historyrefund");
-  };
+  const goToHistory = () => navigate("/historyrefund");
 
-  const bookingOptions = bookings?.map(booking => ({
-    value: booking.booking_code,
-    label: `${booking.booking_code} - ${booking.payment?.totalprice ?? 0}฿ ${booking.can_refund ? '(คืนเงินได้)' : '(คืนเงินไม่ได้)'}`,
-    disabled: !booking.can_refund
-  })) ?? [];
-
-  const bankOptions = banks?.map(bank => ({
-    value: bank.id,
-    label: bank.bank_name
-  })) ?? [];
+  const bookingOptions = refundableBookings.map((b) => ({
+    value: b.booking_code,
+    label: b.booking_code,
+  }));
+  const bankOptions = banks.map((b) => ({
+    value: b.id, // number
+    label: b.bank_name,
+  }));
 
   return (
-    <div style={{ backgroundColor: "#ffffff" }}>
-      <Navbar/>
-      <Row style={{ width: 1300, margin: "20px auto 0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div
+      style={{
+        backgroundColor: "#ffffff",
+        minHeight: "100vh",
+        paddingBottom: 50,
+      }}
+    >
+      <Navbar />
+      <Row
+        style={{
+          width: 1300,
+          margin: "20px auto",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <Title level={2}>Refund</Title>
         <Button
           type="primary"
-          style={{ width: 150, height: 40, marginBottom: 20, backgroundColor: "#00306E", color: "#ffffff", fontSize: 18 }}
+          style={{
+            width: 150,
+            height: 40,
+            backgroundColor: "#00306E",
+            color: "#ffffff",
+            fontSize: 18,
+          }}
           onClick={goToHistory}
         >
           History
@@ -138,103 +178,127 @@ export const Refund = () => {
       </Row>
 
       <Spin spinning={loading}>
-        <Form onFinish={handleSubmit} layout="vertical" form={form} style={{ width: 1300, margin: "0 auto" }}>
-          <Card style={{ borderRadius: 10, minHeight: 600 }}>
-            <Row style={{ marginLeft: 100 }}>
-              <Form.Item
-                name="booking_code"
-                label="เลือกการจอง"
-                rules={[{ required: true, message: 'กรุณาเลือกการจอง' }]}
-                style={{ width: '100%', marginBottom: 30 }}
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          style={{ width: 1300, margin: "0 auto" }}
+        >
+          <Card style={{ borderRadius: 10, minHeight: 400 }}>
+            <Form.Item
+              name="booking_code"
+              label="เลือกการจอง"
+              rules={[{ required: true, message: "กรุณาเลือกการจอง" }]}
+            >
+              <Select
+                showSearch
+                style={{ width: "100%", height: 40 }}
+                placeholder={
+                  refundableBookings.length === 0
+                    ? "ไม่มีการจองที่สามารถขอคืนเงินได้"
+                    : "เลือกการจอง"
+                }
+                options={bookingOptions}
+                onChange={handleBookingChange}
+                disabled={refundableBookings.length === 0}
+                value={selectedBookingCode || undefined}
+              />
+            </Form.Item>
+
+            {selectedBookingCode && (
+              <div
+                style={{
+                  width: "100%",
+                  marginBottom: 20,
+                  padding: 15,
+                  backgroundColor: "#f6ffed",
+                  border: "1px solid #b7eb8f",
+                  borderRadius: 6,
+                }}
               >
-                <Select
-                  showSearch
-                  style={{ width: 500, height: 40 }}
-                  placeholder="เลือกการจองที่ต้องการขอคืนเงิน"
-                  optionFilterProp="label"
-                  filterSort={(a, b) => (a?.label ?? "").toLowerCase().localeCompare((b?.label ?? "").toLowerCase())}
-                  options={bookingOptions}
-                  onChange={handleBookingChange}
-                />
-              </Form.Item>
+                <p style={{ color: "#1890ff", fontSize: "14px" }}>
+                  ℹ️ กรุณากรอกข้อมูลธนาคารและเหตุผลด้านล่าง
+                </p>
+              </div>
+            )}
 
-              {selectedBooking && (
-                <div style={{ 
-                  width: '100%', 
-                  marginBottom: 20, 
-                  padding: 15, 
-                  backgroundColor: selectedBooking.can_refund ? '#f6ffed' : '#fff2f0',
-                  border: `1px solid ${selectedBooking.can_refund ? '#b7eb8f' : '#ffccc7'}`,
-                  borderRadius: 6 
-                }}>
-                  <p><strong>รหัสการจอง:</strong> {selectedBooking.booking_code}</p>
-                  <p><strong>จำนวนเงิน:</strong> {selectedBooking.payment?.totalprice ?? 0}฿</p>
-                  <p><strong>วันที่จอง:</strong> {new Date(selectedBooking.created_at).toLocaleDateString('th-TH')}</p>
-                  <p><strong>สถานะการคืนเงิน:</strong> 
-                    <span style={{ color: selectedBooking.can_refund ? '#52c41a' : '#ff4d4f', fontWeight: 'bold', marginLeft: 8 }}>
-                      {selectedBooking.can_refund ? '✓ คืนเงินได้' : '✗ คืนเงินไม่ได้'}
-                    </span>
-                  </p>
-                </div>
-              )}
-
-              <Row style={{ width: '100%' }}>
+            <Row gutter={40}>
+              <Col span={12}>
                 <Form.Item
                   name="bank_id"
                   label="ธนาคาร"
-                  rules={[{ required: true, message: 'กรุณาเลือกธนาคาร' }]}
+                  rules={[{ required: true, message: "กรุณาเลือกธนาคาร" }]}
                 >
                   <Select
                     showSearch
-                    style={{ width: 500, height: 40 }}
+                    style={{ width: "100%", height: 40 }}
                     placeholder="เลือกธนาคาร"
-                    optionFilterProp="label"
-                    filterSort={(a, b) => (a?.label ?? "").toLowerCase().localeCompare((b?.label ?? "").toLowerCase())}
                     options={bankOptions}
+                    onChange={handleBankChange}
                   />
                 </Form.Item>
-
+              </Col>
+              <Col span={12}>
                 <Form.Item
                   name="bank_number"
                   label="เลขที่บัญชี"
                   rules={[
-                    { required: true, message: 'กรุณากรอกเลขที่บัญชี' },
-                    { min: 10, message: 'เลขที่บัญชีต้องมีอย่างน้อย 10 หลัก' },
-                    { max: 20, message: 'เลขที่บัญชีต้องมีไม่เกิน 20 หลัก' },
-                    { pattern: /^[0-9]+$/, message: 'เลขที่บัญชีต้องเป็นตัวเลขเท่านั้น' }
+                    { required: true, message: "กรุณากรอกเลขที่บัญชี" },
+                    { min: 10, message: "เลขที่บัญชีต้องมีอย่างน้อย 10 หลัก" },
+                    { max: 20, message: "เลขที่บัญชีต้องมีไม่เกิน 20 หลัก" },
+                    {
+                      pattern: /^[0-9]+$/,
+                      message: "เลขที่บัญชีต้องเป็นตัวเลขเท่านั้น",
+                    },
                   ]}
-                  style={{ marginLeft: 40 }}
                 >
-                  <Input style={{ width: 500, height: 40 }} placeholder="กรอกเลขที่บัญชี" maxLength={20} />
+                  <Input
+                    style={{ width: "100%", height: 40 }}
+                    placeholder="กรอกเลขที่บัญชี"
+                    maxLength={20}
+                  />
                 </Form.Item>
-              </Row>
-
-              <Form.Item
-                name="reason"
-                label="เหตุผลในการขอคืนเงิน"
-                rules={[
-                  { required: true, message: 'กรุณากรอกเหตุผล' },
-                  { min: 10, message: 'เหตุผลต้องมีอย่างน้อย 10 ตัวอักษร' }
-                ]}
-                style={{ width: '100%' }}
-              >
-                <TextArea showCount maxLength={500} style={{ width: 1045, height: 90 }} placeholder="กรุณาระบุเหตุผลในการขอคืนเงิน" rows={4} />
-              </Form.Item>
-
+              </Col>
             </Row>
-          </Card>
 
-          <div style={{ textAlign: "center" }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={submitLoading}
-              disabled={!selectedBooking?.can_refund}
-              style={{ width: 150, margin: 30, height: 40, backgroundColor: "#00306E", color: "#ffffff", fontSize: 18 }}
+            <Form.Item
+              name="reason"
+              label="เหตุผลในการขอคืนเงิน"
+              rules={[
+                { required: true, message: "กรุณากรอกเหตุผล" },
+                { min: 10, message: "เหตุผลต้องมีอย่างน้อย 10 ตัวอักษร" },
+              ]}
             >
-              ส่งคำขอ
-            </Button>
-          </div>
+              <TextArea
+                showCount
+                maxLength={500}
+                style={{ width: "100%", height: 90 }}
+                placeholder="กรุณาระบุเหตุผลในการขอคืนเงิน"
+                rows={4}
+              />
+            </Form.Item>
+
+            <div style={{ textAlign: "center" }}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={submitLoading}
+                disabled={
+                  !selectedBookingCode || refundableBookings.length === 0
+                }
+                style={{
+                  width: 150,
+                  marginTop: 30,
+                  height: 40,
+                  backgroundColor: "#00306E",
+                  color: "#ffffff",
+                  fontSize: 18,
+                }}
+              >
+                ส่งคำขอ
+              </Button>
+            </div>
+          </Card>
         </Form>
       </Spin>
     </div>

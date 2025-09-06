@@ -92,20 +92,6 @@ func (rc *ReportController) CreateReport(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID ผู้ใช้ไม่ถูกต้อง"})
 		return
 	}
-	// ดึง user ID จาก JWT token
-	// userIDInterface, exists := c.Get("userID")
-	// if !exists {
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "ไม่พบข้อมูลผู้ใช้"})
-	// 	return
-	// }
-
-	// userID, ok := userIDInterface.(uint)
-	// if !ok {
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "ข้อมูลผู้ใช้ไม่ถูกต้อง"})
-	// 	return
-	// }
-
-	// รับข้อมูลจาก multipart form
 	topic := c.PostForm("topic")
 	description := c.PostForm("description")
 	reportTypeIDStr := c.PostForm("report_type_id")

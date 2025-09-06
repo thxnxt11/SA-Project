@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,9 +12,9 @@ import (
 )
 
 type PaymentInfo struct {
-	ID         uint    `json:"id"`
-	TotalPrice float32 `json:"totalprice"`
-	Status     string  `json:"status"`
+	ID        uint    `json:"id"`
+	BasePrice float32 `json:"base_price"`
+	Status    string  `json:"status"`
 }
 
 // struct สำหรับ response
@@ -24,8 +25,8 @@ type BookingInfo struct {
 	RefundTypeID uint      `json:"refund_type_id"`
 	CanRefund    bool      `json:"can_refund"`
 	Payment      struct {
-		TotalPrice float32 `json:"totalprice"`
-		Status     string  `json:"status"`
+		BasePrice float32 `json:"base_price"`
+		Status    string  `json:"status"`
 	} `json:"payment"`
 }
 
@@ -36,9 +37,78 @@ type RefundRequest struct {
 	BankID      uint   `json:"bank_id"`
 }
 
+// struct สำหรับ dropdown booking codes
+type RefundableBooking struct {
+	BookingCode string `json:"booking_code"`
+	BookingID   uint   `json:"booking_id"`
+}
+
 type RefundController struct{}
 
-// ✅ GetUserBookings – ดึงการจอง + payment ของ user// ✅ GetUserBookings – ดึงการจอง + payment ของ user
+// ✅ GetRefundableBookings – ดึง booking_code ที่สามารถ refund ได้ (refund_type_id = 2)
+func (rc *RefundController) GetRefundableBookings(c *gin.Context) {
+	db := connection.DB()
+	userIDStr := c.Param("user_id")
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID ผู้ใช้ไม่ถูกต้อง"})
+		return
+	}
+
+	var bookings []entity.Booking
+	if err := db.Where("user_id = ?", userID).Find(&bookings).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ไม่สามารถดึงข้อมูลการจองได้"})
+		return
+	}
+
+	refundableBookings := []RefundableBooking{}
+
+	for _, booking := range bookings {
+		fmt.Println("Checking booking:", booking.BookingCode)
+
+		// เช็คว่ามี refund แล้วหรือยัง
+		var existingRefund entity.Refund
+		if err := db.Where("booking_id = ?", booking.ID).First(&existingRefund).Error; err == nil {
+			fmt.Println("  ❌ Booking already has a refund:", booking.BookingCode)
+			continue // ถ้ามี refund แล้ว ข้ามไป
+		}
+
+		var payment entity.Payment
+		if err := db.Where("booking_id = ?", booking.ID).First(&payment).Error; err != nil {
+			fmt.Println("  ❌ No payment for booking:", booking.BookingCode)
+			continue
+		}
+
+		fmt.Println("  Payment found. RefundTypeID:", payment.RefundTypeID)
+
+		if payment.RefundTypeID != 2 {
+			fmt.Println("  ❌ RefundTypeID is not 2, skip booking:", booking.BookingCode)
+			continue
+		}
+
+		if !rc.canBookingBeRefunded(booking, &payment) {
+			fmt.Println("  ❌ Booking cannot be refunded due to status:", booking.BookingCode)
+			continue
+		}
+
+		refundableBookings = append(refundableBookings, RefundableBooking{
+			BookingCode: booking.BookingCode,
+			BookingID:   booking.ID,
+		})
+		fmt.Println("  ✅ Booking added to refundable list:", booking.BookingCode)
+	}
+
+	if refundableBookings == nil {
+		refundableBookings = []RefundableBooking{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"refundable_bookings": refundableBookings,
+		"count":               len(refundableBookings),
+	})
+}
+
+// ✅ GetUserBookings – ดึงการจอง + payment ของ user
 func (rc *RefundController) GetUserBookings(c *gin.Context) {
 	db := connection.DB()
 	userIDStr := c.Param("user_id")
@@ -71,8 +141,8 @@ func (rc *RefundController) GetUserBookings(c *gin.Context) {
 				CreatedAt:   booking.CreatedAt,
 				CanRefund:   false,
 				Payment: struct {
-					TotalPrice float32 `json:"totalprice"`
-					Status     string  `json:"status"`
+					BasePrice float32 `json:"base_price"`
+					Status    string  `json:"status"`
 				}{},
 			})
 			continue
@@ -88,11 +158,11 @@ func (rc *RefundController) GetUserBookings(c *gin.Context) {
 			RefundTypeID: payment.RefundTypeID,
 			CanRefund:    canRefund,
 			Payment: struct {
-				TotalPrice float32 `json:"totalprice"`
-				Status     string  `json:"status"`
+				BasePrice float32 `json:"base_price"`
+				Status    string  `json:"status"`
 			}{
-				TotalPrice: payment.TotalPrice,
-				Status:     payment.PaymentStatus.PaymentStatus,
+				BasePrice: payment.BasePrice,
+				Status:    payment.PaymentStatus.PaymentStatus,
 			},
 		})
 	}
@@ -110,10 +180,17 @@ func (rc *RefundController) GetBankOptions(c *gin.Context) {
 		return
 	}
 
-	// ส่งตรงๆ เป็น JSON ที่มี id และ bank_name
-	c.JSON(http.StatusOK, gin.H{"banks": banks})
-}
+	// แปลงเป็น DTO ที่ frontend ต้องใช้
+	var result []gin.H
+	for _, b := range banks {
+		result = append(result, gin.H{
+			"id":        b.ID,
+			"bank_name": b.Bank_Name,
+		})
+	}
 
+	c.JSON(http.StatusOK, gin.H{"banks": result})
+}
 
 // ✅ CreateRefund – สร้างคำขอคืนเงิน
 func (rc *RefundController) CreateRefund(c *gin.Context) {
@@ -157,6 +234,12 @@ func (rc *RefundController) CreateRefund(c *gin.Context) {
 		return
 	}
 
+	// เช็คว่า refund_type_id = 2 หรือไม่
+	if payment.RefundTypeID != 2 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "การจองนี้ไม่สามารถขอคืนเงินได้ เนื่องจากประเภทการคืนเงินไม่อนุญาต"})
+		return
+	}
+
 	// ตรวจสอบธนาคาร
 	var bank entity.Bank
 	if err := db.First(&bank, req.BankID).Error; err != nil {
@@ -170,6 +253,8 @@ func (rc *RefundController) CreateRefund(c *gin.Context) {
 		refundStatus.ID = 1
 	}
 
+	refundAmount := payment.BasePrice - payment.Discount
+
 	// สร้าง Refund
 	refund := entity.Refund{
 		Reason:         req.Reason,
@@ -179,6 +264,7 @@ func (rc *RefundController) CreateRefund(c *gin.Context) {
 		RefundStatusID: refundStatus.ID,
 		PaymentID:      payment.ID,
 		BankID:         req.BankID,
+		Amount:         refundAmount,
 	}
 
 	if err := db.Create(&refund).Error; err != nil {
@@ -189,6 +275,7 @@ func (rc *RefundController) CreateRefund(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"message":   "ส่งคำขอคืนเงินสำเร็จ",
 		"refund_id": refund.ID,
+		"amount":    refund.Amount,
 	})
 }
 
@@ -197,7 +284,7 @@ func (rc *RefundController) canBookingBeRefunded(booking entity.Booking, payment
 	// BookingStatus
 	if booking.BookingStatus != nil {
 		status := booking.BookingStatus.BookingStatus
-		if status == "cancelled" || status == "expired" {
+		if status != "paided" {
 			return false
 		}
 	}
@@ -210,4 +297,16 @@ func (rc *RefundController) canBookingBeRefunded(booking entity.Booking, payment
 	}
 
 	return true
+}
+
+// DELETE /api/refunds/:id
+func DeleteRefund(c *gin.Context) {
+	id := c.Param("id")
+
+	if err := connection.DB().Delete(&entity.Refund{}, id).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Refund deleted successfully"})
 }

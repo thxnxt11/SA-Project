@@ -5,12 +5,12 @@ import Title from "antd/es/typography/Title";
 import dayjs from "dayjs";
 import { useAuth } from "../../hook/authContext";
 import Navbar from "../../component/layout/navbar";
-import type { ReportHistoryItem } from "../../interface/report";
+import type { Report } from "../../interface/report";
 import { getReportHistory } from "../../services/https";
 
 export const ReportHis = () => {
   const { user } = useAuth();
-  const [data, setData] = useState<ReportHistoryItem[]>([]);
+  const [data, setData] = useState<Report[]>([]);
 
   useEffect(() => {
     if (user?.id) {
@@ -38,7 +38,7 @@ export const ReportHis = () => {
     }
   }, [user]);
 
-  const columns: TableProps<ReportHistoryItem>["columns"] = [
+  const columns: TableProps<Report>["columns"] = [
     
     {
       title: "Name",
@@ -86,7 +86,7 @@ export const ReportHis = () => {
       <Navbar />
       <Card style={{ width: 1300, margin: "20px auto" }}>
         <Title level={2}>History</Title>
-        <Table<ReportHistoryItem>
+        <Table<Report>
           columns={columns}
           dataSource={data}
           rowKey="id"

@@ -111,6 +111,20 @@ func SetupDatabase() {
 		ZoneType: "Seating",
 	})
 
+	//role
+	db.FirstOrCreate(&entity.Role{}, entity.Role{
+		Role: "Organizer",
+	})
+	db.FirstOrCreate(&entity.Role{}, entity.Role{
+		Role: "Member",
+	})
+	db.FirstOrCreate(&entity.Role{}, entity.Role{
+		Role: "Admin",
+	})
+	db.FirstOrCreate(&entity.Role{}, entity.Role{
+		Role: "Staff",
+	})
+
 	// booking status
 	db.FirstOrCreate(&entity.BookingStatus{}, entity.BookingStatus{
 		BookingStatus: "pending",

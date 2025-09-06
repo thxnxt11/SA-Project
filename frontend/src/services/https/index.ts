@@ -2,7 +2,8 @@ import axios from "axios";
 import type { AxiosResponse, AxiosError } from "axios";
 import type { PromotionInterface } from "../../interface/promotion";
 import type { bookingInterface } from "../../interface/booking";
-import type { ReportHistoryItem, ReportType } from "../../interface/report";
+import type { Report, ReportType } from "../../interface/report";
+import type { RefundRequest, RefundResponse, RefundableBooking, Bank, Refund } from "../../interface/refund";
 
 const ORGANIZER_API_URL = "http://localhost:8000/organizer";
 const PUBLIC_API_URL = "http://localhost:8000/api";
@@ -184,7 +185,7 @@ export const createReport = async (user_id: number | string | undefined, formDat
   }
 };
 
-export const getReportHistory = async (user_id: number): Promise<ReportHistoryItem[]> => {
+export const getReportHistory = async (user_id: number): Promise<Report[]> => {
   try {
     const response = await axios.get(`${PUBLIC_API_URL}/reports/history/${user_id}`, {
       withCredentials: true,
@@ -200,24 +201,40 @@ export const getReportHistory = async (user_id: number): Promise<ReportHistoryIt
 };
 
 export const refundAPI = {
-  // ดึงรายการ booking ของ user
-  getUserBookings: (user_id: number) => 
-    Get(`${PUBLIC_API_URL}/users/${user_id}/bookings`, false),
-  
-  // ดึงตัวเลือกธนาคารทั้งหมด
-  getBankOptions: () => 
-    Get(`${PUBLIC_API_URL}/banks`, false),
-  
-  // สร้างคำขอคืนเงิน
-  createRefund: (user_id: number, data: {
-    booking_code: string;
-    reason: string;
-    bank_number: string;
-    bank_id: number;
-  }) => 
-    Post(`${PUBLIC_API_URL}/users/${user_id}/refunds`, data, false),
-  
-  // ดึงประวัติการขอคืนเงินของ user
-  getRefundHistory: (user_id: number) => 
-    Get(`${PUBLIC_API_URL}/users/${user_id}/refunds`, false),
+  // ดึงรายการ booking ที่สามารถ refund ได้
+  getRefundableBookings: async (userId: number): Promise<{ refundable_bookings: RefundableBooking[]; count: number }> => {
+    const res = await axios.get(`${PUBLIC_API_URL}/users/${userId}/refundable-bookings`);
+    return res.data;
+  },
+
+  // ดึงรายการธนาคารทั้งหมด
+  getBanks: async (): Promise<Bank[]> => {
+    const res = await axios.get(`${PUBLIC_API_URL}/banks`);
+    return res.data.banks;
+  },
+
+  // สร้างคำขอ refund
+  createRefund: async (userId: number, data: RefundRequest): Promise<RefundResponse> => {
+    const res = await axios.post(`${PUBLIC_API_URL}/users/${userId}/refunds`, data);
+    return res.data;
+  },
+};
+
+export const getRefundHistory = async (user_id: number): Promise<Refund[]> => {
+  try {
+    const response = await axios.get(`${PUBLIC_API_URL}/refunds/history/${user_id}`, {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching refund history:', error);
+    throw error;
+  }
+};
+export const deleteRefund = async (refund_id: number) => {
+  const res = await axios.delete(`${PUBLIC_API_URL}/refunds/${refund_id}`);
+  return res.data;
 };

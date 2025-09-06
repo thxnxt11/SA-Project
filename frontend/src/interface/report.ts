@@ -6,7 +6,7 @@ export interface ReportType {
   UpdatedAt: string;
 }
 
-export interface ReportHistoryItem {
+export interface Report {
   id: number;
   topic: string;
   type: string;
@@ -16,8 +16,8 @@ export interface ReportHistoryItem {
   photo?: string;
   created_at: string;
   updated_at: string;
-  firstname?: string;   // 👈 เพิ่ม
-  lastname?: string;    // 👈 เพิ่ม
+  firstname?: string;   
+  lastname?: string;    
 }
 
 export interface CreateReportData {
@@ -29,6 +29,6 @@ export interface CreateReportData {
 }
 
 export interface ReportHistoryResponse {
-  reports: ReportHistoryItem[];
+  reports: Report[];
   total: number;
 }

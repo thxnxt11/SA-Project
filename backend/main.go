@@ -8,7 +8,7 @@ import (
 	"github.com/yourname/went-back/controllers/booking"
 	"github.com/yourname/went-back/controllers/promotion"
 	refund "github.com/yourname/went-back/controllers/refund"
-	"github.com/yourname/went-back/controllers/report"
+	controllers "github.com/yourname/went-back/controllers/report"
 
 	"github.com/yourname/went-back/controllers/user"
 	"github.com/yourname/went-back/services"
@@ -80,8 +80,11 @@ func main() {
 		api.POST("/reports/:user_id/user", reportController.CreateReport)
 		api.GET("/reports/history/:user_id", controllers.GetReportHistory)
 		api.GET("/users/:user_id/bookings", refundController.GetUserBookings)
+		api.GET("/users/:user_id/refundable-bookings", refundController.GetRefundableBookings)
 		api.GET("/banks", refundController.GetBankOptions)
 		api.POST("/users/:user_id/refunds", refundController.CreateRefund)
+		api.GET("/refunds/history/:user_id", refund.GetRefundHistory)
+		api.DELETE("/refunds/:id", refund.DeleteRefund)
 
 	}
 
