@@ -8,9 +8,9 @@ type Seat = {
 };
 
 export type SeatAvailable = {
-  id: number; // seat_available row id (may not be unique across API variants)
+  id: number;
   zone_id: number;
-  seat_id: number; // UNIQUE per seat — we’ll use this for keys and selection
+  seat_id: number;
   seat?: Seat | null;
   seatavailable_status: "available" | "unavailable" | string;
 };
@@ -20,9 +20,7 @@ type Props = {
   seats?: SeatAvailable[];
   loading?: boolean;
 
-  // parent will toggle a single seat’s status
   onSeatClick?: (seat: SeatAvailable) => void;
-
   onApply?: () => void;
   onCancel?: () => void;
 
@@ -36,6 +34,13 @@ const statusColor = (s: string) => {
   return "#dc3a3aff";
 };
 
+// seat we want to visually center
+const TARGET_SEAT_ID = 285;
+
+// cell sizes (keep in sync with styles below)
+const CELL_SIZE = 40;
+const CELL_GAP = 8;
+
 const SeatGrid: React.FC<Props> = ({
   title = "Seat Selection",
   seats = [],
@@ -43,7 +48,8 @@ const SeatGrid: React.FC<Props> = ({
   onSeatClick,
   columnsPerRow = 15,
 }) => {
-  // ----- stable sort for grid -------
+
+  
   const sorted = React.useMemo(() => {
     const clone = [...seats];
     clone.sort((a, b) => {
@@ -66,9 +72,7 @@ const SeatGrid: React.FC<Props> = ({
 
   // ----- selection (by seat_id) -----
   const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set());
-
   const clearSelection = React.useCallback(() => setSelectedIds(new Set()), []);
-
   const toggleSelectOne = React.useCallback((seatId: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -78,7 +82,7 @@ const SeatGrid: React.FC<Props> = ({
     });
   }, []);
 
-  // ----- bulk set (uses parent onSeatClick to toggle only when needed) -----
+  // ----- bulk set via parent -----
   const bulkSet = React.useCallback(
     (to: "available" | "unavailable") => {
       if (!onSeatClick || selectedIds.size === 0) return;
@@ -92,19 +96,19 @@ const SeatGrid: React.FC<Props> = ({
     },
     [onSeatClick, selectedIds, sorted]
   );
-
   const markAvailable = React.useCallback(() => bulkSet("available"), [bulkSet]);
   const markUnavailable = React.useCallback(() => bulkSet("unavailable"), [bulkSet]);
 
   // ----- drag (box select) -----
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const gridRef = React.useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = React.useState(false);
   const [dragRect, setDragRect] = React.useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
   const dragStartRef = React.useRef<{ x: number; y: number } | null>(null);
   const startSelectedRef = React.useRef<Set<number>>(new Set());
   const additiveRef = React.useRef<boolean>(false);
-  const draggedRef = React.useRef<boolean>(false); // to suppress click after a drag
+  const draggedRef = React.useRef<boolean>(false);
   const DRAG_THRESHOLD = 3;
 
   const intersects = (a: DOMRect, b: { left: number; top: number; right: number; bottom: number }) =>
@@ -121,16 +125,12 @@ const SeatGrid: React.FC<Props> = ({
 
     dragStartRef.current = { x: startX, y: startY };
     setDragRect({ x: startX, y: startY, w: 0, h: 0 });
-    setIsDragging(false); // will become true after threshold passed
+    setIsDragging(false);
     additiveRef.current = !!(e.metaKey || e.ctrlKey);
     startSelectedRef.current = new Set(selectedIds);
     draggedRef.current = false;
 
-    if (!additiveRef.current) {
-      // starting a fresh selection; we’ll compute exact hits as we drag
-      setSelectedIds(new Set());
-    }
-
+    if (!additiveRef.current) setSelectedIds(new Set());
 
     e.preventDefault();
   };
@@ -147,12 +147,10 @@ const SeatGrid: React.FC<Props> = ({
     const dx = curX - start.x;
     const dy = curY - start.y;
 
-    // only enter "dragging" state after a small threshold to avoid accidental drags
     if (!isDragging && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
       setIsDragging(true);
       draggedRef.current = true;
     }
-
     if (!isDragging) return;
 
     const x1 = Math.min(start.x, curX);
@@ -167,18 +165,19 @@ const SeatGrid: React.FC<Props> = ({
       bottom: y2 + rootRect.top,
     };
 
-    // compute hits
-    const cells = root.querySelectorAll<HTMLDivElement>("[data-seat-id]");
+    const grid = gridRef.current;
     const hits = new Set<number>();
-    cells.forEach((el) => {
-      const r = el.getBoundingClientRect();
-      if (!intersects(r, box)) return;
-      const idAttr = el.getAttribute("data-seat-id");
-      if (!idAttr) return;
-      hits.add(Number(idAttr));
-    });
+    if (grid) {
+      const cells = grid.querySelectorAll<HTMLDivElement>("[data-seat-id]");
+      cells.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (!intersects(r, box)) return;
+        const idAttr = el.getAttribute("data-seat-id");
+        if (!idAttr) return;
+        hits.add(Number(idAttr));
+      });
+    }
 
-    // if additive, union(startSelection, hits); else just hits
     if (additiveRef.current) {
       const union = new Set<number>(startSelectedRef.current);
       hits.forEach((id) => union.add(id));
@@ -195,36 +194,78 @@ const SeatGrid: React.FC<Props> = ({
     dragStartRef.current = null;
     setIsDragging(false);
     setDragRect(null);
-    // keep draggedRef.current = true if we actually dragged; it’s reset on first click handler
   };
 
   // ----- keyboard shortcuts -----
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // ignore when typing in inputs
       const target = e.target as HTMLElement | null;
       if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
 
-      if (e.key === "Escape") {
-        clearSelection();
-      } else if (e.key.toLowerCase() === "a") {
-        markAvailable();
-      } else if (e.key.toLowerCase() === "u") {
-        markUnavailable();
-      }
+      if (e.key === "Escape") clearSelection();
+      else if (e.key.toLowerCase() === "a") markAvailable();
+      else if (e.key.toLowerCase() === "u") markUnavailable();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [clearSelection, markAvailable, markUnavailable]);
+
+  // ====== REAL CENTERING LOGIC ======
+  // 1) try to scroll container so target seat is centered.
+  // 2) if no horizontal scroll is possible (grid narrower than container),
+  //    compute required left padding to visually center the target seat.
+
+  const [leftPad, setLeftPad] = React.useState<number>(0);
+  const [highlightTarget, setHighlightTarget] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    const container = containerRef.current;
+    const grid = gridRef.current;
+    if (!container || !grid) return;
+
+    const idx = sorted.findIndex((s) => s.seat_id === TARGET_SEAT_ID);
+    if (idx < 0) return; // target seat not in this dataset
+
+    // locate the element
+    const el = grid.querySelector<HTMLElement>(`[data-seat-id="${TARGET_SEAT_ID}"]`);
+    if (!el) return;
+
+    // ensure any previous padding is cleared before measuring scroll
+    setLeftPad(0);
+
+    // after a paint, attempt scrolling
+    requestAnimationFrame(() => {
+      const canScrollHoriz = grid.scrollWidth > container.clientWidth;
+
+      if (canScrollHoriz) {
+        // center by scroll
+        const elCenterX = el.offsetLeft + el.offsetWidth / 2;
+        const targetScrollLeft = Math.max(0, elCenterX - container.clientWidth / 2);
+        container.scrollTo({ left: targetScrollLeft, top: 0, behavior: "auto" });
+      } else {
+        // compute padding-left needed to align target seat to container center
+        const containerCenter = container.clientWidth / 2;
+        const seatCenter = el.offsetLeft + el.offsetWidth / 2;
+        const needed = Math.max(0, containerCenter - seatCenter);
+        setLeftPad(needed);
+      }
+
+      // focus + brief highlight for visibility
+      el.focus?.();
+      setHighlightTarget(true);
+      setTimeout(() => setHighlightTarget(false), 1600);
+    });
+  }, [sorted]);
+
+  // grid total width (useful for debugging/consistency)
+  const gridWidth =
+    columnsPerRow * CELL_SIZE + (columnsPerRow - 1) * CELL_GAP;
 
   return (
     <Card size="small" style={{ minHeight: 420 }}>
       <Flex justify="space-between" align="left" style={{ marginBottom: 12 }}>
         <strong>{title}</strong>
         <Flex gap={8} align="center">
-
-
-          {/* bulk controls */}
           <Tooltip title="A">
             <Button onClick={markAvailable}>Mark Available</Button>
           </Tooltip>
@@ -234,12 +275,10 @@ const SeatGrid: React.FC<Props> = ({
           <Tooltip title="Esc">
             <Button onClick={clearSelection}>Clear Selection</Button>
           </Tooltip>
-
           <Flex gap={8} align="right" style={{ marginRight: 8 }}>
             <Tag color="green">Available</Tag>
             <Tag color="blue">Unavailable</Tag>
           </Flex>
-
         </Flex>
       </Flex>
 
@@ -254,13 +293,25 @@ const SeatGrid: React.FC<Props> = ({
           style={{
             position: "relative",
             userSelect: "none",
+            maxHeight: 560,
+            overflow: "auto",
+            padding: 4,
+            border: "1px solid #f0f0f0",
+            borderRadius: 8,
           }}
         >
           <div
+            ref={gridRef}
             style={{
               display: "grid",
-              gridTemplateColumns: `repeat(${columnsPerRow}, 40px)`,
-              gap: 8,
+              gridTemplateColumns: `repeat(${columnsPerRow}, ${CELL_SIZE}px)`,
+              gap: CELL_GAP,
+              justifyItems: "center",
+              // This is the trick: if we couldn’t scroll, we add padding-left
+              // so the target seat’s center aligns with container’s center.
+              paddingLeft: leftPad,
+              // Optional: prevent the grid from stretching weirdly
+              width: gridWidth,
             }}
           >
             {sorted.map((s) => {
@@ -268,15 +319,15 @@ const SeatGrid: React.FC<Props> = ({
               const bg = statusColor(s.seatavailable_status);
               const isAvail = (s.seatavailable_status || "").toLowerCase() === "available";
               const isSelected = selectedIds.has(s.seat_id);
+              const isTarget = s.seat_id === TARGET_SEAT_ID;
 
               return (
                 <div
-                  key={s.seat_id}                 // *** use seat_id for key ***
-                  data-seat-id={s.seat_id}        // *** and for dataset ***
+                  key={s.seat_id}
+                  data-seat-id={s.seat_id}
                   role="button"
                   aria-label={`Seat ${label} (${s.seatavailable_status})`}
                   onClick={(e) => {
-                    // suppress click that follows a drag
                     if (draggedRef.current) {
                       draggedRef.current = false;
                       return;
@@ -288,10 +339,14 @@ const SeatGrid: React.FC<Props> = ({
                     }
                   }}
                   style={{
-                    width: 40,
-                    height: 40,
+                    width: CELL_SIZE,
+                    height: CELL_SIZE,
                     borderRadius: 8,
-                    border: isSelected ? "2px solid #000" : "1px solid rgba(0,0,0,0.15)",
+                    border: isSelected
+                      ? "2px solid #000"
+                      : isTarget && highlightTarget
+                      ? "2px solid #722ed1"
+                      : "1px solid rgba(0,0,0,0.15)",
                     background: bg,
                     color: "#fff",
                     display: "flex",
@@ -299,8 +354,13 @@ const SeatGrid: React.FC<Props> = ({
                     justifyContent: "center",
                     fontSize: 12,
                     cursor: "pointer",
-                    boxShadow: isAvail ? "0 1px 0 rgba(0,0,0,0.05)" : "none",
-                    transition: "transform 80ms ease, border 80ms ease",
+                    boxShadow:
+                      isTarget && highlightTarget
+                        ? "0 0 0 4px rgba(114,46,209,0.15)"
+                        : isAvail
+                        ? "0 1px 0 rgba(0,0,0,0.05)"
+                        : "none",
+                    transition: "transform 80ms ease, border 80ms ease, box-shadow 200ms ease",
                     outline: isSelected ? "2px solid rgba(0,0,0,0.2)" : "none",
                   }}
                   onMouseDown={(e) => {
@@ -323,7 +383,6 @@ const SeatGrid: React.FC<Props> = ({
             })}
           </div>
 
-          {/* selection rectangle overlay */}
           {isDragging && dragRect && (
             <div
               style={{

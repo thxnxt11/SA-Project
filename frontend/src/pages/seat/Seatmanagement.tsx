@@ -11,6 +11,10 @@ import AddZoneForm from "./add/seat";
 import EditZoneForm from "./edit/seat";
 import SeatGrid, { type SeatAvailable } from "./editseat/seat";
 
+import { FaEdit } from "react-icons/fa";
+import { RiDeleteBin6Line } from "react-icons/ri";
+import { IoAdd } from "react-icons/io5";
+
 const API_ORG = "http://localhost:8000/organizer";
 
 // normalize API ids
@@ -429,16 +433,24 @@ export default function ZoneBrowser() {
 
         return (
           <Space>
-            <Button size="small" onClick={() => openEdit(r)}>
+            <FaEdit 
+              style={{ fontSize: 20, color: "#0048ffff", cursor: "pointer" }}
+              onClick={() => openEdit(r)}>
               Edit
-            </Button>
-            <Button danger size="small" onClick={() => handleDelete(Number(id))}>
+            </FaEdit>
+
+            <RiDeleteBin6Line  
+              style={{ fontSize: 20, color: "#ff0000ff", cursor: "pointer" }}
+              onClick={() => handleDelete(Number(id))}>
               Delete
-            </Button>
+            </RiDeleteBin6Line>
+
             {!isStanding && (
-              <Button size="small" onClick={() => openSeat(r)}>
+              <IoAdd 
+                style={{ fontSize: 20, color: "#1abb78ff", cursor: "pointer" }}
+                onClick={() => openSeat(r)}>
                 Seat
-              </Button>
+              </IoAdd>
             )}
           </Space>
         );

@@ -7,6 +7,9 @@ import AddConcertForm from "./add/consert";
 import type { ConcertInterface } from "../../../interface/concert";
 import dayjs from "dayjs"
 
+import { FaEdit } from "react-icons/fa";
+import { RiDeleteBin6Line } from "react-icons/ri";
+
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 
@@ -290,8 +293,17 @@ const handleDelete = (id: number) =>
 
         return (
           <Space direction="vertical">
-            <Button size="small" onClick={() => openEdit(r)}>Edit</Button>
-            <Button danger size="small" onClick={() => handleDelete(r.ID)}>Remove</Button>
+            <FaEdit 
+
+              onClick={() => openEdit(r)}
+              style={{fontSize: "18px", color: "#0048ffff", cursor: "pointer" }}
+              >Edit</FaEdit>
+
+            <RiDeleteBin6Line  
+
+              onClick={() => handleDelete(r.ID)}
+              style={{ fontSize: "18px", color: "#ff0000ff", cursor: "pointer" }}
+              >Remove</RiDeleteBin6Line>
           </Space>
         );
       },
