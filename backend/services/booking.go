@@ -415,7 +415,7 @@ func (s *BookingService) OnPaymentPaid(bookingID uint) error {
 
     // โหลด booking + LOCK zone
     var bk entity.Booking
-    if err := tx.Preload("Zone").First(&bk, bookingID).Error; err != nil {
+    if err := tx.Preload("Zone").Preload("User").First(&bk, bookingID).Error; err != nil {
         tx.Rollback()
         return err
     }
@@ -471,9 +471,31 @@ func (s *BookingService) OnPaymentPaid(bookingID uint) error {
         tx.Rollback()
         return err
     }
-    
+    if err := tx.Commit().Error; err != nil {
+		return err
+	}
 
-    return tx.Commit().Error
+	// ===== ส่งอีเมล (นอก TX) =====
+	go func(bid uint, userEmail string) {
+		defer func() { _ = recover() }()
+
+		// 1) สร้าง service ที่ต้องใช้
+		etkSvc := NewETicketService()
+		emailSvc := NewEmailService()
+
+		// 2) ดึง E-Ticket ของ booking นี้
+		tickets, err := etkSvc.GetETicketByBookingID(bid)
+		if err != nil || len(tickets) == 0 {
+			// log ไว้ก็ดี
+			return
+		}
+
+		// 3) ส่งเมล
+		_ = emailSvc.SendETicketEmail(userEmail, tickets)
+	}(bookingID, bk.User.Email)
+
+	return nil
+
 }
 
 

@@ -11,7 +11,7 @@ import {
   notification,
   message,
 } from "antd";
-import { UploadOutlined, CheckCircleTwoTone } from "@ant-design/icons";
+import { UploadOutlined} from "@ant-design/icons";
 import Title from "antd/es/typography/Title";
 import { useNavigate } from "react-router-dom";
 import type { UploadFile, UploadProps } from "antd";
