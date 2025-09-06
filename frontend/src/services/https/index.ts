@@ -6,6 +6,14 @@ import type { ShowDatesInterface } from "../../interface/showdate";
 import type { VenueOptions } from "../../interface/venue";
 import type { ZoneInterface } from "../../interface/zone";
 import type { bookingInterface } from "../../interface/booking";
+import type { ReportType } from "../../interface/report";
+import type {
+  Bank,
+  Refund,
+  RefundableBooking,
+  RefundRequest,
+  RefundResponse,
+} from "../../interface/refund";
 
 const ORGANIZER_API_URL = "http://localhost:8000/organizer";
 const PUBLIC_API_URL = "http://localhost:8000/api";
@@ -276,5 +284,81 @@ export const zoneApi = {
   getzonetype: async () => {
     const r = await Get(`${PUBLIC_API_URL}/zonetype`);
     return r?.data;
+  },
+};
+
+// Reports APIs
+export const reportAPI = {
+  // ดึงประเภทรายงานทั้งหมด
+  getTypes: async (): Promise<ReportType[]> => {
+    const res = await Get(`${PUBLIC_API_URL}/report-types`, false);
+    return res?.data as ReportType[];
+  },
+
+  // สร้างรายงานใหม่ (multipart/form-data)
+  create: async (
+    user_id: number | string | undefined,
+    formData: FormData
+  ): Promise<any> => {
+    // ใช้ axios ตรง ๆ แบบ uploadAPI เพื่อส่ง multipart ได้ถูกต้อง
+    const res = await axios.post(
+      `${PUBLIC_API_URL}/reports/${user_id}/user`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+        withCredentials: true,
+      }
+    );
+    return res.data;
+  },
+
+  // ประวัติการส่งรายงานของผู้ใช้
+  getHistory: async (user_id: number): Promise<Report[]> => {
+    const res = await Get(`${PUBLIC_API_URL}/reports/history/${user_id}`);
+    return res?.data as Report[];
+  },
+};
+
+// Refund APIs
+export const refundAPI = {
+  // ดึงรายการ booking ที่สามารถ refund ได้
+  getRefundableBookings: async (
+    userId: number
+  ): Promise<{ refundable_bookings: RefundableBooking[]; count: number }> => {
+    const res = await Get(
+      `${PUBLIC_API_URL}/users/${userId}/refundable-bookings`
+    );
+    return res?.data as {
+      refundable_bookings: RefundableBooking[];
+      count: number;
+    };
+  },
+
+  // ดึงรายการธนาคารทั้งหมด (คืนเป็น Bank[])
+  getBanks: async (): Promise<Bank[]> => {
+    const res = await Get(`${PUBLIC_API_URL}/banks`, false);
+    // ตามสัญญาเดิมคืนเฉพาะ array
+    return (res?.data?.banks ?? []) as Bank[];
+  },
+
+  // สร้างคำขอ refund
+  createRefund: async (
+    userId: number,
+    data: RefundRequest
+  ): Promise<RefundResponse> => {
+    const res = await Post(`${PUBLIC_API_URL}/users/${userId}/refunds`, data);
+    return res?.data as RefundResponse;
+  },
+
+  // ประวัติการ Refund ของผู้ใช้
+  getHistory: async (user_id: number): Promise<Refund[]> => {
+    const res = await Get(`${PUBLIC_API_URL}/refunds/history/${user_id}`);
+    return res?.data as Refund[];
+  },
+
+  // ลบคำขอ Refund
+  delete: async (refund_id: number): Promise<any> => {
+    const res = await Delete(`${PUBLIC_API_URL}/refunds/${refund_id}`);
+    return res?.data;
   },
 };

@@ -2,6 +2,7 @@ package connection
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/yourname/went-back/entity"
@@ -16,6 +17,10 @@ func DB() *gorm.DB {
 }
 
 func ConnectionDB() {
+   dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "./database.db" // default path
+	}
    database, err := gorm.Open(sqlite.Open("sa.db?cache=shared"), &gorm.Config{})
    if err != nil {
        panic("failed to connect database")
@@ -67,6 +72,8 @@ func SetupDatabase() {
        &entity.SeatAvailable{},
        &entity.Zone{},
        &entity.ZoneType{},
+       &entity.RefundType{},
+       &entity.PasswordReset{},
        
    )
    
@@ -183,5 +190,23 @@ func SetupDatabase() {
    db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
       PaymentStatus: "refunded",
    })
+
+   // report type
+
+	db.FirstOrCreate(&entity.ReportType{}, entity.ReportType{Type_name: "Report"})
+	db.FirstOrCreate(&entity.ReportType{}, entity.ReportType{Type_name: "Feedback"})
+
+	// report status
+	db.FirstOrCreate(&entity.ReportStatus{}, entity.ReportStatus{Status_name: "รอการตอบกลับ"})
+	db.FirstOrCreate(&entity.ReportStatus{}, entity.ReportStatus{Status_name: "ตอบกลับแล้ว"})
+
+	// refund status
+	db.FirstOrCreate(&entity.RefundStatus{}, entity.RefundStatus{Status_name: "รอดำเนินการ"})
+	db.FirstOrCreate(&entity.RefundStatus{}, entity.RefundStatus{Status_name: "กำลังดำเนินการ"})
+	db.FirstOrCreate(&entity.RefundStatus{}, entity.RefundStatus{Status_name: "ดำเนินการเสร็จสิ้น"})
+	db.FirstOrCreate(&entity.RefundStatus{}, entity.RefundStatus{Status_name: "ปฏิเสธคำขอ"})
+
+	db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "KMA"})
+	db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "SCP"})
 
 }

@@ -9,6 +9,7 @@ import {
   Grid,
   Space,
   Typography,
+  Menu,
 } from "antd";
 import { FaUserCircle, FaBell, FaBars } from "react-icons/fa";
 import { DownOutlined } from "@ant-design/icons";
@@ -31,7 +32,6 @@ const Navbar: React.FC = () => {
     () => [
       { label: "Concert", to: "/concerts" },
       { label: "Shopping", to: "/shopping" },
-      { label: "Support", to: "/support" },
     ],
     []
   );
@@ -62,6 +62,31 @@ const Navbar: React.FC = () => {
       },
     ],
   };
+  const supportMenu = (
+    <Menu
+      style={{
+        backgroundColor: "#ffffffff",
+        fontSize: 26,
+        fontWeight: "bold",
+        textDecoration: "none",
+        width: 120,
+        marginTop: -25,
+      }}
+    >
+      <Menu.Item
+        key="report"
+        style={{ color: "#00306E", fontSize: 15, fontWeight: "bold" }}
+      >
+        <Link to="/report">Report</Link>
+      </Menu.Item>
+      <Menu.Item
+        key="refund"
+        style={{ color: "#00306E", fontSize: 15, fontWeight: "bold" }}
+      >
+        <Link to="/refund">Refund</Link>
+      </Menu.Item>
+    </Menu>
+  );
 
   return (
     <Header
@@ -147,6 +172,25 @@ const Navbar: React.FC = () => {
               />
             </Link>
           ))}
+          <Dropdown
+            overlay={supportMenu}
+            placement="bottomLeft"
+            trigger={["hover"]}
+          >
+            <a
+              style={{
+                color: "rgba(255,255,255,0.95)",
+                fontSize: 18,
+                fontWeight: 600,
+                textDecoration: "none",
+                padding: "8px 0",
+                position: "relative",
+                transition: "opacity .2s ease",
+              }}
+            >
+              Support
+            </a>
+          </Dropdown>
         </nav>
       )}
 

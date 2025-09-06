@@ -12,6 +12,9 @@ import OrganizerRoutes from "./routes/organizerRoutes";
 import { AuthProvider } from "./hook/authContext";
 import Loader from "./component/loader/loader";
 import { useServerReady } from "./component/loader/preparesever";
+import PublicRoute from "./routes/publicRoutes";
+import ForgetPassword from "./pages/user/forgotpass";
+import ResetPassword from "./pages/user/resetpass";
 
 const App: React.FC = () => {
   const serverReady = useServerReady("http://localhost:8000/healthz");
@@ -27,6 +30,22 @@ const App: React.FC = () => {
           <Route path="/organizer/*" element={<OrganizerRoutes />} />
           <Route path="/forbidden" element={<div>403 Not access right</div>} />
           <Route path="*" element={<Navigate to="/Eventix" replace />} />
+          <Route
+            path="/forget-password"
+            element={
+              <PublicRoute>
+                <ForgetPassword />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <PublicRoute>
+                <ResetPassword />
+              </PublicRoute>
+            }
+          />
         </Routes>
       </Router>
     </AuthProvider>

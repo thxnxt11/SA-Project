@@ -8,7 +8,12 @@ const PublicRoute: React.FC<React.PropsWithChildren> = ({ children }) => {
 
   if (!authReady) return null;
 
-  if (user) {
+  const allowedPublicPaths = ["/forget-password", "/reset-password"];
+  const isAllowedPublicPath = allowedPublicPaths.some(
+    (path) => location.pathname === path
+  );
+
+  if (user && !isAllowedPublicPath) {
     const fromState = (location.state as any)?.from?.pathname;
     const fromQuery = new URLSearchParams(location.search).get("redirect");
     const redirectTo = fromState || fromQuery;

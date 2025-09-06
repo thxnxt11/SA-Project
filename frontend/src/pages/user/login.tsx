@@ -29,7 +29,7 @@ const SignIn: React.FC = () => {
       const redirectTo =
         location.state?.from?.pathname ||
         new URLSearchParams(location.search).get("redirect");
-      console.log("Redirect To Path: ",redirectTo)
+      console.log("Redirect To Path: ", redirectTo);
       if (redirectTo && redirectTo !== "/signin") {
         console.log("redirecting to:", redirectTo);
         navigate(redirectTo, { replace: true });
@@ -139,7 +139,9 @@ const SignIn: React.FC = () => {
                 className="custom-input"
               />
             </Form.Item>
-
+            <Link to="/forget-password" style={{ marginLeft: "68%" }}>
+              Forgot password?
+            </Link>
             <Form.Item>
               <Button
                 type="primary"
@@ -148,6 +150,7 @@ const SignIn: React.FC = () => {
                 size="large"
                 loading={loading}
                 className="signin-button"
+                style={{ marginTop: "16px" }}
               >
                 {loading ? "Signing In..." : "Sign In"}
               </Button>

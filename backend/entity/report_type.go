@@ -6,5 +6,5 @@ import (
 
 type ReportType struct {
 	gorm.Model
-	Type_name string `json:"status_name"`
+	Type_name string `json:"type_name"`
 }

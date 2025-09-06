@@ -32,3 +32,11 @@ type Genders struct {
    gorm.Model
    Gender string `json:"gender"`
 }
+
+type PasswordReset struct {
+	gorm.Model
+	Email     string    `json:"email" gorm:"not null"`
+	Token     string    `json:"token" gorm:"not null;uniqueIndex"`
+	ExpiresAt time.Time `json:"expires_at" gorm:"not null"`
+	IsUsed    bool      `json:"is_used" gorm:"default:false"`
+}

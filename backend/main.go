@@ -12,6 +12,8 @@ import (
 	"github.com/yourname/went-back/controllers/promotion"
 	"github.com/yourname/went-back/controllers/user"
 	"github.com/yourname/went-back/services"
+	refund "github.com/yourname/went-back/controllers/refund"
+	controllers "github.com/yourname/went-back/controllers/report"
 )
 
 func main() {
@@ -40,7 +42,7 @@ func main() {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
 		c.Writer.Header().Set("Vary", "Origin")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization") 
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization , accept, origin, X-Requested-With") 
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true") 
 		
 		if c.Request.Method == "OPTIONS" {
@@ -85,6 +87,12 @@ func main() {
 	promotionCtl := promotion.NewPromotionController()
 
 	eTicketCtl := booking.NewEticketController()
+	reportController := &controllers.ReportController{}
+
+	refundController := &refund.RefundController{}
+	if err := services.RecalculateAllZones(connection.DB()); err != nil {
+		panic(fmt.Sprintf("failed to recalc zone counters: %v", err))
+	}
 	// API routes
 	api := r.Group("/api")
 	{
@@ -129,6 +137,16 @@ func main() {
 		api.POST("/seatzone/:id",zone.Addseatzone)
 		api.DELETE("/seatzone/:id",zone.Deleteseatzone)
 		api.PUT("/seatzone/:id/seat/:seat_id",zone.UpdateSeatzone)
+
+		api.GET("/report-types", reportController.GetReportTypes)
+		api.POST("/reports/:user_id/user", reportController.CreateReport)
+		api.GET("/reports/history/:user_id", controllers.GetReportHistory)
+		api.GET("/users/:user_id/bookings", refundController.GetUserBookings)
+		api.GET("/users/:user_id/refundable-bookings", refundController.GetRefundableBookings)
+		api.GET("/banks", refundController.GetBankOptions)
+		api.POST("/users/:user_id/refunds", refundController.CreateRefund)
+		api.GET("/refunds/history/:user_id", refund.GetRefundHistory)
+		api.DELETE("/refunds/:id", refund.DeleteRefund)
 	}
 
 	// static uploads
@@ -137,6 +155,8 @@ func main() {
 	// auth
 	r.POST("/signup", user.SignUp)
 	r.POST("/signin", user.SignIn)
+	r.POST("/forget-password", user.ForgetPassword)
+	r.POST("/reset-password", user.ResetPassword)
 
 	fmt.Println("Server running on http://localhost:8000")
 	// NOTE: if you see "bind: Only one usage of each socket address",

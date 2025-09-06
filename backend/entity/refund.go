@@ -1,30 +1,29 @@
 package entity
 
 import (
-	"time"
 
 	"gorm.io/gorm"
 )
 
 type Refund struct {
 	gorm.Model
-	Reason      string    `json:"reason"`
-	Amount      float32   `json:"amount"`
-	Bank_number string    `json:"bank_number"`
-	Consume     time.Time `json:"consume"`
+	ID uint `json:"id"`
+	Reason      string  `json:"reason"`
+	Bank_number string  `json:"bank_number"`
+	Amount      float32 `json:"amount"`
 
-	UserID uint   
-	User  *User `gorm:"foreignKey:UserID"`
+	UserID uint  `json:"user_id"`
+	User   *User `gorm:"foreignKey:UserID" json:"user"`
 
-	BookingID uint   
-	Booking   *Booking `gorm:"foreignKey:BookingID"`
+	BookingID uint     `json:"booking_id"`
+	Booking   *Booking `gorm:"foreignKey:BookingID" json:"booking"`
 
-	RefundStatusID uint         
-	RefundStatus   *RefundStatus `gorm:"foreignKey:RefundStatusID"`
+	RefundStatusID uint          `json:"refund_status_id"`
+	RefundStatus   *RefundStatus `gorm:"foreignKey:RefundStatusID" json:"refund_status"`
 
-	PaymentID uint 
-	Payment   *Payment `gorm:"foreignKey:PaymentID"`
+	PaymentID uint     `json:"payment_id"`
+	Payment   *Payment `gorm:"foreignKey:PaymentID" json:"payment"`
 
-	BankID uint
-	Bank   *Bank `gorm:"foreignKey:BankID"`
+	BankID uint  `json:"bank_id"`
+	Bank   *Bank `gorm:"foreignKey:BankID" json:"bank"`
 }
