@@ -1,6 +1,8 @@
 package user
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"time"
@@ -30,6 +32,16 @@ type (
 		Phonenum  string    `json:"phonenum"`
 		GenderID  uint      `json:"gender_id"`
 		RoleID    uint      `json:"role_id"`
+	}
+)
+type (
+	ForgetPasswordRequest struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+
+	ResetPasswordRequest struct {
+		Token       string `json:"token" binding:"required"`
+		NewPassword string `json:"new_password" binding:"required,min=6"`
 	}
 )
 
@@ -148,4 +160,120 @@ func SignIn(c *gin.Context) {
 		"role_id":    user.RoleID,  // keep for backward compatibility
 		"role":       roleName,     // keep for backward compatibility
 	})
+}
+
+// POST /forget-password
+func ForgetPassword(c *gin.Context) {
+	var payload ForgetPasswordRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	db := connection.DB()
+
+	// ตรวจสอบว่า email มีอยู่ในระบบหรือไม่
+	var user entity.User
+	if err := db.Where("email = ?", payload.Email).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// ไม่แจ้งให้ผู้ใช้ทราบว่า email ไม่มีในระบบ (security best practice)
+			c.JSON(http.StatusOK, gin.H{"message": "If email exists, reset link has been sent"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	// สร้าง reset token
+	token, err := generateResetToken()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate reset token"})
+		return
+	}
+
+	// ลบ token เก่าที่ยังไม่หมดอายุ (ถ้ามี)
+	db.Where("email = ? AND expires_at > ? AND is_used = false", payload.Email, time.Now()).
+		Delete(&entity.PasswordReset{})
+
+	// สร้าง password reset record
+	passwordReset := entity.PasswordReset{
+		Email:     payload.Email,
+		Token:     token,
+		ExpiresAt: time.Now().Add(15 * time.Minute), // token หมดอายุใน 15 นาที
+		IsUsed:    false,
+	}
+
+	if err := db.Create(&passwordReset).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create reset token"})
+		return
+	}
+
+	// ส่ง email ที่มี reset link ไปยัง user
+	emailService := services.NewEmailService()
+	if err := emailService.SendPasswordResetEmail(payload.Email, token); err != nil {
+		// Log error but don't expose to user (security best practice)
+		println("Failed to send email:", err.Error())
+		c.JSON(http.StatusOK, gin.H{"message": "If email exists, reset link has been sent"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Reset password link has been sent to your email",
+		// "token":   token, // remove this in production (for testing only)
+	})
+}
+
+// POST /reset-password
+func ResetPassword(c *gin.Context) {
+	var payload ResetPasswordRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	db := connection.DB()
+
+	// ตรวจสอบ token
+	var passwordReset entity.PasswordReset
+	if err := db.Where("token = ? AND expires_at > ? AND is_used = false",
+		payload.Token, time.Now()).First(&passwordReset).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired reset token"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	// hash password ใหม่
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
+
+	// อัพเดท password ของ user
+	if err := db.Model(&entity.User{}).
+		Where("email = ?", passwordReset.Email).
+		Update("password", string(hashedPassword)).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+		return
+	}
+
+	// mark token เป็น used
+	if err := db.Model(&passwordReset).Update("is_used", true).Error; err != nil {
+		// log error but don't fail the request
+		println("Failed to mark token as used:", err.Error())
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
+}
+
+// Helper function สำหรับสร้าง secure random token
+func generateResetToken() (string, error) {
+	bytes := make([]byte, 32) // 32 bytes = 256 bits
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }

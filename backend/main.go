@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/controllers/booking"
 	"github.com/yourname/went-back/controllers/promotion"
@@ -23,6 +25,10 @@ func main() {
 	refundController := &refund.RefundController{}
 	if err := services.RecalculateAllZones(connection.DB()); err != nil {
 		panic(fmt.Sprintf("failed to recalc zone counters: %v", err))
+	}
+
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
 	}
 
 	// setup gin
@@ -85,11 +91,12 @@ func main() {
 		api.POST("/users/:user_id/refunds", refundController.CreateRefund)
 		api.GET("/refunds/history/:user_id", refund.GetRefundHistory)
 		api.DELETE("/refunds/:id", refund.DeleteRefund)
-
 	}
 
 	r.POST("/signup", user.SignUp)
 	r.POST("/signin", user.SignIn)
+	r.POST("/forget-password", user.ForgetPassword)
+	r.POST("/reset-password", user.ResetPassword)
 
 	// start
 	fmt.Println("Server running on http://localhost:8000")

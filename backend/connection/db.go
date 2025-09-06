@@ -2,6 +2,7 @@ package connection
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/yourname/went-back/entity"
@@ -16,6 +17,12 @@ func DB() *gorm.DB {
 }
 
 func ConnectionDB() {
+	var err error
+
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "./database.db" // default path
+	}
 	database, err := gorm.Open(sqlite.Open("sa.db?cache=shared"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
@@ -202,6 +209,8 @@ func SetupDatabase() {
 
 	db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "KMA"})
 	db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "SCP"})
+
+	db.AutoMigrate(&entity.PasswordReset{})
 
 	// SeedSeatAvailable(DB())
 

@@ -10,6 +10,9 @@ import {
 import MemberRoutes from "./routes/memberroutes";
 import OrganizerRoutes from "./routes/organizerroutes";
 import { AuthProvider } from "./hook/authContext";
+import PublicRoute from "./routes/publicRoutes";
+import ForgetPassword from "./pages/user/forgetpass";
+import ResetPassword from "./pages/user/resetpass";
 
 const App: React.FC = () => {
   return (
@@ -21,6 +24,22 @@ const App: React.FC = () => {
           <Route path="/organizer/*" element={<OrganizerRoutes />} />
           <Route path="/forbidden" element={<div>403 Not access right</div>} />
           <Route path="*" element={<Navigate to="/concerts" replace />} />
+          <Route
+            path="/forget-password"
+            element={
+              <PublicRoute>
+                <ForgetPassword />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <PublicRoute>
+                <ResetPassword />
+              </PublicRoute>
+            }
+          />
         </Routes>
       </Router>
     </AuthProvider>

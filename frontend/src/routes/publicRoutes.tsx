@@ -3,12 +3,18 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hook/authContext";
 
 const PublicRoute: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const { user, authReady } = useAuth(); // หรือ loading
+  const { user, authReady } = useAuth();
   const location = useLocation();
 
   if (!authReady) return null;
 
-  if (user) {
+  // อนุญาตให้เข้าหน้า forget-password และ reset-password ได้แม้ login แล้ว
+  const allowedPublicPaths = ["/forget-password", "/reset-password"];
+  const isAllowedPublicPath = allowedPublicPaths.some(path => 
+    location.pathname === path
+  );
+
+  if (user && !isAllowedPublicPath) {
     const fromState = (location.state as any)?.from?.pathname;
     const fromQuery = new URLSearchParams(location.search).get("redirect");
     const redirectTo = fromState || fromQuery;

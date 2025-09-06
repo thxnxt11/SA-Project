@@ -99,8 +99,12 @@ const SignIn: React.FC = () => {
             Sign In
           </Button>
         </Form.Item>
-        <Form.Item>
-          <Link to="/signup">Don't have an account?</Link>
+
+        <Form.Item style={{ marginBottom: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Link to="/signup">Don't have an account?</Link>
+            <Link to="/forget-password">Forgot password?</Link>
+          </div>
         </Form.Item>
       </Form>
     </Card>
