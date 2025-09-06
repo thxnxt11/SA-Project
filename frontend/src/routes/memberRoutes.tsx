@@ -15,6 +15,10 @@ import PublicRoute from "./publicRoutes";
 import MyETicket from "../pages/e-ticket/my-e-ticket";
 import EditProfile from "../pages/user/profile/editprofile";
 import HomePage from "../pages/homePage";
+import ReportForm from "../pages/report/report";
+import { ReportHis } from "../pages/report/historyreport";
+import { Refund } from "../pages/refund/refund";
+import { RefundHis } from "../pages/refund/historyrefund";
 
 export default function MemberRoutes() {
   return (
@@ -88,6 +92,38 @@ export default function MemberRoutes() {
         element={
           <RequireAuth>
             <Payment />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/report"
+        element={
+          <RequireAuth>
+            <ReportForm />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/historyreport"
+        element={
+          <RequireAuth>
+            <ReportHis />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/refund"
+        element={
+          <RequireAuth>
+            <Refund />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/historyrefund"
+        element={
+          <RequireAuth>
+            <RefundHis />
           </RequireAuth>
         }
       />
