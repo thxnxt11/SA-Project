@@ -202,6 +202,12 @@ export const ShowDateAPI = {
     const r = await Delete(`${PUBLIC_API_URL}/showdate/${id}`);
     return r?.data;
   },
+  deleteByDate: async (concert_id: number, showdate: string) =>{
+    const r = await Delete(
+      `${PUBLIC_API_URL}/showdate/concert/${concert_id}/date/${showdate}`
+    );
+    return r?.data;
+  }
 };
 
 export const bookingAPI = {

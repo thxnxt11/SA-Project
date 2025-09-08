@@ -95,6 +95,11 @@ export default function ConcertManagement() {
     };
     console.log(payload);
 
+    // ดึงวันแสดงเดิมและใหม่มาเปรียบเทียบ
+    const oldDates =
+      editingConcert?.ShowDates?.map((sd) =>
+        dayjs(sd.show_date).format("YYYY-MM-DD")
+      ) ?? [];
     const newDates = [
       values.date1,
       values.date2,
@@ -103,13 +108,31 @@ export default function ConcertManagement() {
       values.date5,
       values.date6,
       values.date7,
-    ].filter(Boolean);
+    ]
+      .filter(Boolean)
+      .map((d) => dayjs(d).format("YYYY-MM-DD"));
 
+    // หาวันที่ต้องลบ (มีใน old แต่ไม่มีใน new)
+    const datesToDelete = oldDates.filter(
+      (oldDate) => !newDates.includes(oldDate)
+    );
+
+    // หาวันที่ต้องเพิ่ม (มีใน new แต่ไม่มีใน old)
+    const datesToAdd = newDates.filter(
+      (newDate) => !oldDates.some((oldDate) => oldDate === newDate)
+    );
+    console.log("delet: ", datesToDelete);
+    console.log("Add: ", datesToAdd);
     try {
       await concertAPI.update(editingConcert.ID, payload);
-      await ShowDateAPI.delete(editingConcert.ID);
 
-      for (const d of newDates) {
+      // ลบเฉพาะวันที่ถูกลบออก
+      for (const d of datesToDelete) {
+        await ShowDateAPI.deleteByDate(editingConcert.ID, d); // ต้องมี API deleteByDate
+      }
+
+      // เพิ่มเฉพาะวันที่ใหม่
+      for (const d of datesToAdd) {
         await ShowDateAPI.add({
           concert_id: Number(editingConcert.ID),
           venue_id: Number(values.venue_id),
@@ -338,20 +361,23 @@ export default function ConcertManagement() {
 
   return (
     <SidebarLayout>
-      <Button
-        size="large"
-        style={{
-          color: "white",
-          backgroundColor: "#00306E",
-          position: "fixed",
-          left: 1380,
-          margin: 20,
-        }}
-        onClick={openAdd}
-      >
-        Add data
-      </Button>
-      <div style={{ marginTop: 80, marginLeft: 20 }}>
+      <div style={{ display: "flex ", flexDirection: "row" }}>
+        <h1>Concerts Management</h1>
+        <Button
+          className="payment-button"
+          size="large"
+          style={{
+            position: "fixed",
+            left: 1380,
+          }}
+          type="primary"
+          onClick={openAdd}
+        >
+          + Add data
+        </Button>
+      </div>
+
+      <div style={{ marginTop: 30, marginLeft: 20 }}>
         <Table
           dataSource={concerts}
           columns={columns as any}

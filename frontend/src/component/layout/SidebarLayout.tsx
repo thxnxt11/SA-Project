@@ -163,7 +163,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   // เมนูผู้ใช้มุมขวาบน
   const userMenu = {
     items: [
-      { key: "profile", label: <Link to="/profile">Profile</Link> },
+      { key: "profile", label: <Link to="/user/profile">Profile</Link> },
       { type: "divider" as const },
       {
         key: "logout",

@@ -513,6 +513,7 @@ export default function ZoneBrowser() {
 
   return (
     <SidebarLayout>
+      <h1>Seating Plan Management</h1>
       <Card>
         <Row justify="space-between" style={{ marginBottom: 12 }}>
           <Col>

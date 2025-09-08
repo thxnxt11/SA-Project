@@ -136,19 +136,14 @@ func DeletePromotion(c *gin.Context) {
 		return
 	}
 
-	// ลบแบบ hard delete
-	deleteResult := connection.DB().Unscoped().Delete(&existingPromo)
+	// Soft delete (gorm.Model)
+	deleteResult := connection.DB().Delete(&existingPromo)
 	if deleteResult.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Delete failed"})
 		return
 	}
-	fmt.Printf("Rows affected: %d\n", deleteResult.RowsAffected)
-	
-	var countAfter int64
-	connection.DB().Model(&entity.Promotion{}).Count(&countAfter)
-	fmt.Printf("Count after delete: %d\n", countAfter)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Promotion deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Promotion soft deleted successfully"})
 }
 
 func GetAllPromotionTypes(c *gin.Context) {

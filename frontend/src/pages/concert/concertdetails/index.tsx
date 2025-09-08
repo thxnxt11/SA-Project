@@ -7,15 +7,23 @@ import {
   Card,
   Col,
   Divider,
+  Grid,
   message,
   Row,
-  Spin,
+  Skeleton,
+  Space,
+  Tag,
   Typography,
 } from "antd";
 import { FaRegCalendarAlt, FaRegClock, FaDollarSign } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
+import { LuTicket } from "react-icons/lu";
 import { concertAPI } from "../../../services/https";
 
+const { Title, Text, Paragraph } = Typography;
+const { useBreakpoint } = Grid;
+
+// --------- helpers ---------
 const toUpperMonthRange = (isoDates: (string | undefined)[]): string => {
   const parsed = isoDates
     ?.filter(Boolean)
@@ -41,14 +49,12 @@ const toUpperMonthRange = (isoDates: (string | undefined)[]): string => {
   const l = `${last.getDate()} ${mon(last)} ${last.getFullYear()}`;
   return `${f} – ${l}`;
 };
+
 const extractTime = (raw?: string): string => {
   if (!raw) return "—";
-
-  // รับทั้ง "YYYY-MM-DD HH:MM:SS" และ ISO
   const iso = raw.includes("T") ? raw : raw.replace(" ", "T");
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "—";
-
   return d.toLocaleTimeString("th-TH", {
     hour: "2-digit",
     minute: "2-digit",
@@ -56,32 +62,32 @@ const extractTime = (raw?: string): string => {
   });
 };
 
-const { Paragraph } = Typography;
+const parseLocalYMD = (s: string): Date => {
+  const ymd = s.split("T")[0] || s;
+  const [y, m, d] = ymd.split(/[-/]/).map((n) => parseInt(n, 10));
+  return new Date(y, (m || 1) - 1, d || 1);
+};
 
+// --------- component ---------
 const ConcertDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const screens = useBreakpoint();
+
   const [concert, setConcert] = useState<ConcertInterface | null>(null);
   const [loading, setLoading] = useState(false);
+
   const dateRangeText = useMemo(
     () =>
       toUpperMonthRange(concert?.ShowDates?.map((sd) => sd?.show_date) ?? []),
     [concert]
   );
 
-  // เพิ่มฟังก์ชันเช็ควันขาย
   const isOnSaleStarted = (onsaleDate?: string): boolean => {
-    if (!onsaleDate) return true; // ถ้าไม่มี onsale_date ให้ถือว่าขายได้
+    if (!onsaleDate) return true; // if no onsale_date, treat as on sale
     const now = new Date();
     const saleDateTime = new Date(onsaleDate);
     return now >= saleDateTime;
-  };
-
-  // เพิ่มฟังก์ชันเช็คว่าคอนเสิร์ตจบแล้วหรือยัง
-  const parseLocalYMD = (s: string): Date => {
-    const ymd = s.split("T")[0] || s;
-    const [y, m, d] = ymd.split(/[-/]/).map((n) => parseInt(n, 10));
-    return new Date(y, (m || 1) - 1, d || 1);
   };
 
   const isConcertEnded = (showDates?: { show_date: string }[]): boolean => {
@@ -91,65 +97,53 @@ const ConcertDetail: React.FC = () => {
     return showDates.every((sd) => parseLocalYMD(sd.show_date) < today);
   };
 
-  // ฟังก์ชันกำหนดสถานะปุ่ม
-  const getButtonState = () => {
-    if (!concert) return { text: "Buy Now", disabled: true, clickable: false };
+  const thb = useMemo(() => new Intl.NumberFormat("th-TH"), []);
 
-    const ended = isConcertEnded(concert.ShowDates);
-    const onSaleStarted = isOnSaleStarted(concert.onsale_date);
+  const uniqueSortedPrices = useMemo(() => {
+    const firstZones = concert?.ShowDates?.[0]?.Zones ?? [];
+    const prices = Array.from(
+      new Set(firstZones.map((z: any) => Number(z.zone_price)))
+    );
+    return prices.sort((a, b) => b - a);
+  }, [concert]);
 
-    if (ended) {
-      return {
-        text: "Buy Now",
-        disabled: true,
-        clickable: false,
-        style: {
-          backgroundColor: "#d9d9d9",
-          borderColor: "#d9d9d9",
-          color: "#fff",
-          cursor: "not-allowed",
-        },
-      };
-    } else if (!onSaleStarted) {
-      return {
-        text: "Coming Soon",
-        disabled: true,
-        clickable: false,
-        style: {
-          backgroundColor: "#d9d9d9",
-          borderColor: "#d9d9d9",
-          color: "#fff",
-          cursor: "not-allowed",
-        },
-      };
-    } else {
-      return {
-        text: "Buy Now",
-        disabled: false,
-        clickable: true,
-        style: {},
-      };
-    }
+  const ended = useMemo(() => isConcertEnded(concert?.ShowDates), [concert]);
+  const onSaleStarted = useMemo(
+    () => isOnSaleStarted(concert?.onsale_date),
+    [concert]
+  );
+
+  const ctaLabel = ended
+    ? "Buy Now"
+    : onSaleStarted
+    ? "Buy Now"
+    : "Coming Soon";
+  const ctaDisabled = ended || !onSaleStarted;
+
+  const saleTag = ended ? (
+    <Tag color="default-inverse">Ended</Tag>
+  ) : onSaleStarted ? (
+    <Tag color="green-inverse">On sale</Tag>
+  ) : (
+    <Tag color="gold-inverse">Coming soon</Tag>
+  );
+
+  const getVenueName = (venue: any): string => {
+    if (!venue) return "";
+    if (typeof venue === "string") return venue;
+    if (typeof venue === "object") return venue.venue_name || venue.name || "";
+    return "";
   };
 
   const handleBuyNow = () => {
-    const buttonState = getButtonState();
-
-    if (!buttonState.clickable) {
-      if (buttonState.text === "Coming Soon") {
-        message.info("ยังไม่ถึงเวลาเปิดขาย");
-      } else {
-        message.info("คอนเสิร์ตนี้จบแล้ว");
-      }
+    if (ctaDisabled) {
+      message.info(ended ? "คอนเสิร์ตนี้จบแล้ว" : "ยังไม่ถึงเวลาเปิดขาย");
       return;
     }
-
     if (!concert?.ID) {
       message.error("ไม่พบรหัสคอนเสิร์ต");
       return;
     }
-
-    // ไปหน้า selectzone แบบ path ต่อจาก concert/:id
     navigate(`/concert/${concert.ID}/selectzone`);
   };
 
@@ -160,22 +154,16 @@ const ConcertDetail: React.FC = () => {
         navigate("/");
         return;
       }
-
       setLoading(true);
       try {
         const response = await concertAPI.getById(Number(id));
-
         if (!response || response.status !== 200) {
           throw new Error(
             `Failed to fetch concert: ${response?.status || "Unknown error"}`
           );
         }
-
         const data: ConcertInterface = response.data || response;
         setConcert(data);
-        console.log("Raw api data:", data);
-        console.log("On Sale Date:", data.onsale_date);
-        console.log("Is On Sale Started:", isOnSaleStarted(data.onsale_date));
       } catch (e) {
         console.error(e);
         message.error("ไม่สามารถโหลดรายละเอียดคอนเสิร์ตได้");
@@ -186,30 +174,15 @@ const ConcertDetail: React.FC = () => {
     fetchDetail();
   }, [id, navigate]);
 
-  const getVenueName = (venue: any): string => {
-    if (!venue) return "";
-    if (typeof venue === "string") {
-      return venue;
-    }
-    if (typeof venue === "object") {
-      return venue.venue_name || venue.name || "";
-    }
-    return "";
-  };
-
+  // --------- render ---------
   if (loading) {
     return (
       <>
         <Navbar />
-        <div
-          style={{
-            padding: 24,
-            display: "flex",
-            justifyContent: "center",
-            minHeight: 400,
-          }}
-        >
-          <Spin size="large" />
+        <div style={{ padding: 24 }}>
+          <Card style={{ borderRadius: 16 }}>
+            <Skeleton active avatar paragraph={{ rows: 8 }} />
+          </Card>
         </div>
       </>
     );
@@ -227,129 +200,179 @@ const ConcertDetail: React.FC = () => {
     );
   }
 
-  const thb = new Intl.NumberFormat("th-TH");
-  const buttonState = getButtonState();
+  const coverUrl = `http://localhost:8000${concert.concert_poster_url}`;
 
   return (
     <>
       <Navbar />
-      <div style={{ display: "flex", flexDirection: "column", padding: 12 }}>
+      <div
+        style={{
+          padding: screens.xs ? 12 : 24,
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
         <Card
           style={{
-            backgroundColor: "#ffffffff",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-            borderRadius: 16,
+            width: "100%",
+            maxWidth: 1400,
+            borderRadius: 20,
             overflow: "hidden",
-            padding: 0,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
           }}
           bodyStyle={{ padding: 0 }}
         >
-          <Row style={{ height: "420px" }}>
-            {/* ซ้าย: รูปภาพ */}
-            <Col xs={24} md={10} style={{ height: "100%" }}>
-              <img
-                alt={concert.concert_name || "Concert"}
-                src={`http://localhost:8000${concert.concert_poster_url}`}
-                style={{
-                  width: "110%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "50% 80%",
-                  borderRadius: "12px 0 0 12px",
-                }}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "/placeholder-image.jpg";
-                }}
-              />
-            </Col>
-
-            {/* ขวา: ข้อมูลคอนเสิร์ต */}
-            <Col xs={24} md={14} style={{ height: "100%" }}>
+          <Row gutter={[0, 0]} wrap>
+            {/* Left: Poster with subtle overlay */}
+            <Col xs={24} md={10} style={{ position: "relative" }}>
               <div
-                style={{
-                  padding: "20px 48px 20px 80px", // เพิ่ม padding ซ้ายให้มากขึ้น
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                }}
+                style={{ position: "relative", height: screens.md ? 520 : 500 }}
               >
-                <h1 style={{ marginBottom: "8px", textAlign: "center" }}>
-                  {concert.concert_name}
-                </h1>
-                <Divider style={{ borderColor: "#000000ff" }}></Divider>
-                <h2
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "20px",
-                    marginBottom: "24px",
+                <img
+                  alt={concert.concert_name || "Concert"}
+                  src={coverUrl}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/placeholder-image.jpg";
                   }}
-                >
-                  <FaRegCalendarAlt />
-                  {dateRangeText}
-                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                  <FaRegClock />
-                  {extractTime(concert?.ShowDates?.[0]?.show_date)}
-                </h2>
-                {getVenueName(concert.venue) && (
-                  <h2
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "20px",
-                      marginBottom: "24px",
-                    }}
-                  >
-                    <FaLocationDot />
-                    {getVenueName(concert.venue)}{" "}
-                  </h2>
-                )}
-                {concert?.ShowDates?.[0]?.Zones && (
-                  <h2
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "20px",
-                    }}
-                  >
-                    <FaDollarSign />
-                    {Array.from(
-                      new Set(
-                        concert.ShowDates[0].Zones.map((z: any) =>
-                          Number(z.zone_price)
-                        )
-                      )
-                    )
-                      .sort((a, b) => b - a)
-                      .map((price) => thb.format(price))
-                      .join(" / ")}{" "}
-                    THB
-                  </h2>
-                )}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    objectPosition: "50% 100%",
+                    display: "block",
+                  }}
+                />
+                <div
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background:
+                      "linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0.35) 100%)",
+                  }}
+                />
+                {/* floating badge */}
                 <div
                   style={{
-                    marginTop: "auto", // ดันปุ่มลงล่าง
+                    position: "absolute",
+                    top: 12,
+                    left: 12,
+                    display: "flex",
+                    gap: 8,
+                  }}
+                >
+                  {saleTag}
+                </div>
+              </div>
+            </Col>
+
+            {/* Right: Details */}
+            <Col xs={24} md={14} style={{ background: "#fff" }}>
+              <div
+                style={{
+                  padding: screens.xs
+                    ? "18px 18px 20px"
+                    : "28px 36px 28px 36px",
+                  minHeight: screens.md ? 480 : 420,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                <Title
+                  level={2}
+                  style={{
+                    margin: 0,
+                    textAlign: screens.xs ? "left" : "center",
+                  }}
+                >
+                  {concert.concert_name}
+                </Title>
+
+                <Divider
+                  style={{ margin: screens.xs ? "8px 0 12px" : "10px 0 16px" }}
+                />
+
+                {/* Date & Time */}
+                <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                  <InfoRow icon={<FaRegCalendarAlt />}>
+                    <Text strong style={{ fontSize: 18 }}>
+                      {dateRangeText}
+                    </Text>
+                  </InfoRow>
+
+                  <InfoRow icon={<FaRegClock />}>
+                    <Text strong style={{ fontSize: 18 }}>
+                      {extractTime(concert?.ShowDates?.[0]?.show_date)}
+                    </Text>
+                  </InfoRow>
+
+                  {getVenueName(concert.venue) && (
+                    <InfoRow icon={<FaLocationDot />}>
+                      <Text strong style={{ fontSize: 18 }}>
+                        {getVenueName(concert.venue)}
+                      </Text>
+                    </InfoRow>
+                  )}
+
+                  {!!uniqueSortedPrices.length && (
+                    <InfoRow icon={<FaDollarSign />}>
+                      <Space wrap style={{ fontSize: 18 }}>
+                        {uniqueSortedPrices.map((p) => (
+                          <Text key={p} style={{ fontSize: 18 }}>
+                            {thb.format(p)} /
+                          </Text>
+                        ))}
+                        THB
+                      </Space>
+                    </InfoRow>
+                  )}
+
+                  <InfoRow icon={<LuTicket />}>
+                    <div>
+                      <Text strong style={{ fontSize: 18 }}>
+                        Ticket sale date:{" "}
+                        {concert?.onsale_date
+                          ? new Date(concert.onsale_date).toLocaleDateString(
+                              "en-GB",
+                              {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              }
+                            )
+                          : "-"}
+                      </Text>
+                      <br />
+                      <Text strong style={{ fontSize: 18 }}></Text>
+                    </div>
+                  </InfoRow>
+                </Space>
+
+                <div
+                  style={{
+                    marginTop: "auto",
                     display: "flex",
                     justifyContent: "center",
                   }}
                 >
-                  <button
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<LuTicket />}
                     onClick={handleBuyNow}
-                    className="payment-button"
+                    disabled={ctaDisabled}
                     style={{
-                      padding: "10px 24px",
-                      fontSize: "18px",
-                      borderRadius: "10px",
-                      color: "#fff",
-                      border: "none",
-                      cursor: buttonState.clickable ? "pointer" : "not-allowed",
-                      ...buttonState.style,
+                      paddingInline: 28,
+                      borderRadius: 12,
+                      boxShadow: ctaDisabled
+                        ? "none"
+                        : "0 6px 16px rgba(24,144,255,0.25)",
                     }}
                   >
-                    {buttonState.text}
-                  </button>
+                    {ctaLabel}
+                  </Button>
                 </div>
               </div>
             </Col>
@@ -359,5 +382,32 @@ const ConcertDetail: React.FC = () => {
     </>
   );
 };
+
+// Small presentational row for icon + content
+const InfoRow: React.FC<{
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ icon, children }) => (
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "24px 1fr",
+      alignItems: "center",
+      gap: 12,
+    }}
+  >
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 18,
+      }}
+    >
+      {icon}
+    </div>
+    <div>{children}</div>
+  </div>
+);
 
 export default ConcertDetail;

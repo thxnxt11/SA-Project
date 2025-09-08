@@ -153,6 +153,7 @@ func main() {
 		api.POST("/users/:user_id/refunds", refundController.CreateRefund)
 		api.GET("/refunds/history/:user_id", refund.GetRefundHistory)
 		api.DELETE("/refunds/:id", refund.DeleteRefund)
+		api.DELETE("/showdate/concert/:concert_id/date/:date", concert.DeleteShowdateByConcertAndDate)
 	}
 
 	// static uploads

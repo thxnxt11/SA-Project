@@ -29,6 +29,11 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
 import type { UserInterface } from "../../interface/user";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -56,7 +61,9 @@ const SignUpForm: React.FC = () => {
       email: values.email,
       age: values.age,
       password: values.password,
-      birthday: (values.birthday as dayjs.Dayjs).toISOString(),
+      birthday: (values.birthday as dayjs.Dayjs)
+        .tz("Asia/Bangkok")
+        .format("YYYY-MM-DDTHH:mm:ss.SSSSSSZ"),
       phonenum: values.phonenum,
       gender_id: values.gender_id,
       role_id: 2,
