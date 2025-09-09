@@ -7,6 +7,7 @@ import (
 	"github.com/yourname/went-back/connection"
 
 	staffassignmentController "github.com/yourname/went-back/controller/assignment"
+	"github.com/yourname/went-back/controller/user"
 	staffassignmentService "github.com/yourname/went-back/service/assignment"
 
 	assignmentController "github.com/yourname/went-back/controller/assignment"
@@ -89,9 +90,10 @@ func main() {
 		api.DELETE("/assignments/:id", assignCtrl.DeleteAssignment)
 
 		// ----- Staff Assignment -----
-		api.GET("/staff/assignments", staffAssignCtrl.GetMyAssignments)
 		api.POST("/staff/assignments/:id/accept", staffAssignCtrl.AcceptAssignment)
 		api.PUT("/staff/staff_assignments/:id/status", staffAssignCtrl.UpdateMyStatus)
+
+		api.GET("/staff/:user_id/assignments", staffAssignCtrl.GetMyAssignments)
 		// ----- ShowDate / Status / Concert -----
 
 		api.GET("/assignment_statuses", assignmentStatusController.GetAllStatuses)
@@ -126,6 +128,10 @@ func main() {
 		// api.PUT("/stages/:id", stageController.UpdateStage)
 		// api.DELETE("/stages/:id", stageController.DeleteStage)
 		
+
+		// auth
+	r.POST("/signup", user.SignUp)
+	r.POST("/signin", user.SignIn)
 
 	}
 

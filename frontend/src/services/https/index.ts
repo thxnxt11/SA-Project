@@ -117,12 +117,6 @@ export const assignmentAPI = {
     }),
   delete: (id: number) => Delete(`${ADMIN_API_URL}/assignments/${id}`),
 
-  // Staff Assignment (staff update สถานะของตัวเอง)
-  updateStaffStatus: (staffAssignmentId: number, statusId: number) =>
-    PUT(`${ADMIN_API_URL}/staffassignments/${staffAssignmentId}/status`, {
-      assignment_status_id: statusId,
-    }),
-
   // dropdown / relation data
   getStatuses: () => Get(`${ADMIN_API_URL}/assignment_statuses`),
   getAllStaff: () => Get(`${ADMIN_API_URL}/users`),
@@ -132,7 +126,7 @@ export const assignmentAPI = {
 
 export const staffAssignmentAPI = {
   // ดึงงานของตัวเอง
-  getMyAssignments: () => Get(`${ADMIN_API_URL}/staff/assignments`),
+  getMyAssignments: (id: number | string |undefined) => Get(`${ADMIN_API_URL}/staff/${id}/assignments`),
 
   // รับงาน (เปลี่ยนสถานะเป็น In Progress)
   acceptAssignment: (assignmentId: number) =>
@@ -140,11 +134,13 @@ export const staffAssignmentAPI = {
 
   // อัปเดตสถานะงานของตัวเอง
   updateStatus: (staffAssignmentId: number, statusId: number) =>
-    PUT(`${ADMIN_API_URL}/staff/staff_assignments/${staffAssignmentId}/status`, {
-      assignment_status_id: statusId,
-    }),
+    PUT(
+      `${ADMIN_API_URL}/staff/staff_assignments/${staffAssignmentId}/status`,
+      {
+        assignment_status_id: statusId,
+      }
+    ),
 };
-
 
 // ---------- Venue + Stage API ----------
 export const venueAPI = {

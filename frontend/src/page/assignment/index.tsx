@@ -12,6 +12,8 @@ import {
   Modal,
   Result,
   Tag,
+  Avatar,
+  Tooltip,
 } from "antd";
 import {
   EditOutlined,
@@ -235,34 +237,47 @@ const TaskAssignment: React.FC = () => {
       },
     },
 
-    {
-      title: "Assigned Staff",
-      key: "assignedStaff",
-      render: (_: any, record: AssignmentInterface) => (
-        <Space wrap>
-          {record.staff_assignments?.length
-            ? record.staff_assignments.map((s, idx) => {
-                const { color, text } = getStaffStatusTag(
-                  s.assignment_status?.ID
-                );
-                const name = `${s.user?.first_name} ${s.user?.last_name}`;
-                return (
-                  <Space key={idx} size="small">
-                    {/* Tag แสดงชื่อ staff */}
-                    <Tag color="geekblue" style={{ fontSize: 12 }}>
-                      {name}
-                    </Tag>
-                    {/* Tag แสดง status */}
-                    <Tag color={color} style={{ fontSize: 12 }}>
-                      {text}
-                    </Tag>
-                  </Space>
-                );
-              })
-            : "-"}
-        </Space>
-      ),
-    },
+
+
+{
+  title: "Assigned Staff",
+  key: "assignedStaff",
+  render: (_: any, record: AssignmentInterface) => (
+    <Space wrap>
+      {record.staff_assignments?.length
+        ? record.staff_assignments.map((s, idx) => {
+            const { color, text } = getStaffStatusTag(s.assignment_status?.ID);
+            const user = s.user;
+            if (!user) return null;
+
+            const name = `${user.first_name} ${user.last_name}`;
+            const initials = user.first_name [0] + user.last_name [0];
+            const tooltipContent = `${name} - ${user.position?.position || "-"} - ${user.department?.department || "-"}`;
+
+            return (
+              <Space key={idx} size="small" align="center">
+                {/* Avatar แสดงตัวอักษรย่อ */}
+                <Tooltip title={tooltipContent}>
+                  <Avatar size="small" style={{ backgroundColor: "#1890ff" }}>
+                    {initials.toUpperCase()}
+                  </Avatar>
+                </Tooltip>
+
+                {/* ชื่อเต็ม */}
+                <span style={{ fontSize: 12 }}>{name}</span>
+
+                {/* Tag แสดงสถานะ */}
+                <Tag color={color} style={{ fontSize: 12 }}>
+                  {text}
+                </Tag>
+              </Space>
+            );
+          })
+        : "-"}
+    </Space>
+  ),
+},
+
     {
       title: "Date & Time",
       key: "datetime",

@@ -1,7 +1,8 @@
-package controller
+package user
 
 import (
-
+	// "crypto/rand"
+	// "encoding/hex"
 	"errors"
 	"net/http"
 	"time"
@@ -144,7 +145,7 @@ func SignIn(c *gin.Context) {
 		posName = &user.Position.Position
 	}
 	// issue JWT
-	jwtWrapper := service.JwtWrapper{
+	jwtWrapper := services.JwtWrapper{
 		SecretKey:       "SvNQpBN8y3qlVrsGAYYWoJJk56LtzFHx",
 		Issuer:          "AuthService",
 		ExpirationHours: 24,
