@@ -1,4 +1,4 @@
-export interface CartItem {
+export interface CartItemInterface {
   id: number;
   name: string;
   color: string;
@@ -6,4 +6,5 @@ export interface CartItem {
   price: number;
   quantity: number;
   picture: string;
+  selected: boolean;
 }

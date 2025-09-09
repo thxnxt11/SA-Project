@@ -45,7 +45,7 @@ const WarehouseLayout: React.FC = () => {
   const location = useLocation(); 
   const screens = useBreakpoint();
   const { user, logout } = useAuth();
-  const isMobile = !screens.lg; // < lg = mobile/tablet
+  const isMobile = !screens.lg; // < lg = mobile/tablet 
   //  Map path ให้ key ตรงกับเมนู
   const menuKeyMap: { [key: string]: string } = {
     "/warehouse/dashboardwarehouse": "1",
@@ -295,12 +295,11 @@ const WarehouseLayout: React.FC = () => {
           style={{
             margin: "24px 16px",
             padding: 24,
-            minHeight: 617,
+            // minHeight: 617,
             background: colorBgContainer,
             borderRadius: borderRadiusLG,
           }}
         >
-          {/* 👇 แก้จาก {children} เป็น <Outlet /> */}
           <Outlet />
         </Content>
       </Layout>

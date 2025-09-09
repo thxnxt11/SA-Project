@@ -159,7 +159,7 @@ const onFinish = async (values: any) => {
 };
 
   return (
-    <>
+    <div style={{ padding: 10 ,height:"100%" }}>
       {contextHolder}
       <Title level={3}>Add Product</Title>
 
@@ -235,7 +235,8 @@ const onFinish = async (values: any) => {
           </Col>
         </Row>
         </Card>
-                                                                          {/* Variants for specific categories */}
+        
+        {/* Variants for specific categories */}
         {[1, 3].includes(category) && (
           <div style={{ padding: 5, margin: "0 auto", width: "60%" }}>
             <Divider style={{ fontSize: 28 }}>Color and Size</Divider>
@@ -371,7 +372,7 @@ const onFinish = async (values: any) => {
           </Form.Item>
         </div>
       </Form>
-    </>
+    </div>
   );
 };
 

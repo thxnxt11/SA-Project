@@ -11,4 +11,5 @@ type CartItem struct {
     VariantID uint     `json:"variant_id"`
     Variant   *Variant `gorm:"foreignKey:VariantID" json:"variant"`
     Quantity  uint     `json:"quantity"`
+    Selected  bool      `json:"selected"` 
 }

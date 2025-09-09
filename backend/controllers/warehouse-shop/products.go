@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/entity"
+	"gorm.io/gorm"
 )
 
 // GET /product/:id
@@ -129,20 +130,21 @@ func FindProductDetail(c *gin.Context) {
 	
 // GET /products
 func FindProducts(c *gin.Context) {
-	var products []entity.Product
-	db := connection.DB()
+    var products []entity.Product
+    db := connection.DB()
 
-	if err := db.Preload("Category").
-            Preload("Concert").
-            Preload("Variants.Color").
-            Preload("Variants.Size").
-            Find(&products).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
+    if err := db.Preload("Category").
+        Preload("Concert").
+        Preload("Variants.Color").
+        Preload("Variants.Size").
+        Find(&products).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+        return
+    }
 
-	c.JSON(http.StatusOK, products)
+    c.JSON(http.StatusOK, products)
 }
+
 
 
 // POST /products
@@ -336,3 +338,41 @@ func UpdateProductTotal(productID uint) error {
 		Where("id = ?", productID).
 		Update("total", total).Error
 }
+
+func UpdateProductSalesAndQuantity(tx *gorm.DB, cartID, productID, variantID, soldAmount uint) error {
+    // อัปเดตยอดขายของ Product
+    if err := tx.Model(&entity.Product{}).
+        Where("id = ?", productID).
+        UpdateColumn("sales", gorm.Expr("sales + ?", soldAmount)).Error; err != nil {
+        return err
+    }
+
+    // ลด quantity ของ Variant
+    if err := tx.Model(&entity.Variant{}).
+        Where("id = ?", variantID).
+        UpdateColumn("quantity", gorm.Expr("quantity - ?", soldAmount)).Error; err != nil {
+        return err
+    }
+
+    // อัปเดต total ของ Product
+    var total int64
+    if err := tx.Model(&entity.Variant{}).
+        Where("product_id = ?", productID).
+        Select("SUM(quantity)").Scan(&total).Error; err != nil {
+        return err
+    }
+    if err := tx.Model(&entity.Product{}).
+        Where("id = ?", productID).
+        Update("total", total).Error; err != nil {
+        return err
+    }
+
+    // ลบ CartItem ที่ selected = true
+    if err := tx.Where("cart_id = ? AND variant_id = ? AND selected = ?", cartID, variantID, true).
+        Delete(&entity.CartItem{}).Error; err != nil {
+        return err
+    }
+
+    return nil
+}
+

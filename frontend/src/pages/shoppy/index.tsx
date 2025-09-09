@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Typography,  Row, Col, Card, Spin, Carousel, Button } from "antd";
+import { Typography,  Row, Col, Card, Spin, Carousel } from "antd";
 import { useNavigate } from "react-router-dom";
 import { productsAPI } from "./../../services/https";
 
@@ -24,7 +24,7 @@ const ShoppingPage: React.FC = () => {
     const fetchProducts = async () => {
       try {
         const res = await productsAPI.getAllProducts();
-        setProducts(res.data); // ✅ ต้องคืน array ที่ตรงกับ ProductInterface
+        setProducts(res.data); 
         console.log(res.data);
       } catch (err) {
         console.error("Failed to load products:", err);
@@ -43,9 +43,8 @@ const ShoppingPage: React.FC = () => {
     );
   }
 
-  // ✅ สินค้าหน้าละ 4
   const pageSize = 4;
-  const totalPages = 4; // fix 4 หน้า (คุณสามารถใช้ Math.ceil(products.length / pageSize) ก็ได้)
+  const totalPages = 4; 
   const pages = Array.from({ length: totalPages }, (_, i) =>
     products.slice(i * pageSize, (i + 1) * pageSize)
   );
@@ -66,7 +65,7 @@ const ShoppingPage: React.FC = () => {
                   <div key={pageIndex}>
                     <Row gutter={[24, 32]} justify="center" style={contentStyle}>
                       {page.map((product) => (
-                        <Col key={product.ProductID}>
+                        <Col key={product.ID}>
                           <Card
                             hoverable
                             onClick={() => navigate(`/shopping/productdetail/${product.ID}`)}
@@ -74,8 +73,15 @@ const ShoppingPage: React.FC = () => {
                               width: 270,
                               height: 380,
                               background: "#f1f3f4",
+                              overflow: "hidden",   
+                              display: "flex",
+                              flexDirection: "column",
                               textAlign: "center",
-                              overflow: "hidden",
+                            }}
+                            styles={{
+                              body: {
+                                padding: 0, 
+                              },
                             }}
                           >
                             {/* รูปสินค้า */}
@@ -96,6 +102,7 @@ const ShoppingPage: React.FC = () => {
                                   height: 270,
                                   width: "100%",
                                   objectFit: "cover",
+                                  // overflow: "hidden",
                                 }}
                               />
                             </div>

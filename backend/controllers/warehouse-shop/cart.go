@@ -51,6 +51,23 @@ func AddToCart(c *gin.Context) {
 }
 
 // GET /cart/:user_id
+type CartItemResponse struct {
+    ID       uint   `json:"id"`
+    Name     string `json:"name"`
+    Color    string `json:"color"`
+    Size     string `json:"size"`
+    Price    float32    `json:"price"`
+    Quantity int    `json:"quantity"`
+    Picture  string `json:"picture"`
+    Selected bool `json:"selected"`
+}
+
+type CartResponse struct {
+    ID    uint               `json:"id"`
+    UserID uint              `json:"user_id"`
+    Items []CartItemResponse `json:"items"`
+}
+
 func GetCartByUserID(c *gin.Context) {
     userIDStr := c.Param("user_id")
     userID, err := strconv.Atoi(userIDStr)
@@ -70,8 +87,30 @@ func GetCartByUserID(c *gin.Context) {
         return
     }
 
-    c.JSON(http.StatusOK, cart)
+    // map data ไป response struct
+    items := make([]CartItemResponse, 0, len(cart.CartItems))
+    for _, item := range cart.CartItems {
+        items = append(items, CartItemResponse{
+            ID:       item.ID,
+            Name:     item.Variant.Product.ProductName,
+            Color:    item.Variant.Color.Color,
+            Size:     item.Variant.Size.Size,
+            Price:    float32(item.Variant.Product.ProductPrice),
+            Quantity: int(item.Quantity),
+            Picture:  item.Variant.Picture,
+            Selected: item.Selected,
+        })
+    }
+
+    response := CartResponse{
+        ID:     cart.ID,
+        UserID: cart.UserID,
+        Items:  items,
+    }
+
+    c.JSON(http.StatusOK, response)
 }
+
 
 // PUT /cart/item/:id
 func UpdateCartItem(c *gin.Context) {
@@ -119,4 +158,37 @@ func RemoveCartItem(c *gin.Context) {
     }
 
     c.JSON(http.StatusOK, gin.H{"message": "Cart item removed"})
+}
+
+// PATCH /cart/items/:id/select
+func UpdateCartItemSelected(c *gin.Context) {
+	id := c.Param("id")
+	var body struct {
+		Selected bool `json:"selected"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid body"})
+		return
+	}
+
+	db := connection.DB()
+	var item entity.CartItem
+
+	if err := db.First(&item, id).Error; err != nil {
+		c.JSON(404, gin.H{"error": "Cart item not found"})
+		return
+	}
+
+	item.Selected = body.Selected
+
+	if err := db.Save(&item).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to update selected"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"id":       item.ID,
+		"selected": item.Selected,
+	})
 }

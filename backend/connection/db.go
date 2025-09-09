@@ -36,6 +36,7 @@ func SetupDatabase() {
         &entity.PaymentMethod{},
         &entity.PaymentOrder{},
         &entity.PaymentStatus{},
+        &entity.PromotionType{},
         &entity.Product{},
         &entity.Variant{},
         &entity.Promotion{},
@@ -89,6 +90,63 @@ func SetupDatabase() {
     db.FirstOrCreate(Organizer, &entity.User{
         Email: "ENTERTAIN@gmail.com",
     })
+
+    //promotion type
+   db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
+      PromotionType: "Code",
+   })
+   db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
+      PromotionType: "Concert",
+   })
+
+    //PaymentMethod
+   db.FirstOrCreate(&entity.PaymentMethod{}, entity.PaymentMethod{
+      PaymentMethodName: "QR PromptPay",
+      AccountName: "Eventix Entertainment",
+      AccountNumber: "0902745366",
+      BankName: "PromptPay",
+   })
+   db.FirstOrCreate(&entity.PaymentMethod{}, entity.PaymentMethod{
+      PaymentMethodName: "Account Number",
+      AccountName: "Eventix Entertainment",
+      AccountNumber: "123-4-56789-0",
+      BankName: "Bangkok Bank(BBL)",
+   })
+
+   // payment status
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "pending payment",
+   })
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "paided",
+   })
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "cancelled",
+   })
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "expired",        
+   })
+   db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{
+      PaymentStatus: "refunded",
+   })
+
+    // --- Example Promotion ---
+    startDate, _ := time.Parse("2006-01-02", "2025-09-01")
+    endDate, _ := time.Parse("2006-01-02", "2025-09-30")
+    db.FirstOrCreate(&entity.Promotion{}, entity.Promotion{
+        PromotionName:   "PRODUCT10",
+        Description:     "ลด 10% ",
+        PromotionTypeId: 3, // Code
+        PromotionCode:   "PRODUCT10",
+        Discount:        10,
+        StartDate:       startDate,
+        EndDate:         endDate,
+        Limit:           100,
+        Status:          "active",
+        UserID:          1,
+        ConcertID:       1,
+        Poster:          "",
+    })
     
     // --- Action ---
     action := []string{"IN", "OUT", "UPDATE"}
@@ -118,18 +176,6 @@ func SetupDatabase() {
     concerts := []string{"World Tour", "Born To Be", "Big mountain", "4 King"}
     for _, c := range concerts {
         db.FirstOrCreate(&entity.Concert{}, entity.Concert{Concert: c})
-    }
-
-    // --- Payment Status ---
-    statuses := []string{"Pending", "Paid", "Failed", "Refunded"}
-    for _, st := range statuses {
-        db.FirstOrCreate(&entity.PaymentStatus{}, entity.PaymentStatus{Status: st})
-    }
-
-    // --- Payment Methods ---
-    methods := []string{"Credit Card", "Bank Transfer", "PromptPay"}
-    for _, m := range methods {
-        db.FirstOrCreate(&entity.PaymentMethod{}, entity.PaymentMethod{Method: m})
     }
 
     // --- Example Product ---

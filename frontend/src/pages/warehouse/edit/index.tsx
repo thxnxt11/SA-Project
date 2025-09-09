@@ -34,6 +34,8 @@ import {
   sizesAPI,
   variantAPI,
 } from "../../../services/https";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+
 import { useAuth } from "../../../hook/authContext";
 
 
@@ -41,6 +43,7 @@ const { Title } = Typography;
 const { Option } = Select;
 
 const EditWarehouse: React.FC = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
@@ -279,6 +282,7 @@ const EditWarehouse: React.FC = () => {
       title: "Product Name",
       dataIndex: "product_name",
       key: "product_name",
+      width: 400,
     },
     {
       title: "Category",
@@ -301,11 +305,11 @@ const EditWarehouse: React.FC = () => {
       key: "minimum",
     },
     {
-      title: "",
+      title: "Action",
       key: "actions",
       render: (_: any, record: any) => (
         <Space size="middle">
-          <Button icon={<EyeOutlined />} />
+          {/* <Button icon={<EyeOutlined />} /> */}
           <Button
             icon={<EditOutlined />}
             style={{ backgroundColor: "#1677ff", color: "white" }}
@@ -323,7 +327,7 @@ const EditWarehouse: React.FC = () => {
   ];
 
   return (
-    <Card>
+    <div style={{ padding: 10 ,height:"100%" }}>
       <Row gutter={[50, 20]} align="middle">
         <Col span={12}>
           <Title level={3}>Edit Product Information</Title>
@@ -333,13 +337,14 @@ const EditWarehouse: React.FC = () => {
             type="primary"
             icon={<PlusOutlined />}
             style={{ background: "#A4A4A4" }}
+            onClick={ () => navigate("/warehouse/create")}
           >
             New Merchandise
           </Button>
         </Col>
       </Row>
 
-      <div
+      {/* <div
         style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}
       >
         <Input.Search
@@ -348,14 +353,15 @@ const EditWarehouse: React.FC = () => {
           onChange={(e) => setSearch(e.target.value)}
           style={{ width: "60%" }}
         />
-      </div>
+      </div> */}
 
       <Table
         columns={columns}
         dataSource={filteredData}
-        pagination={{ pageSize: 5 }}
+        pagination={{ pageSize: 10 }}
         loading={loading}
         rowKey="ID"
+        style={{width:"90%",margin:"20px auto"}}
       />
 
       {/* ✅ Modal ฟอร์มแก้ไข */}
@@ -655,7 +661,7 @@ const EditWarehouse: React.FC = () => {
         </Form>
         {contextHolder}
         </Modal>
-        </Card>
+        </div>
   );
 };
 

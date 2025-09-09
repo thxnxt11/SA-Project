@@ -50,18 +50,21 @@ const columns: ColumnsType<Row> = [
     key: "no",
     render: (_: any, __: any, index: number) => index + 1,
     align: "center",
+    width:100,
   },
   {
     title: "Product ID",
     dataIndex: "product_id",
     key: "product_id",
     align: "center",
+    width:150,
   },
   {
     title: "Name",
     dataIndex: "product_name",
     key: "product_name",
     align: "center",
+    width:400,
   },
   {
     title: "Minimum Quantity",
@@ -91,9 +94,9 @@ const columns: ColumnsType<Row> = [
 ];
 
   return (
-    <Card style={{ background: "#fff", padding: 0 }}>
+    <div style={{ background: "#fff", padding: 0 }}>
       <h1 style={{ fontSize: 28, fontWeight: "bold" }}>🔔 Low Stock</h1>
-      <Text type="secondary" style={{ marginLeft: 24 }}>
+      <Text type="secondary" style={{ marginLeft: 24 ,}}>
         สินค้าใกล้หมด
       </Text>
 
@@ -104,9 +107,9 @@ const columns: ColumnsType<Row> = [
         bordered
         pagination={{ pageSize: 5 }}
         loading={loading}
-        style={{ marginTop: 16 }}
+        style={{ marginTop: 16,width:"90%", margin:"20px auto"}}
       />
-    </Card>
+    </div>
   );
 };
 

@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Table,
   Button,
   Typography,
   InputNumber,
@@ -14,97 +13,210 @@ import {
   Input,
   Space,
 } from "antd";
+import { CheckCircle } from "lucide-react";
 import { DeleteOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import type { CartItem } from "../../../interface/cartitem";
+import { cartAPI, paymentOrderAPI, promotionAPI } from "../../../services/https";  
+import { useAuth } from "../../../hook/authContext"; 
+import type { CartItemInterface } from "../../../interface/cartitem";
+import { RxCrossCircled } from "react-icons/rx";
 
 const { Title } = Typography;
 
-const initialCart: CartItem[] = [
-  { id: 1, name: "Saja Boys Heartthrob Officially Licensed T-Shirt", color: "Red", size: "M", price: 1390 , quantity: 1 , picture: "https://m.media-amazon.com/images/I/B1pppR4gVKL._CLa%7C2140%2C2000%7CB1LreszsvuL.png%7C0%2C0%2C2140%2C2000%2B0.0%2C0.0%2C2140.0%2C2000.0_AC_SX466_.png"},
-  { id: 2, name: "HUNTR/X Heartthrob Officially Licensed T-Shirt", color: "White", size: "L", price: 2690 , quantity: 1 , picture: "https://m.media-amazon.com/images/I/B1pppR4gVKL._CLa%7C2140%2C2000%7CA15fChs1PML.png%7C0%2C0%2C2140%2C2000%2B0.0%2C0.0%2C2140.0%2C2000.0_AC_SX466_.png"},
-];
-
 const CartPages: React.FC = () => {
-  const [cartItems, setCartItems] = useState<CartItem[]>(initialCart);
+  const [cartItems, setCartItems] = useState<CartItemInterface[]>([]); 
+  const [cartID , setCartID]=useState<CartItemInterface[]>([]); 
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [discountCode, setDiscountCode] = useState<string>("");
   const [discountRate, setDiscountRate] = useState<number>(0);
-  const discountCodes: { [key: string]: number } = {
-    DISCOUNT10: 0.10, // ลด 10%
-    ONCE5: 0.05,      // ลด 5%
-  };
-  
-  const applyDiscount = () => {
-    const rate = discountCodes[discountCode.toUpperCase()];
-    if (rate) {
-      setDiscountRate(rate);
-      message.success(`ใช้รหัสส่วนลดแล้ว: ลด ${rate * 100}%`);
-    } else {
-      setDiscountRate(0);
-      message.error("ไม่พบรหัสส่วนลดนี้");
-    }
-  };
-  
-  const updateQuantity = (id: number, quantity: number) => {
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: Math.max(1, quantity) } : item
-  )
-);
-};
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    amount: number;
+    message: string;
+    code: string;
+    promotionID?: number;
+  } | null>(null);
 
-  const removeItem = (id: number) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
-    setSelectedRowKeys((prev) => prev.filter((key) => key !== id));
-    message.success("ลบสินค้าสำเร็จ");
+  useEffect(() => {
+  if (!user?.id) return;
+
+  cartAPI.getCartByUserID(Number(user.id))
+  .then(res => {
+      if (res.data && Array.isArray(res.data.items)) {
+        const cartId =  res.data.id;
+        const mapped: CartItemInterface[] = res.data.items.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          color: item.color,
+          size: item.size,
+          price: item.price,
+          quantity: item.quantity,
+          picture: item.picture,
+          selected: item.selected,
+        }));
+        setCartItems(mapped);
+        setCartID(cartId);
+        setSelectedRowKeys(mapped.filter(i => i.selected).map(i => i.id));
+
+        console.log("cart",res.data);
+        
+      } else {
+        setCartItems([]);
+      }
+    })
+    .catch(() => {
+      message.error("โหลดตะกร้าไม่สำเร็จ");
+    });
+  }, [user]);
+  
+  const updateQuantity = (item_id: number, quantity: number) => {
+    cartAPI.updateCartItem(item_id, quantity)
+      .then(() => {
+        setCartItems(prev =>
+          prev.map(item =>
+            item.id === item_id ? { ...item, quantity } : item
+          )
+        );
+      })
+      .catch(() => message.error("อัปเดตจำนวนไม่สำเร็จ"));
   };
 
+  const removeItem = (item_id: number) => {
+    cartAPI.removeCartItem(item_id)
+      .then(() => {
+        setCartItems(prev => prev.filter(item => item.id !== item_id));
+        setSelectedRowKeys(prev => prev.filter(key => key !== item_id));
+        message.success("ลบสินค้าแล้ว");
+      })
+      .catch(() => message.error("ลบสินค้าไม่สำเร็จ"));
+  };
+
+  
   const removeAllItems = () => {
     setCartItems([]);
     setSelectedRowKeys([]);
     message.success("เคลียร์ตะกร้าเรียบร้อยแล้ว");
   };
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedRowKeys(cartItems.map((item) => item.id));
-    } else {
-      setSelectedRowKeys([]);
+  
+  const handleSelectAll = async (checked: boolean) => {
+    setSelectedRowKeys(checked ? cartItems.map(item => item.id) : []);
+    
+    try {
+      if (checked) {
+        await Promise.all(cartItems.map(item => cartAPI.updateCartItemSelected(item.id, true)));
+      } else {
+        await Promise.all(cartItems.map(item => cartAPI.updateCartItemSelected(item.id, false)));
+      }
+      // message.success("อัปเดตสถานะการเลือกเรียบร้อย");
+    } catch (err) {
+      message.error("ไม่สามารถอัปเดตสถานะการเลือกได้");
     }
   };
   
-
   const isAllSelected = selectedRowKeys.length === cartItems.length && cartItems.length > 0;
-
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (selectedKeys: React.Key[]) => {
-      setSelectedRowKeys(selectedKeys);
-    },
-  };
-
+  
   const selectedItems = cartItems.filter((item) =>
     selectedRowKeys.includes(item.id)
   );
 
-  const totalSelectedPrice = selectedItems.reduce(
-    (total, item) => total + item.price * item.quantity,
-    0
-  );
+  const toggleSelect = (id: number) => {
+    const isSelected = selectedRowKeys.includes(id);
+    
+    cartAPI.updateCartItemSelected(id, !isSelected)
+    .then(() => {
+      setSelectedRowKeys(prev =>
+        prev.includes(id) ? prev.filter(k => k !== id) : [...prev, id]
+      );
+    })
+    .catch(() => message.error("อัปเดตสถานะสินค้าไม่สำเร็จ"));
+  };
+    
+  const handleApplyDiscount = async () => {
+    try {
+      const payload = {
+        code: discountCode,
+        target:"product",
+      };
 
- const toggleSelect = (id: number) => {
-  setSelectedRowKeys((prev) =>
-    prev.includes(id) ? prev.filter((key) => key !== id) : [...prev, id]
-  );
-};
+      console.log("validate send", payload);
+      const res = await promotionAPI.validateCode(payload);
+      console.log("validate response", res?.data);
+
+  
+      if (res?.data?.valid) {
+        const pct = res.data.data.discount_percent ?? 0;
+        setDiscountRate(pct/100);
+        const promotionID = res?.data?.data?.promotion_id;
+  
+        const basePrice = selectedItems.reduce(
+          (t, i) => t + i.price * i.quantity,
+          0
+        );
+        const amount = Math.round((basePrice * pct) / 100);
+  
+        setAppliedDiscount({
+          amount,
+          message: `Applied ${pct}% discount`,
+          code: res.data.data.code,
+          promotionID: promotionID,
+        });
+  
+        message.success(`ใช้โค้ดแล้ว ลด ${pct}%`);
+      } else {
+        setAppliedDiscount({
+          amount: 0,
+          message: res?.data?.error || "The discount code is invalid",
+          code: "",
+          promotionID: undefined,
+        });
+        message.error("โค้ดส่วนลดไม่ถูกต้อง");
+      }
+    } catch (err: any) {
+      setAppliedDiscount({
+        amount: 0,
+        message: "Cannot validate the code",
+        code: "",
+        promotionID: undefined,
+      });
+      console.error("validate error", err.response?.data || err.message);
+      message.error("ตรวจสอบโค้ดไม่สำเร็จ");
+    }
+  };
+
+  const handleConfirmOrder = async () => {
+    try {
+      const basePrice = selectedItems.reduce((t, i) => t + i.price * i.quantity, 0);
+      const discountAmount = appliedDiscount?.amount || 0;
+      const totalPrice = basePrice - discountAmount;
+      
+      const res = await paymentOrderAPI.createPaymentOrder({
+        cart_id: cartID,
+        promotion_id: appliedDiscount?.promotionID ?? null,
+        method_id: null, 
+        base_price: basePrice,
+        discount: discountAmount,
+        total_price: totalPrice,
+      });
+      
+      const paymentOrderId = res.data.payment_order.ID;
+      console.log("Orders:",selectedItems);
+      navigate(`/shopping/payment-orders/${paymentOrderId}`, {
+        state: { selectedItems },
+      });
+    } catch (err) {
+      message.error("ไม่สามารถสร้างคำสั่งซื้อได้");
+    }
+  };
+
   return (
-    <div style={{ width:"60%", margin: "20px auto", padding: 12, minHeight:"80vh" }}>
+    <div style={{ width:"70%", margin: "20px auto", 
+    }}>
       <Row gutter={80}>
-        <Col span={15}>
-          {/* ✅ Card บนสุด: เลือกทั้งหมด + เคลียร์ตะกร้า */}
-          <Card style={{ marginBottom:12 ,padding:1}}>
+        <Col span={15} >
+          {/*  เลือกทั้งหมด + เคลียร์ตะกร้า */}
+          <Card style={{ marginBottom:12 ,padding:1 , background:"#F6F6F8"}}>
             <Row justify="space-between" align="middle">
               <Col>
                 <Checkbox
@@ -121,10 +233,12 @@ const CartPages: React.FC = () => {
                   okText="ใช่"
                   cancelText="ยกเลิก"
                 >
-                  <Button 
-                  danger icon={<DeleteOutlined/>} >
-                    Clear Cart
-                  </Button>
+                 <Button 
+                  danger icon={<DeleteOutlined/>}
+                  disabled={cartItems.length === 0}
+                >
+                  Clear Cart
+                </Button>
                 </Popconfirm>
               </Col>
             </Row>
@@ -133,25 +247,34 @@ const CartPages: React.FC = () => {
           {/* Table รายการสินค้า */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {cartItems.map((item) => (
-            <Card key={item.id} style={{ marginBottom: 12 }}>
+            <Card key={item.id} style={{ marginBottom: 12,  background:"#F6F6F8"}}>
               <Row gutter={16} style={{ alignItems: "stretch" }}>
+
                 {/* ✅ Checkbox เลือกรายการ */}
                 <Col span={1}>
-                  <Checkbox
-                    checked={selectedRowKeys.includes(item.id)}
-                    onChange={() => toggleSelect(item.id)}
-                  />
+                  <div 
+                    style={{
+                      display: "flex",          
+                      alignItems: "center",     
+                      justifyContent: "center",  
+                      height: "100%",   
+                    }}>
+                    <Checkbox
+                      checked={selectedRowKeys.includes(item.id)}
+                      onChange={() => toggleSelect(item.id)}
+                    />
+                  </div>
                 </Col>
 
-                {/* ✅ กรอบรูปภาพ */}
-                <Col span={5}>
+                {/* รูปภาพ */}
+                <Col span={6}>
                   <div
                     style={{
                       border: "1px solid #d9d9d9",
                       borderRadius: 8,
                       padding: 4,
                       width: "100%",
-                      height: 160,
+                      height: 200,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -160,18 +283,18 @@ const CartPages: React.FC = () => {
                     }}
                   >
                     <img
-                      src={item.picture}// เปลี่ยนเป็น item.image ได้
+                      src={item.picture}
                       alt={item.name}
                       style={{
                         maxWidth: "100%",
                         maxHeight: "100%",
-                        objectFit: "contain",
+                        objectFit: "cover",
                       }}
                     />
                   </div>
                 </Col>
 
-                {/* ✅ รายละเอียดสินค้า */}
+                {/* รายละเอียดสินค้า */}
                 <Col span={12}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <div style={{ fontWeight: "bold", fontSize: 16 }}>{item.name}</div>
@@ -180,8 +303,8 @@ const CartPages: React.FC = () => {
                   </div>
                 </Col>
 
-                {/* ✅ ชิดล่าง: จำนวน + ปุ่มลบ */}
-                <Col span={6}>
+                {/* จำนวน + ปุ่มลบ */}
+                <Col span={5}>
                   <div style={{
                     height: "100%",
                     display: "flex",
@@ -212,9 +335,45 @@ const CartPages: React.FC = () => {
 
         {/* Sidebar สรุปยอด */}
         <Col span={7}>
-          <Card style={{background:"#f9f9f9ff"}}>
-            <Title level={3}>Order Summary</Title>
-              <Divider />
+          <Card style={{background:"#F6F6F8"}}>
+            <div>{/* ช่องใส่รหัสส่วนลด */}
+              <Title level={4}>Discount Code</Title>
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  placeholder="ใส่รหัสส่วนลด"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value)}
+                  style={{ marginBottom: 8 ,width:"80%"}}
+                  />
+                <Button onClick={handleApplyDiscount} block type="primary" style={{width:"20%"}}>
+                  Use
+                </Button>
+              </Space.Compact>
+              {appliedDiscount && (
+                    <div
+                      style={{
+                        marginTop: "10px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        color: appliedDiscount.code ? "#00c50aff" : "red",
+                      }}
+                    >
+                      {appliedDiscount.code ? (
+                        <>
+                          <CheckCircle size={16} /> {appliedDiscount.message}
+                        </>
+                      ) : (
+                        <>
+                          <RxCrossCircled size={16} /> {appliedDiscount.message}
+                        </>
+                      )}
+                    </div>
+                  )}
+            </div>
+            <Divider />
+            <Title level={4}>Order Summary</Title>
+              {/* <Divider /> */}
             {/* รายการสินค้า */}
             {selectedItems.map((item) => {
               const itemTotal = item.price * item.quantity;
@@ -234,25 +393,9 @@ const CartPages: React.FC = () => {
                       </>
                     )}
                   </div>
-                  <Divider />
                 </div>
               );
             })}
-
-            {/* ช่องใส่รหัสส่วนลด */}
-            <Title level={3}>Discount Code</Title>
-          
-            <Space.Compact style={{ width: '100%' }}>
-              <Input
-                placeholder="ใส่รหัสส่วนลด"
-                value={discountCode}
-                onChange={(e) => setDiscountCode(e.target.value)}
-                style={{ marginBottom: 8 ,width:"80%"}}
-                />
-              <Button onClick={applyDiscount} block type="primary" style={{width:"20%"}}>
-                Use
-              </Button>
-            </Space.Compact>
 
             {/* ราคารวม */}
             <Divider />
@@ -264,32 +407,19 @@ const CartPages: React.FC = () => {
                 {selectedItems
                   .reduce(
                     (total, item) =>
-                      total + item.price * item.quantity * (1 - discountRate),
-                    0
-                  )
+                      total + item.price * item.quantity * (1 - discountRate),0)
                   .toLocaleString()}
               </span>
             </Title>
-
             <Button
               type="primary"
               disabled={selectedItems.length === 0}
-              onClick={() => {
-                console.log("Going to payment with:", selectedItems);
-                navigate("/shoppy/payment", {
-                  state: {
-                    selectedItems,
-                    discountRate,
-                    discountCode,
-                  },
-                });
-              }}
+              onClick={handleConfirmOrder}
               block
             >
               ยืนยันการสั่งซื้อ ({selectedItems.length} รายการ)
             </Button>
           </Card>
-
         </Col>
       </Row>
     </div>

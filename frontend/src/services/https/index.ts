@@ -2,8 +2,9 @@ import axios from "axios";
 import type { AxiosResponse, AxiosError } from "axios";
 // import type { PromotionInterface } from "../../interface/promotion";
 import type {ProductInterface} from "../../interface/product";
+import type { PromotionInterface } from "../../interface/promotion";
 
-// const ORGANIZER_API_URL = "http://localhost:8000/organizer";
+const ORGANIZER_API_URL = "http://localhost:8000/organizer";
 const PUBLIC_API_URL = "http://localhost:8000/api";
 const BASE_URL = "http://localhost:8000";
 
@@ -112,16 +113,20 @@ export const Delete = async (
 };
 
 // Promotion APIs
-// export const promotionAPI = {
-//   create: (data: PromotionInterface) =>
-//     Post(`${ORGANIZER_API_URL}/promotion/add`, data),
-//   getAll: () => Get(`${ORGANIZER_API_URL}/promotion`),
-//   getById: (id: number) => Get(`${ORGANIZER_API_URL}/promotion/${id}`),
-//   update: (id: number, data: PromotionInterface) =>
-//     Update(`${ORGANIZER_API_URL}/promotion/${id}`, data),
-//   delete: (id: number) => Delete(`${ORGANIZER_API_URL}/promotion/${id}`),
-//   getAllTypes: () => Get(`${PUBLIC_API_URL}/promotions`, false),
-// };
+export const promotionAPI = {
+  create: (data: PromotionInterface) =>
+    Post(`${ORGANIZER_API_URL}/promotion/add`, data),
+  getAll: () => Get(`${ORGANIZER_API_URL}/promotion`),
+  getById: (id: number) => Get(`${ORGANIZER_API_URL}/promotion/${id}`),
+  update: (id: number, data: PromotionInterface) =>
+    Update(`${ORGANIZER_API_URL}/promotion/${id}`, data),
+  delete: (id: number) => Delete(`${ORGANIZER_API_URL}/promotion/${id}`),
+  getAllTypes: () => Get(`${PUBLIC_API_URL}/promotions`, false),
+  validateCode: (data: { code: string; target: string; concert_id?: number }) =>
+    Post(`${PUBLIC_API_URL}/promotion/validate`, data, false),
+  getConcertByuserId: (user_id: number | string | undefined) =>
+    Get(`${PUBLIC_API_URL}/concert/${user_id}/user`),
+};
 
 // Concert APIs
 export const concertAPI = {
@@ -136,6 +141,10 @@ export const seatAPI = {
 export const ShowDateAPI = {
   getZonesByShowDateId: (id: number) =>
     Get(`${PUBLIC_API_URL}/showdate/${id}/zones`, false),
+};
+
+export const uploadAPI = {
+  upload: (data: FormData) => axios.post(`${PUBLIC_API_URL}/upload`, data),
 };
 
 // Fetch categories
@@ -163,7 +172,7 @@ export const productsAPI = {
   // update: (id: number, data: ProductInterface) =>
   //   Update(`${BASE_URL}/products/${id}`, data),
   update: (id: number, payload: any) => {
-    return axios.put(`http://localhost:8000/products/${id}`, payload);
+    return axios.put(`${BASE_URL}/products/${id}`, payload);
   },
   deleteByID: (id: number) => Delete(`${BASE_URL}/products/${id}`, false),
 };
@@ -171,30 +180,35 @@ export const productsAPI = {
 export const variantAPI = {
   deleteByID: (id: number) => Delete(`${BASE_URL}/variant/${id}`),
 }
-// export const variantAPI = {
-//   deleteByID: async (id: number) => {
-//     return axios.delete(`${BASE_URL}variant/${id}`);
-//   },
-// };
+
+export const movementsAPI = {
+  getAllProducts : () => Get(`${BASE_URL}/stockmovements`, false),
+};
 
 export const cartAPI = {
   // เพิ่มสินค้าเข้า Cart
   addToCart: (payload: { user_id: number; variant_id: number; quantity: number }) => {
     return axios.post(`${BASE_URL}/cart/add`, payload);
   },
-
-  // ดึงตะกร้าของผู้ใช้
   getCartByUserID: (user_id: number) => {
     return axios.get(`${BASE_URL}/cart/${user_id}`);
   },
-
-  // อัปเดตจำนวนสินค้าใน CartItem
   updateCartItem: (item_id: number, quantity: number) => {
     return axios.put(`${BASE_URL}/cart/item/${item_id}`, { quantity });
   },
-
-  // ลบสินค้าออกจาก Cart
   removeCartItem: (item_id: number) => {
     return axios.delete(`${BASE_URL}/cart/item/${item_id}`);
   },
+  //toggle select
+  updateCartItemSelected: (id: number, selected: boolean) =>
+    axios.patch(`${BASE_URL}/cart/items/${id}/select`, { selected }),
+};
+
+export const paymentOrderAPI = {
+  createPaymentOrder: (data: any) => axios.post(`${BASE_URL}/payment-orders/create`, data),
+  getAllPaymentMethods: () => axios.get(`${BASE_URL}/payment-orders/methods`),
+  getPaymentOrderById: (id: number) => axios.get(`${BASE_URL}/payment-orders/${id}`),
+
+  updatePaymentOrder: (id: number, data: any) => axios.put(`${BASE_URL}/payment-orders/${id}`, data),
+  expirePaymentOrder: (id: number) => axios.put(`${BASE_URL}/payment-orders/${id}/expire`),
 };

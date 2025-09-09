@@ -1,5 +1,5 @@
 // src/components/layout/Navbar.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   Layout,
   Button,
@@ -10,7 +10,7 @@ import {
   Space,
   Typography,
 } from "antd";
-import { FaUserCircle, FaBell, FaBars } from "react-icons/fa";
+import {FaUserCircle} from "react-icons/fa";
 import { DownOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import logo from "../../assets/logo.png";
 import { Link, Outlet, useNavigate } from "react-router-dom";
@@ -21,13 +21,10 @@ const { Header } = Layout;
 const { useBreakpoint } = Grid;
 
 const NavbarShop: React.FC = () => {
-  const [open, setOpen] = useState(false);
   const screens = useBreakpoint();
   const isMobile = !screens.md;
   const navigate = useNavigate();
-
   const { user, logout } = useAuth();
-
   const navLinks = useMemo(
     () => [
       { label: "Concert", to: "/concert" },
@@ -36,10 +33,7 @@ const NavbarShop: React.FC = () => {
     ],
     []
   );
-
   const displayName = user?.name ;
-
-
   const userMenu = {
     items: [
       { key: "profile", label: <Link to="/profile">Profile</Link> },
@@ -151,7 +145,7 @@ const NavbarShop: React.FC = () => {
                 type="text"
                 aria-label="Notifications"
                 icon={<ShoppingCartOutlined />}
-                onClick={() => navigate(`/shopping/cart`)}
+                onClick={() => navigate(`/shopping/cart/:id`)}
                 style={{
                   color: "white",
                   fontSize: 18,
@@ -215,7 +209,7 @@ const NavbarShop: React.FC = () => {
           </Space>
         ) : (
           <Space>
-            <Badge dot>
+            {/* <Badge dot>
               <Button
                 type="text"
                 aria-label="Notifications"
@@ -229,7 +223,7 @@ const NavbarShop: React.FC = () => {
               icon={<FaBars />}
               onClick={() => setOpen(true)}
               style={{ color: "white", fontSize: 20, height: 44 }}
-            />
+            /> */}
           </Space>
         )}
       </div>
@@ -237,7 +231,7 @@ const NavbarShop: React.FC = () => {
     <Content
           style={{
             margin: "24px 16px",
-            padding: 24,
+            padding: 0,
             minHeight: 617,
             // background: colorBgContainer,
             // borderRadius: borderRadiusLG,

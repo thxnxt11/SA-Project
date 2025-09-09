@@ -58,6 +58,7 @@ func GetStockMovements(c *gin.Context) {
         }
 
         response = append(response, map[string]interface{}{
+            "id":           m.ID,
             "variant_id":   m.VariantID,
             "product_name": productName,
             "variant_name": variantName,
@@ -71,52 +72,3 @@ func GetStockMovements(c *gin.Context) {
 
     c.JSON(http.StatusOK, response)
 }
-
-
-
-
-// POST /stockmovements - เพิ่มข้อมูลใหม่
-// func CreateStockmovement(c *gin.Context) {
-//     var input struct {
-//         ProductID uint   `json:"product_id" binding:"required"`
-//         ActionID  uint8 `json:"acton_id" binding:"required"`
-//         Amount    uint8  `json:"amount" binding:"required"`
-//         StaffID   uint8  `json:"staff_id" binding:"required"`
-//     }
-
-//     if err := c.ShouldBindJSON(&input); err != nil {
-//         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-//         return
-//     }
-
-//     stock := entity.Stockmovement{
-//         ProductID: input.ProductID,
-//         ActionID:  input.ActionID,
-//         Amount:    input.Amount,
-//         StaffID:   input.StaffID,
-//     }
-
-//     if err := connection.DB().Create(&stock).Error; err != nil {
-//         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-//         return
-//     }
-
-//     c.JSON(http.StatusCreated, stock)
-// }
-
-// DELETE /stockmovements/:id - ลบข้อมูล
-// func DeleteStockmovement(c *gin.Context) {
-//     idParam := c.Param("id")
-//     id, err := strconv.Atoi(idParam)
-//     if err != nil {
-//         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
-//         return
-//     }
-
-//     if err := connection.DB().Delete(&entity.Stockmovement{}, id).Error; err != nil {
-//         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-//         return
-//     }
-
-//     c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully"})
-// }

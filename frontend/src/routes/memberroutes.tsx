@@ -94,8 +94,10 @@ export default function MemberRoutes() {
       <Route path="shopping" element={<NavbarShop />}>
         <Route index element={<ShoppingPage />} />
         <Route path="productdetail/:id" element={<ProductDetailPage />} />
-        <Route path="cart" element={<CartPages />} />
-        <Route path="payment" element={<PaymentOrderPage />} />
+        <Route path="cart/:id" element={<CartPages />} />
+        <Route path="payment-orders/:id" element={<PaymentOrderPage />} />
+        <Route path="*" element={<Navigate to="/shopping" replace />} />
+
       </Route>
 
       {/* 404 fallback for public */}
