@@ -76,6 +76,7 @@ func SetupDatabase() {
        &entity.PasswordReset{},
        &entity.Assignment{},
        &entity.AssignmentStatus{},
+       &entity.StaffAssignment{},
        
    )
    

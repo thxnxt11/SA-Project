@@ -65,30 +65,30 @@ func (h *ETicketController) GetETicketByShowID(c *gin.Context) {
 
 	userID, err := strconv.ParseUint(userIDStr, 10, 32)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Invalid user ID", "success": false})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID", "success": false})
 		return
 	}
 
 	concertID, err := strconv.ParseUint(concertIDStr, 10, 32)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Invalid concert ID", "success": false})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid concert ID", "success": false})
 		return
 	}
 
 	showDateID, err := strconv.ParseUint(showDateIDStr, 10, 32)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Invalid show date ID", "success": false})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid show date ID", "success": false})
 		return
 	}
 
 	tickets, err := h.service.GetETicketByShowID(uint(userID), uint(concertID), uint(showDateID))
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error(), "success": false})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "success": false})
 		return
 	}
 
 	if len(tickets) == 0 {
-		c.JSON(404, gin.H{"error": "No tickets found", "success": false})
+		c.JSON(http.StatusNotFound, gin.H{"error": "No tickets found", "success": false})
 		return
 	}
 
