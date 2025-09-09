@@ -5,7 +5,7 @@ import {
   MdOutlineSpaceDashboard,
   MdAssignment,
 } from "react-icons/md";
-import { FaBuilding, FaRegCalendarAlt, FaTable, FaUserCircle } from "react-icons/fa";
+import { FaBuilding, FaRegCalendarAlt, FaUserCircle } from "react-icons/fa";
 import logo from "../assets/logo.png";
 import { useNavigate } from "react-router-dom";
 import { BsPersonLinesFill } from "react-icons/bs";
@@ -33,31 +33,38 @@ const AdminsidebarLayout: React.FC<AdminsidebarLayoutProps> = ({ children }) => 
     {
       key: "2",
       icon: <FaBuilding style={{ fontSize: "20px" }} />,
-      label: "จัดการสถานที่",
+      label: "Manage Venue",
       onClick: () => navigate("/venue"),
     },
       {
       key: "3",
+      icon: <MdOutlineSpaceDashboard style={{ fontSize: "20px" }} />,
+      label: "Equipment",
+      onClick: () => navigate("/equipment"),
+    },
+      {
+      key: "4",
       icon: <BsPersonLinesFill style={{ fontSize: "20px" }} />,
-      label: "จัดการทีมงาน",
+      label: "Manage Staff",
       onClick: () => navigate("/staff"),
     },
-    {
-      key: "4",
-      icon: <FaTable style={{ fontSize: "20px" }} />,
-      label: "ตารางงาน",
-      onClick: () => navigate("/workschedule"),
-    },
+    // {
+    //   key: "4",
+    //   icon: <FaTable style={{ fontSize: "20px" }} />,
+    //   label: "Work schedule", 
+
+    //   onClick: () => navigate("/workschedule"),
+    // },
     {
       key: "5",
       icon: <MdAssignment  style={{ fontSize: "20px" }} />,
-      label: "มอบหมายงาน",
+      label: "Assign work",
       onClick: () => navigate("/assignment"),
     },
     {
       key: "6",
       icon: <FaRegCalendarAlt style={{ fontSize: "20px" }} />,
-      label: "ปฏิทินสถานที่",
+      label: "Calendar",
       onClick: () => navigate("/calendarvenue"),
     },
   ];

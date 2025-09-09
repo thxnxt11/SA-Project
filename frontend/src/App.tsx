@@ -60,8 +60,13 @@ import Addvenue from './page/venue/addvenue';
 import Addstaff from './page/staff/addstaff';
 import CalendarVenue from './page/calendar_venue';
 import Assignment from './page/assignment';
-import WorkSchedlue from "./page/work_schedule";
-import TimeTableStep from "./page/work_schedule/add_workschedule";
+import EditStaff from "./page/staff/editstaff";
+import Editvenue from "./page/venue/editvenue";
+import Equipment from "./page/equipment";
+import MyAssignments from "./page/satffassignment/staff_assignment";
+// import WorkSchedlue from "./page/work_schedule";
+// import TimeTableStep from "./page/work_schedule/add_workschedule";
+// import Editvenue from "./page/venue/editvenue";
 
 
 const App: React.FC = () => {
@@ -71,12 +76,16 @@ const App: React.FC = () => {
          <Route path="/" element={<Dashboard />} />
           <Route path="venue" element={<Venue />} />
           <Route path="addvenue" element={<Addvenue/>}/>
+           <Route path="editvenue" element={<Editvenue/>}/>
+          <Route path="equipment" element={<Equipment/>}/>
+          <Route path="/editstaff/:id" element={<EditStaff />} />
           <Route path="staff" element={<Staff />} />
           <Route path="addstaff" element={<Addstaff/>}/>
           <Route path="calendarvenue" element={<CalendarVenue/>}/>
           <Route path="assignment" element = {<Assignment/>}/>
-          <Route path="workschedule" element={<WorkSchedlue/>}/>
-          <Route path="time_schedule" element={<TimeTableStep/>}/>
+
+          <Route path="myassignment" element={<MyAssignments/>}/>
+ 
           
       </Routes>
     </Router>

@@ -1,0 +1,323 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useEffect, useState } from "react";
+import {
+  Modal,
+  Form,
+  Input,
+  Select,
+  DatePicker,
+  TimePicker,
+  Row,
+  Col,
+  message,
+  Spin,
+} from "antd";
+import dayjs, { Dayjs } from "dayjs";
+
+import { assignmentAPI } from "../../../services/https/index";
+import type {
+  AssignmentInterface,
+  UserInterface as StaffInterface,
+  ShowDateInterface,
+} from "../../../interfaces";
+
+const { Option } = Select;
+const { TextArea } = Input;
+
+type EditTaskAssignmentProps = {
+  visible: boolean;
+  onCancel: () => void;
+  onSave?: () => void; // refresh list after save
+  assignmentId: number | undefined;
+};
+
+const EditTaskAssignment: React.FC<EditTaskAssignmentProps> = ({
+  visible,
+  onCancel,
+  onSave,
+  assignmentId,
+}) => {
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showDates, setShowDates] = useState<ShowDateInterface[]>([]);
+  const [staffOptions, setStaffOptions] = useState<StaffInterface[]>([]);
+  const [selectedConcert, setSelectedConcert] = useState<string | null>(null);
+
+  const parseDateTime = (date?: string, time?: string) => {
+    if (!date) return undefined;
+    if (!time) return dayjs(date);
+    return dayjs(`${date}T${time}`);
+  };
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        const [showDateRes, staffRes] = await Promise.all([
+          assignmentAPI.getShowDates(),
+          assignmentAPI.getAllStaff(),
+        ]);
+
+        const showDateData: ShowDateInterface[] = showDateRes?.data || [];
+        const staffData: StaffInterface[] = staffRes?.data || [];
+
+        setShowDates(showDateData);
+        setStaffOptions(staffData);
+
+        if (assignmentId) {
+          const assignmentRes = await assignmentAPI.getById(assignmentId);
+          const assignment: AssignmentInterface = assignmentRes?.data;
+
+          const show = showDateData.find(
+            (s) => s.ID === assignment.show_date?.ID
+          );
+          if (show) setSelectedConcert(show.concert?.concert_name || null);
+
+          const staff_ids =
+            assignment.staff_assignments
+              ?.map((sa: any) => sa.user?.ID)
+              .filter(Boolean) || [];
+
+          form.setFieldsValue({
+            task: assignment.task,
+            description: assignment.description || "",
+            concert: show?.concert?.concert_name || undefined,
+            show_date_id: assignment.show_date?.ID,
+            staff_ids: staff_ids,
+            startDate: parseDateTime(assignment.assignment_date_start),
+            endDate: parseDateTime(assignment.assignment_date_end),
+            startTime: parseDateTime(
+              assignment.assignment_date_start,
+              assignment.assignment_time_start
+            ),
+            endTime: parseDateTime(
+              assignment.assignment_date_end,
+              assignment.assignment_time_end
+            ),
+          });
+        }
+      } catch (err) {
+        console.error(err);
+        message.error("โหลดข้อมูลไม่สำเร็จ");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [visible, assignmentId, form]);
+
+  const handleSubmit = async (values: any) => {
+    const startDate: Dayjs = values.startDate;
+    const endDate: Dayjs = values.endDate;
+    const startTime: Dayjs = values.startTime;
+    const endTime: Dayjs = values.endTime;
+
+    if (!startDate || !endDate || !startTime || !endTime) {
+      message.error("กรุณากรอกวันที่และเวลาให้ครบ");
+      return;
+    }
+
+    if (startDate.isAfter(endDate)) {
+      message.error("Start Date ต้องไม่มากกว่า End Date");
+      return;
+    }
+
+    if (startDate.isSame(endDate) && startTime.isAfter(endTime)) {
+      message.error("Start Time ต้องไม่มากกว่า End Time ในวันเดียวกัน");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const payload = {
+        task: values.task,
+        description: values.description,
+        show_date_id: Number(values.show_date_id), // แปลงเป็น number
+        assignment_date_start: startDate
+          .hour(startTime.hour())
+          .minute(startTime.minute())
+          .second(0)
+          .toISOString(),
+        assignment_date_end: endDate
+          .hour(endTime.hour())
+          .minute(endTime.minute())
+          .second(0)
+          .toISOString(),
+        staff_ids: values.staff_ids,
+      };
+
+      if (assignmentId) {
+        await assignmentAPI.update(assignmentId, payload);
+        message.success("แก้ไข Assignment เรียบร้อยแล้ว");
+        onSave?.();
+        onCancel();
+      }
+    } catch (err: any) {
+      console.error(err);
+      message.error(err.response?.data?.error || "❌ บันทึกข้อมูลไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const concertOptions = Array.from(
+    new Set(showDates.map((s) => s.concert?.concert_name).filter(Boolean))
+  ) as string[];
+
+  const filteredShowDates = selectedConcert
+    ? showDates.filter((s) => s.concert?.concert_name === selectedConcert)
+    : [];
+
+  return (
+    <Modal
+      title="แก้ไข Assignment"
+      open={visible}
+      onCancel={onCancel}
+      onOk={() => form.submit()}
+      okText="Save Changes"
+      cancelText="Cancel"
+      width={800}
+      confirmLoading={saving}
+    >
+      {loading ? (
+        <Spin tip="Loading..." style={{ marginTop: 50 }} />
+      ) : (
+        <Form layout="vertical" form={form} onFinish={handleSubmit}>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="Task Title"
+                name="task"
+                rules={[{ required: true, message: "กรุณากรอกชื่องาน" }]}
+              >
+                <Input placeholder="ชื่องาน" />
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Concert"
+                name="concert"
+                rules={[{ required: true, message: "กรุณาเลือกคอนเสิร์ต" }]}
+              >
+                <Select
+                  placeholder="เลือกคอนเสิร์ต"
+                  onChange={(val) => {
+                    setSelectedConcert(val);
+                    form.setFieldsValue({ show_date_id: undefined });
+                  }}
+                >
+                  {concertOptions.map((c) => (
+                    <Option key={c} value={c}>
+                      {c}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Show Date & Venue"
+                name="show_date_id"
+                rules={[
+                  { required: true, message: "กรุณาเลือกวันที่/สถานที่" },
+                ]}
+              >
+                <Select
+                  placeholder={
+                    selectedConcert
+                      ? "เลือกวันที่/สถานที่"
+                      : "กรุณาเลือก Concert ก่อน"
+                  }
+                  disabled={!selectedConcert}
+                >
+                  {filteredShowDates.map((s) => (
+                    <Option key={s.ID} value={s.ID}>
+                      {s.show_date
+                        ? `${dayjs(s.show_date).format("DD/MM/YYYY HH:mm")} - ${s.venue?.venue_name}`: s.venue?.venue_name}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item
+                label="Assigned Staff"
+                name="staff_ids"
+                rules={[
+                  { required: true, message: "เลือกทีมงานอย่างน้อย 1 คน" },
+                ]}
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="เลือกทีมงาน"
+                  optionLabelProp="label"
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.label as string)
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                >
+                  {staffOptions.map((s) => {
+                    const label = `${s.first_name || ""} ${s.last_name || ""}${
+                      s.department
+                        ? ` (${s.department.department} - ${s.position?.position})`
+                        : ""
+                    }`;
+                    return (
+                      <Option key={s.ID} value={s.ID} label={label}>
+                        {label}
+                      </Option>
+                    );
+                  })}
+                </Select>
+              </Form.Item>
+            </Col>
+
+            <Col span={12}>
+              <Form.Item label="Start Date" name="startDate">
+                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Start Time" name="startTime">
+                <TimePicker format="HH:mm" style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="End Date" name="endDate">
+                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="End Time" name="endTime">
+                <TimePicker format="HH:mm" style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+
+            <Col span={24}>
+              <Form.Item
+                label="Description"
+                name="description"
+                rules={[{ required: true, message: "กรุณากรอกรายละเอียด" }]}
+              >
+                <TextArea rows={3} placeholder="รายละเอียดงาน" />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      )}
+    </Modal>
+  );
+};
+
+export default EditTaskAssignment;

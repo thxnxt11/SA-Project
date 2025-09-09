@@ -1,7 +1,7 @@
 package entity
-import "gorm.io/gorm"
+// import "gorm.io/gorm"
 
-type VenueStatus struct {
-	gorm.Model
-	VenueStatus string `json:"venue_status"`
-}
+// type VenueStatus struct {
+// 	gorm.Model
+// 	VenueStatus string `json:"venue_status"`
+// }

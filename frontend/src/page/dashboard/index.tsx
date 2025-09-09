@@ -1,94 +1,139 @@
-
-import React from "react";
-import { Card, Col, Row, Typography, Button, Tag, Space } from "antd";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useEffect, useState } from "react";
+import { Card, Col, Row, Typography, Button, Space } from "antd";
 import { EnvironmentOutlined } from "@ant-design/icons";
 import AdminsidebarLayout from "../../components/sidebarLayout";
 import { useNavigate } from "react-router-dom";
-
-
+import { assignmentAPI, venueAPI } from "../../services/https";
 
 const Dashboard: React.FC = () => {
-const navigate = useNavigate();
-const { Title } = Typography;
+  const navigate = useNavigate();
+  const { Title } = Typography;
+
+  const [totalVenues, setTotalVenues] = useState(0);
+  const [totalStaff, setTotalStaff] = useState(0);
+  const [totalConcerts, setTotalConcerts] = useState(0);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [latestVenues, setLatestVenues] = useState<any[]>([]);
+  const [latestStaff, setLatestStaff] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Total Staff & Latest Staff
+    assignmentAPI.getAllStaff()
+      .then((res: any) => {
+        if (res?.status === 200) {
+          setTotalStaff(res.data.length);
+          setLatestStaff(res.data.slice(-5).reverse());
+        }
+      })
+      .catch(err => console.error(err));
+
+    // Total Tasks
+    assignmentAPI.getAll()
+      .then((res: any) => {
+        if (res?.status === 200) setTotalTasks(res.data.length);
+      })
+      .catch(err => console.error(err));
+
+    // Total Concerts
+    assignmentAPI.getConcerts()
+      .then((res: any) => {
+        if (res?.status === 200) setTotalConcerts(res.data.length);
+      })
+      .catch(err => console.error(err));
+
+    // Total Venues & Latest Venues
+    venueAPI.getAll()
+      .then((res: any) => {
+        if (res?.status === 200) {
+          setTotalVenues(res.data.length);
+          setLatestVenues(res.data.slice(-5).reverse());
+        }
+      })
+      .catch(err => console.error(err));
+  }, []);
+
   return (
     <AdminsidebarLayout>
-        <div style={{ padding: "24px" }}>
-        {/* Header */}
-            <h1 style={{ fontWeight:"bold"}}>Dashboard</h1>
-            <p>หน้าแดชบอร์ดแสดงรายละเอียด</p>
-      
+      <div style={{ padding: "24px" }}>
+        <h1 style={{ fontWeight: "bold" }}>Dashboard</h1>
+        <p>Dashboard page showing details</p>
 
         {/* Summary Cards */}
-        <Row gutter={16} style={{}}>
-            <Col span={6}>
-            <Card style={{ background: "#cacbc9ff" }}>
-                <h3>สถานที่ทั้งหมด</h3>
-                <Title>24</Title>
-                <h3>แห่ง</h3>
-             
+        <Row gutter={16}>
+          <Col span={6}>
+            <Card style={{ background: "#BFD8F8" }}>
+              <h3>All Venues</h3>
+              <Title>{totalVenues}</Title>
+              <h3>Locations</h3>
             </Card>
-            </Col>
-            <Col span={6}>
-            <Card style={{ background: "#cacbc9ff" }}>
-                <h3>ทีมงานทั้งหมด</h3>
-                <Title>156</Title>
-                <h3>คน</h3>
-            
+          </Col>
+          <Col span={6}>
+            <Card style={{ background: "#BFD8F8" }}>
+              <h3>Total Staff</h3>
+              <Title>{totalStaff}</Title>
+              <h3>People</h3>
             </Card>
-            </Col>
-            <Col span={6}>
-            <Card style={{ background: "#cacbc9ff" }}>
-                <h3>คอนเสิร์ต</h3>
-                <Title>8</Title>
-                <h3>งานที่กำลังดำเนินการ</h3>
+          </Col>
+          <Col span={6}>
+            <Card style={{ background: "#BFD8F8" }}>
+              <h3>Concerts</h3>
+              <Title>{totalConcerts}</Title>
+              <h3>Ongoing Events</h3>
             </Card>
-            </Col>
-            <Col span={6}>
-            <Card style={{ background: "#cacbc9ff" }}>
-                <h3>งานที่มอบหมาย</h3>
-                <Title>190</Title>
-                <h3>งาน</h3> 
+          </Col>
+          <Col span={6}>
+            <Card style={{ background: "#BFD8F8" }}>
+              <h3>Assigned Tasks</h3>
+              <Title>{totalTasks}</Title>
+              <h3>Tasks</h3>
             </Card>
-            </Col>
+          </Col>
         </Row>
 
-        {/* Recent Sections */}
-        <Row gutter={16} >
-            <Col span={12} >
+        {/* Latest Sections */}
+        <Row gutter={16}>
+          <Col span={12}>
             <Card
-                style={{ marginTop: 24,border: "3px solid #ccc", borderRadius: 8  }}
-                title="สถานที่ล่าสุด"
-                extra={<Button type="primary" onClick={() => navigate("/addvenue")}>+ เพิ่มสถานที่</Button>}
+              style={{ marginTop: 24, border: "3px solid #ccc", borderRadius: 8 }}
+              title="Latest venue"
+              extra={<Button type="primary" onClick={() => navigate("/addvenue")}>+ Add venue</Button>}
             >
-                <Space direction="vertical" style={{ width: "100%" }}>
-                <Card type="inner" title="Thunder Dome" extra={<Tag color="purple">พร้อมใช้งาน</Tag>}>
-                    <EnvironmentOutlined /> กรุงเทพฯ – 15,000 คน
-                </Card>
-                <Card type="inner" title="Royal Arena" extra={<Tag color="default">กำลังใช้งาน</Tag>}>
-                    <EnvironmentOutlined /> เชียงใหม่ – 8,500 คน
-                </Card>
-                </Space>
+              <Space direction="vertical" style={{ width: "100%" }}>
+                {latestVenues?.map((venue) => (
+                  <Card
+                    key={venue.ID}
+                    type="inner"
+                    title={venue.venue_name}
+                  >
+                    <p><EnvironmentOutlined />  {venue.location} </p>
+                    <p>Capacity : {venue.venue_capacity?.toLocaleString() } คน</p> 
+                    <p>Type : {venue.venue_type?.venue_type}</p>
+                  </Card>
+                ))}
+              </Space>
             </Card>
-            </Col>
+          </Col>
 
-            <Col span={12} >
+          <Col span={12}>
             <Card
-                style={{ marginTop: 24,border: "3px solid #ccc", borderRadius: 8  }}
-                title="ทีมงานล่าสุด"
-                extra={<Button type="primary" onClick={() => navigate("/addstaff")}>+ เพิ่มทีมงาน</Button>}
+              style={{ marginTop: 24, border: "3px solid #ccc", borderRadius: 8 }}
+              title="Latest staff"
+              extra={<Button type="primary" onClick={() => navigate("/addstaff")}>+ Add staff</Button>}
             >
-                <Space direction="vertical" style={{ width: "100%" }}>
-                <Card type="inner" title="นายสมชาย ใจดี" extra={<Tag color="purple">ปฏิบัติงาน</Tag>}>
-                    Stage Manager – เทคนิค
-                </Card>
-                <Card type="inner" title="นางสาวอารี สวยงาม" extra={<Tag color="default">วันหยุด</Tag>}>
-                    Sound Engineer – เสียง
-                </Card>
-                </Space>
+              <Space direction="vertical" style={{ width: "100%" }}>
+                {latestStaff?.map((staff) => (
+                  <Card key={staff.ID} type="inner" title={`ID :  ${staff.ID} - ${staff.first_name} ${staff.last_name}`} >
+                   <p> Position: {staff.position?.position } </p> 
+                   <p>Department : {staff.department?.department } </p>
+                   <p>Role : {staff.role?.role}</p>
+                  </Card>
+                ))}
+              </Space>
             </Card>
-            </Col>
+          </Col>
         </Row>
-        </div>
+      </div>
     </AdminsidebarLayout>
   );
 };
