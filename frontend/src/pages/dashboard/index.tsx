@@ -4,43 +4,59 @@ import { Row, Col, Card, Button, List, Typography, Space, Skeleton, Alert } from
 import { Link } from "react-router-dom";
 import { PlusOutlined, GiftOutlined, AppstoreOutlined, DeploymentUnitOutlined } from "@ant-design/icons";
 import SidebarLayout from "../../component/layout/SidebarLayout";
-import { concertAPI } from "../../services/https/index"; // 👈 your API wrapper
+
+import { concertAPI } from "../../services/https/index";
 import type { ConcertInterface } from "../../interface/concert";
 
-// --- UI type for the dashboard list ---
+// ---- UI type for the list ----
 type UIConcert = {
   id: string | number;
   title: string;
-  artist: string
-  venue: string;             // normalized to string for the UI
-  date: Date | null;         // real Date for sorting/filtering
-  onsaleLabel: string;       // formatted date label
+  artist: string;
+  venue: string;       // normalized to string
+  date: Date | null;   // real Date for sorting
+  onsaleLabel: string; // formatted label for display
 };
 
-// helper to normalize data (handles venue object/string)
-function mapConcertToUI(item: ConcertInterface): UIConcert {
-  const d = item.onsale_date ? new Date(item.onsale_date as unknown as string) : null;
+// ---- helpers ----
+const toDate = (v: unknown): Date | null => {
+  if (!v) return null;
+  const d = new Date(String(v));
+  return isNaN(d.getTime()) ? null : d;
+};
 
-  const onsaleLabel = d
+function mapConcertToUI(item: ConcertInterface): UIConcert {
+  // try common keys; tweak if your interface differs
+  const date = toDate(
+    (item as any).onsale_date ??
+      (item as any).start_at ??
+      (item as any).date
+  );
+
+  const onsaleLabel = date
     ? new Intl.DateTimeFormat("en-GB", {
         month: "short",
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
-      }).format(d)
+      }).format(date)
     : "TBA";
 
+  const rawVenue = (item as any).venue;
   const venueName =
-    typeof (item as any).venue === "string"
-      ? ((item as any).venue as string)
-      : (item as any).venue?.venue_name ?? "TBA";
+    typeof rawVenue === "string"
+      ? rawVenue
+      : rawVenue?.venue_name ?? rawVenue?.name ?? "TBA";
+
+  const artistName =
+    (item as any).artist ??"Unknown";
 
   return {
     id: (item as any).ID ?? (item as any).id ?? (item as any)._id,
     title: (item as any).concert_name ?? (item as any).title ?? "Untitled",
-    artist: (item as any).artist ??"unknowm",
+    artist: artistName,
     venue: venueName,
-    date: d,
+    date,
     onsaleLabel,
   };
 }
@@ -55,24 +71,30 @@ export default function Dashboard() {
     (async () => {
       try {
         setLoading(true);
-        const data = await concertAPI.getAll(); 
-        if (alive) setConcerts(data ?? []);
+        const res = await concertAPI.getAll();
+
+        // 👇 make sure we always store an array
+        const arr =
+          Array.isArray(res) ? res :
+          Array.isArray((res as any)?.data) ? (res as any).data :
+          Array.isArray((res as any)?.results) ? (res as any).results :
+          [];
+
+        if (alive) setConcerts(arr as ConcertInterface[]);
       } catch (e: any) {
         setErr(e?.message || "Failed to load concerts");
       } finally {
         if (alive) setLoading(false);
       }
     })();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
   const upcoming: UIConcert[] = useMemo(() => {
     const now = new Date();
-    return (concerts || [])
+    return (concerts ?? [])
       .map(mapConcertToUI)
-      .filter((c) => !c.date || c.date >= now)
+      .filter((c) => !c.date || c.date >= now) // keep TBA or future
       .sort((a, b) => {
         if (!a.date && !b.date) return 0;
         if (!a.date) return 1;
@@ -89,17 +111,7 @@ export default function Dashboard() {
           <Typography.Title level={3} style={{ margin: 0 }}>
             Organizer Dashboard
           </Typography.Title>
-          <Typography.Text type="secondary">quick snapshot & shortcuts</Typography.Text>
-        </Col>
-        <Col>
-          <Space>
-            <Link to="/organizer/concerts">
-              <Button type="primary" icon={<PlusOutlined />}>New Concert</Button>
-            </Link>
-            <Link to="/organizer/promotion/add">
-              <Button icon={<GiftOutlined />}>New Promo</Button>
-            </Link>
-          </Space>
+          <Typography.Text type="secondary">idk im gonna yapping here so no one gonna stop me</Typography.Text>
         </Col>
       </Row>
 
@@ -117,12 +129,16 @@ export default function Dashboard() {
                 renderItem={(item) => (
                   <List.Item
                     actions={[
-                      <Link key="manage" to={`/organizer/concerts/${item.id}`}>Manage</Link>,
+                      <Link key="manage" to={`/concerts/${item.id}`}>go to shop page</Link>,
                     ]}
                   >
                     <List.Item.Meta
                       title={<Typography.Text strong>{item.title}</Typography.Text>}
-                      description={`${item.onsaleLabel}   //   ${item.artist} //   ${item.venue}`}
+                      description={[
+                        item.onsaleLabel,
+                        item.artist,
+                        item.venue,
+                      ].filter(Boolean).join("    //    ")}
                     />
                   </List.Item>
                 )}
@@ -131,7 +147,7 @@ export default function Dashboard() {
           </Card>
         </Col>
 
-        {/* Quick Actions */}
+
         <Col xs={24} md={8}>
           <Card title="Quick Actions">
             <Space direction="vertical" style={{ width: "100%" }}>
