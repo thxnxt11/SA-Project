@@ -207,7 +207,8 @@ export const ShowDateAPI = {
       `${PUBLIC_API_URL}/showdate/concert/${concert_id}/date/${showdate}`
     );
     return r?.data;
-  }
+  },
+  getAllShowdate: () => Get(`${PUBLIC_API_URL}/showdates/calendar`),
 };
 
 export const bookingAPI = {
@@ -367,4 +368,22 @@ export const refundAPI = {
     const res = await Delete(`${PUBLIC_API_URL}/refunds/${refund_id}`);
     return res?.data;
   },
+};
+
+export const staffAssignmentAPI = {
+  // ดึงงานของตัวเอง
+  getMyAssignments: (id: number | string |undefined) => Get(`${PUBLIC_API_URL}/staff/${id}/assignments`),
+
+  // รับงาน (เปลี่ยนสถานะเป็น In Progress)
+  acceptAssignment: (assignmentId: number) =>
+    Post(`${PUBLIC_API_URL}/staff/assignments/${assignmentId}/accept`, {}),
+
+  // อัปเดตสถานะงานของตัวเอง
+  updateStatus: (staffAssignmentId: number, statusId: number) =>
+    Update(
+      `${PUBLIC_API_URL}/staff/staff_assignments/${staffAssignmentId}/status`,
+      {
+        assignment_status_id: statusId,
+      }
+    ),
 };

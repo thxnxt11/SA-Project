@@ -32,21 +32,40 @@ func Addseatzone(c *gin.Context) {
 		return
 	}
 
-	seats := make([]entity.SeatAvailable, 0, 195)
-	for i := 1; i <= 195; i++ {
-		seats = append(seats, entity.SeatAvailable{
+	// ดึง zone เพื่อตามหา showdate และ venue_id
+	var zone entity.Zone
+	if err := db.Preload("ShowDate").First(&zone, zid).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "zone not found"})
+		return
+	}
+	venueID := zone.ShowDate.VenueID
+
+	// ดึง seat ที่ venue_id ตรงกับ showdate.venue_id
+	var seats []entity.Seat
+	if err := db.Where("venue_id = ?", venueID).Find(&seats).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get seats: " + err.Error()})
+		return
+	}
+	if len(seats) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no seats found for this venue"})
+		return
+	}
+
+	seatAvailables := make([]entity.SeatAvailable, 0, len(seats))
+	for _, seat := range seats {
+		seatAvailables = append(seatAvailables, entity.SeatAvailable{
 			ZoneID:              uint(zid),
-			SeatID:              uint(i),
+			SeatID:              seat.ID,
 			SeatAvailableStatus: "available",
 		})
 	}
 
-	if err := db.Create(&seats).Error; err != nil {
+	if err := db.Create(&seatAvailables).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to insert seats: " + err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"inserted": len(seats)})
+	c.JSON(http.StatusCreated, gin.H{"inserted": len(seatAvailables)})
 }
 
 func Deleteseatzone(c *gin.Context) {

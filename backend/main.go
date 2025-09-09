@@ -16,6 +16,8 @@ import (
 	"github.com/yourname/went-back/controllers/user"
 	"github.com/yourname/went-back/controllers/zone"
 	"github.com/yourname/went-back/services"
+	staffassignmentController "github.com/yourname/went-back/controllers/staff"
+	staffassignmentService "github.com/yourname/went-back/services"
 )
 
 func main() {
@@ -38,7 +40,7 @@ func main() {
 
 	// gin engine
 	r := gin.Default()
-	// connection.SeedSeats(1, []string{"A", "B", "C", "D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S"}, 15)
+	// connection.SeedSeats(2, []string{"A", "B", "C", "D","E","F","G","H","I","J"}, 15)
 
 	// avoid "You trusted all proxies" warning
 	_ = r.SetTrustedProxies(nil)
@@ -92,6 +94,9 @@ func main() {
 
 	promotionCtl := promotion.NewPromotionController()
 
+	staffAssignService := &staffassignmentService.StaffAssignmentService{DB: connection.DB()}
+	staffAssignCtrl := &staffassignmentController.StaffAssignmentController{Service: staffAssignService}
+
 	eTicketCtl := booking.NewEticketController()
 	reportController := &controllers.ReportController{}
 
@@ -129,6 +134,7 @@ func main() {
 		api.PUT("/showdate/:id", concert.UpdateShowdate)
 		api.DELETE("/showdate/:id", concert.DeleteShowdate)
 		api.GET("/venues/option",concert.GetAllVenues)
+		api.GET("/showdates/calendar",concert.GetAllShowDate)
 
 		api.GET("/zoneconcert/:user_id", zone.GetConcertsByUserID)
 		api.GET("/zoneshowdate/:id", zone.GetShowDatesByConcertID)
@@ -154,6 +160,8 @@ func main() {
 		api.GET("/refunds/history/:user_id", refund.GetRefundHistory)
 		api.DELETE("/refunds/:id", refund.DeleteRefund)
 		api.DELETE("/showdate/concert/:concert_id/date/:date", concert.DeleteShowdateByConcertAndDate)
+
+		api.GET("/staff/:user_id/assignments", staffAssignCtrl.GetMyAssignments)
 	}
 
 	// static uploads

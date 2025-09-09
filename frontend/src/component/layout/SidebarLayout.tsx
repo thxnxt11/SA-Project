@@ -146,10 +146,10 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         roles: ["admin"],
       },
       {
-        key: "/admin/assignment",
+        key: "/assignment",
         icon: <MdAssignment style={{ fontSize: "20px" }} />,
         label: <span title="มอบหมายงาน">มอบหมายงาน</span>,
-        onClick: () => navigate("/admin/assignment "),
+        onClick: () => navigate("/assignment"),
         roles: ["admin", "staff"],
       },
     ],

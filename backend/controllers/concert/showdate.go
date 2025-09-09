@@ -1,13 +1,14 @@
 package concert
 
 import (
-  "net/http"
+	"net/http"
 	"strconv"
-  
+
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/entity"
-	"time"
 )
 
 func AddShowdate(c *gin.Context) {
@@ -151,4 +152,17 @@ func DeleteShowdateByConcertAndDate(c *gin.Context) {
       "message": "showdate deleted for concert and date",
       "deleted_count": result.RowsAffected,
   })
+}
+
+func GetAllShowDate(c *gin.Context){
+  db := connection.DB()
+  var showdates []entity.ShowDate
+  if err := db.Preload("Concert").
+    Preload("Venue").
+    Find(&showdates).Error; err != nil{
+    c.JSON(http.StatusInternalServerError,gin.H{"error:": err.Error})
+    return
+  }
+
+  c.JSON(http.StatusOK,showdates)
 }

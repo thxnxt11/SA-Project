@@ -9,6 +9,8 @@ import RequireAuth from "../hook/RequireAuth";
 import RequireRole from "../hook/RequireRole";
 import ConcertManagement from "../pages/concert/concertmanagement/ConcertManagement";
 import ZoneBrowser from "../pages/seat/Seatmanagement";
+import EventCalendar from "../pages/venue-calendar";
+
 
 export default function OrganizerRoutes() {
   return (
@@ -21,7 +23,7 @@ export default function OrganizerRoutes() {
         path="dashboard"
         element={
           <RequireAuth>
-            <RequireRole allow={["organizer","admin","staff"]}>
+            <RequireRole allow={["organizer", "admin", "staff"]}>
               {" "}
               {/*สามารถเพิ่ม role อื่นได้ */}
               <Dashboard />
@@ -84,6 +86,17 @@ export default function OrganizerRoutes() {
           </RequireAuth>
         }
       />
+      <Route
+        path="calendarvenue"
+        element={
+          <RequireAuth>
+            <RequireRole allow={["organizer"]}>
+              <EventCalendar />
+            </RequireRole>
+          </RequireAuth>
+        }
+      />
+      
 
       {/* 404 inside /organizer */}
       <Route path="*" element={<Navigate to="dashboard" replace />} />

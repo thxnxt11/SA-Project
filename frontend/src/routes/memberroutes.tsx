@@ -19,6 +19,8 @@ import ReportForm from "../pages/report/report";
 import { ReportHis } from "../pages/report/historyreport";
 import { Refund } from "../pages/refund/refund";
 import { RefundHis } from "../pages/refund/historyrefund";
+import RequireRole from "../hook/RequireRole";
+import MyAssignments from "../pages/staff";
 
 export default function MemberRoutes() {
   return (
@@ -124,6 +126,16 @@ export default function MemberRoutes() {
         element={
           <RequireAuth>
             <RefundHis />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/assignment"
+        element={
+          <RequireAuth>
+            <RequireRole allow={["organizer", "staff"]}>
+              <MyAssignments />
+            </RequireRole>
           </RequireAuth>
         }
       />

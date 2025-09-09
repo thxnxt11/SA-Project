@@ -1,6 +1,10 @@
 package entity
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type StaffAssignment struct {
 	gorm.Model
@@ -11,9 +15,9 @@ type StaffAssignment struct {
 	AssignmentID uint  `json:"assignment_id"`
 	Assignment   *Assignment `gorm:"foreignKey: assignment_id" json:"assignment"`
 
-	AssignmentConcertID uint  `json:"assignment_concert_id"`
-	AssignmentConcert   *AssignmentConcert `gorm:"foreignKey: assignment_concert_id" json:"assignment_concert"`
+	AssignmentStatusID uint              `json:"assignment_status_id"`
+	AssignmentStatus   *AssignmentStatus `gorm:"foreignKey:AssignmentStatusID" json:"assignment_status"`
 
-
-	
+	// เวลา assign และ role ของ staff
+	AssignedAt time.Time `json:"assigned_at"`
 }

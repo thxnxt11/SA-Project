@@ -8,14 +8,22 @@ import (
 
 type Assignment struct {
 	gorm.Model
-	Task string `json:"task"`
-	Description string `json:"description"`
-	AssignmentStart time.Time `json:"assignment_start"`
-	AssignmentEnd time.Time `json:"assignment_end"`
+	Task                string `json:"task"`
+	Description         string  `json:"description"`
+	AssignmentDateStart time.Time `json:"assignment_date_start"`
+	AssignmentDateEnd   time.Time `json:"assignment_date_end"`
+	AssignmentTimeStart time.Time `json:"assignment_time_start"`
+	AssignmentTimeEnd   time.Time `json:"assignment_time_end"`
 
-	AssignmentStatusID uint `json:"assignment_status_id"`
-	AssignmentStatus *AssignmentStatus  `gorm:"foreignKey: assignment_status_id" json:"assignment_status"`
+	AssignmentStatusID uint
+	AssignmentStatus   *AssignmentStatus `gorm:"foreignKey:AssignmentStatusID" json:"assignment_status"`
 
-	ConcertID uint `json:"concert_id"`
-	Concert *Concert  `gorm:"foreignKey: concert_id" json:"concert"`
+	ShowDateID uint 
+	ShowDate   *ShowDate `gorm:"foreignKey:ShowDateID" json:"show_date"`
+
+	// Relation กับ StaffAssignments
+	 StaffAssignments []StaffAssignment `gorm:"foreignKey:AssignmentID" json:"staff_assignments"`
+
+	// สำหรับ convenience แสดง staff โดยตรง
+	Staffs []*User `gorm:"many2many:staff_assignments;joinForeignKey:AssignmentID;joinReferences:UserID" json:"staffs"`
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { RadioChangeEvent } from "antd";
 import Navbar from "../../../component/layout/navbar";
-import { Card, Col, Radio, message, Spin, Grid, Row } from "antd";
+import { Card, Col, Radio, message, Spin, Grid, Row, Tag } from "antd";
 import { useNavigate, useParams } from "react-router-dom";
 import chart from "../../../assets/chart.svg";
 import type { ZoneInterface } from "../../../interface/zone";
@@ -57,6 +57,8 @@ const zoneTypeText = (z: ZoneInterface): string =>
 
 const AVAILABLE_BG = "#22c55e";
 const SOLDOUT_BG = "#ef4444";
+const StandingColor = "gold";
+const SeatingColor = "purple";
 
 const SelectZone: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -297,6 +299,15 @@ const SelectZone: React.FC = () => {
                             const price = thb.format(zonePriceNumber(zone));
                             const available = calcAvailableSeats(zone);
                             const disabled = available === 0;
+                            let zoneTypeColor = AVAILABLE_BG;
+                            let text = AVAILABLE_BG;
+                            if (type.toLowerCase().includes("standing")) {
+                              zoneTypeColor = StandingColor;
+                              text = "#000000";
+                            } else if (type.toLowerCase().includes("seating")) {
+                              zoneTypeColor = SeatingColor;
+                              text = "#ffffff";
+                            }
                             return (
                               <Card
                                 key={id}
@@ -306,6 +317,7 @@ const SelectZone: React.FC = () => {
                                   margin: "8px 0",
                                   cursor: disabled ? "not-allowed" : "pointer",
                                   opacity: disabled ? 0.85 : 1,
+                                  // backgroundColor: zoneTypeColor,
                                 }}
                                 bodyStyle={{ padding: 12 }}
                                 onClick={() =>
@@ -333,12 +345,20 @@ const SelectZone: React.FC = () => {
                                     </span>
                                     <span
                                       style={{
-                                        fontSize: 14,
-                                        color: "#555",
+                                        fontSize: 16,
+                                        color: "#424242ff",
                                         fontWeight: 500,
                                       }}
                                     >
-                                      {type} - ฿{price}
+                                      <Tag
+                                        style={{
+                                          backgroundColor: zoneTypeColor,
+                                          color: text,
+                                        }}
+                                      >
+                                        {type}
+                                      </Tag>{" "}
+                                      - ฿{price}
                                     </span>
                                   </div>
                                   <div

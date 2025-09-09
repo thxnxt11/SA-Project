@@ -74,6 +74,8 @@ func SetupDatabase() {
        &entity.ZoneType{},
        &entity.RefundType{},
        &entity.PasswordReset{},
+       &entity.Assignment{},
+       &entity.AssignmentStatus{},
        
    )
    
