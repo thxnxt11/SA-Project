@@ -55,7 +55,7 @@ export default function Dashboard() {
     (async () => {
       try {
         setLoading(true);
-        const data = await Concerts.getAll(); // returns ConcertInterface[]
+        const data = await Concerts.getAll(); 
         if (alive) setConcerts(data ?? []);
       } catch (e: any) {
         setErr(e?.message || "Failed to load concerts");
