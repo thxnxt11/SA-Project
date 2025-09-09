@@ -4,7 +4,7 @@ import { Row, Col, Card, Button, List, Typography, Space, Skeleton, Alert } from
 import { Link } from "react-router-dom";
 import { PlusOutlined, GiftOutlined, AppstoreOutlined, DeploymentUnitOutlined } from "@ant-design/icons";
 import SidebarLayout from "../../component/layout/SidebarLayout";
-import { Concerts } from "../../services/https/concert"; // 👈 your API wrapper
+import { concertAPI } from "../../services/https/index"; // 👈 your API wrapper
 import type { ConcertInterface } from "../../interface/concert";
 
 // --- UI type for the dashboard list ---
@@ -55,7 +55,7 @@ export default function Dashboard() {
     (async () => {
       try {
         setLoading(true);
-        const data = await Concerts.getAll(); 
+        const data = await concertAPI.getAll(); 
         if (alive) setConcerts(data ?? []);
       } catch (e: any) {
         setErr(e?.message || "Failed to load concerts");
