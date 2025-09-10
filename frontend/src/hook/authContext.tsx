@@ -25,7 +25,7 @@ type LoginResult = {
 type AuthContextType = {
   user: User | null;
   token: string | null;
-  authReady: boolean; //
+  authReady: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
 };
@@ -71,8 +71,6 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
   useEffect(() => {
     const t = localStorage.getItem("token");
     const uStr = localStorage.getItem("user");
-    // const r = localStorage.getItem("role");
-    // const rid = localStorage.getItem("role_id");
 
     if (t && !isJwtExpired(t)) {
       setToken(t);
@@ -84,7 +82,6 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
           setUser(null);
         }
       }
-
     } else {
       // token หมดอายุ/ไม่มี → ล้างทิ้ง
       localStorage.removeItem("token");
@@ -114,75 +111,30 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
 
     axios.defaults.headers.common.Authorization = `Bearer ${token}`;
 
-    let userObj: User | null = data.user ?? null;
+    let user: User | null = data.user ?? null;
 
     // สร้าง name จาก firstname + lastname
-    if (userObj) {
+    if (user) {
       const combinedName = combineNames(
-        userObj.firstname,
-        userObj.lastname,
-        userObj.name
+        user.firstname,
+        user.lastname,
+        user.name
       );
-      userObj = {
-        ...userObj,
+      user = {
+        ...user,
         name: combinedName,
       };
     }
-
-    if (!userObj) {
-      try {
-        const me = await axios.get(`${API_URL}/user/profile`);
-        const profileData = me.data ?? null;
-
-        if (profileData) {
-          const combinedName = combineNames(
-            profileData.firstname,
-            profileData.lastname,
-            profileData.name
-          );
-          userObj = {
-            ...profileData,
-            name: combinedName,
-          };
-        }
-      } catch {
-        // fallback จาก JWT
-        const payload: any = safeDecodeJwt(token);
-        const emailFromJwt =
-          payload.Email || payload.email || payload.username || "";
-        const firstnameFromJwt = payload.firstname || payload.Firstname || "";
-        const lastnameFromJwt = payload.lastname || payload.Lastname || "";
-        const existingNameFromJwt = payload.name || payload.Name || "";
-        const combinedNameFromJwt = combineNames(
-          firstnameFromJwt,
-          lastnameFromJwt,
-          existingNameFromJwt
-        );
-
-        userObj =
-          emailFromJwt || combinedNameFromJwt
-            ? {
-                email: emailFromJwt || undefined,
-                firstname: firstnameFromJwt || undefined,
-                lastname: lastnameFromJwt || undefined,
-                name: combinedNameFromJwt,
-                role,
-                role_id,
-              }
-            : null;
-      }
-    }
-
     setToken(token);
-    setUser(userObj);
+    setUser(user);
 
     localStorage.setItem("token", token);
     if (role !== undefined) localStorage.setItem("role", String(role));
     if (role_id !== undefined) localStorage.setItem("role_id", String(role_id));
-    if (userObj) localStorage.setItem("user", JSON.stringify(userObj));
+    if (user) localStorage.setItem("user", JSON.stringify(user));
     else localStorage.removeItem("user");
 
-    return { token, user: userObj, role, role_id };
+    return { token, user, role, role_id };
   };
 
   const logout = () => {

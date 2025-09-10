@@ -54,7 +54,6 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
   const { user, logout } = useAuth();
   const role = user?.role as "organizer" | "admin" | "staff" | undefined;
-  console.log("role: ", user?.role);
   const isMobile = !screens.lg; // < lg = mobile/tablet
   const canSee = (item: AppMenuItem) =>
     !item?.roles || (role && item.roles.includes(role));

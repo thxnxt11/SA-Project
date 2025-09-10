@@ -23,15 +23,8 @@ const SignIn: React.FC = () => {
     try {
       const result = await login(values.email, values.password);
 
-      const role =
-        result?.user?.role ??
-        result?.role ??
-        localStorage.getItem("role") ??
-        "";
-      const roleIdRaw =
-        result?.user?.role_id ??
-        result?.role_id ??
-        localStorage.getItem("role_id");
+      const role = result?.role ?? localStorage.getItem("role") ?? "";
+      const roleIdRaw = result?.role_id ?? localStorage.getItem("role_id");
 
       const rid = Number(roleIdRaw);
       const rname = String(role || "").toLowerCase();
@@ -44,21 +37,20 @@ const SignIn: React.FC = () => {
       if (rid === 1 || rname === "organizer") {
         targetPath = "/organizer/dashboard";
       } else if (rid === 3 || rname === "admin") {
-        targetPath = "/organizer/dashboard";
+        targetPath = "/admin/dashboard";
       } else if (rid === 4 || rname === "staff") {
         targetPath = "/assignment";
       } else if (rid === 2 || rname === "member") {
-        // สำหรับ member ให้ไปที่ path ที่เก็บไว้หรือ default
         const redirectTo =
           location.state?.from?.pathname ||
           new URLSearchParams(location.search).get("redirect") ||
-          "/dashboard";
-        targetPath = redirectTo !== "/signin" ? redirectTo : "/dashboard";
+          "/Eventix";
+        targetPath = redirectTo !== "/signin" ? redirectTo : "/Eventix";
       }
       message.success("Signed in successfully!");
       setTimeout(() => {
         navigate(targetPath, { replace: true });
-      }, 100);
+      }, 1);
     } catch (e: any) {
       console.error("Sign in error:", e?.response || e);
       message.error(e?.response?.data?.message || "Sign in failed");

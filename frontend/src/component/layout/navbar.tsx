@@ -1,9 +1,8 @@
 // src/components/layout/Navbar.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   Layout,
   Button,
-  Badge,
   Avatar,
   Dropdown,
   Grid,
@@ -11,7 +10,7 @@ import {
   Typography,
   Menu,
 } from "antd";
-import { FaUserCircle, FaBell, FaBars } from "react-icons/fa";
+import { FaUserCircle} from "react-icons/fa";
 import { DownOutlined } from "@ant-design/icons";
 import logo from "../../assets/logo.png";
 import { Link, useNavigate } from "react-router-dom";
@@ -20,34 +19,44 @@ import { useAuth } from "../../hook/authContext";
 const { Header } = Layout;
 const { useBreakpoint } = Grid;
 
+type RoleName = "member" | "organizer" | "admin" | "staff";
+
+type AppMenuItem = {
+  label: string;
+  to: string;
+  roles?: RoleName[]; // ถ้าไม่ใส่ แปลว่า “ทุก role เห็นได้”
+};
+
 const Navbar: React.FC = () => {
-  const [open, setOpen] = useState(false);
   const screens = useBreakpoint();
   const isMobile = !screens.md;
   const navigate = useNavigate();
 
   const { user, logout } = useAuth();
 
-  const navLinks = useMemo(
+  const role = (user?.role ? String(user.role).toLowerCase() : undefined) as
+    | RoleName
+    | undefined;
+
+  const canSee = (item: AppMenuItem) =>
+    !item.roles || (role && item.roles.includes(role));
+
+  const navLinks = useMemo<AppMenuItem[]>(
     () => [
-      { label: "Concert", to: "/concerts" },
-      { label: "Shopping", to: "/shopping" },
+      { label: "Concert", to: "/concerts" }, // ทุก role เห็น
+      { label: "Shopping", to: "/shopping" }, // ทุก role เห็น
+      { label: "Staff", to: "/assignment", roles: ["staff", "admin"] },
+      {
+        label: "Organizer",
+        to: "/organizer/dashboard",
+        roles: ["organizer", "admin"],
+      },
+      { label: "Admin", to: "/admin/dashboard", roles: ["admin"] },
     ],
     []
   );
 
-  // ✅ สร้างชื่อแสดงผลจาก firstname + lastname > name > email prefix
   const displayName = user?.name;
-
-  // ตัวอักษรย่อใน Avatar
-  // const initials = (
-  //   [user?.firstname, user?.lastname]
-  //     .filter(Boolean)
-  //     .map((s) => String(s)[0])
-  //     .join("") ||
-  //   displayName?.[0] ||
-  //   "U"
-  // ).toUpperCase();
 
   const userMenu = {
     items: [
@@ -62,6 +71,7 @@ const Navbar: React.FC = () => {
       },
     ],
   };
+
   const supportMenu = (
     <Menu
       style={{
@@ -72,20 +82,19 @@ const Navbar: React.FC = () => {
         width: 120,
         marginTop: -25,
       }}
-    >
-      <Menu.Item
-        key="report"
-        style={{ color: "#00306E", fontSize: 15, fontWeight: "bold" }}
-      >
-        <Link to="/report">Report</Link>
-      </Menu.Item>
-      <Menu.Item
-        key="refund"
-        style={{ color: "#00306E", fontSize: 15, fontWeight: "bold" }}
-      >
-        <Link to="/refund">Refund</Link>
-      </Menu.Item>
-    </Menu>
+      items={[
+        {
+          key: "report",
+          label: <Link to="/report">Report</Link>,
+          style: { color: "#00306E", fontSize: 15, fontWeight: "bold" },
+        },
+        {
+          key: "refund",
+          label: <Link to="/refund">Refund</Link>,
+          style: { color: "#00306E", fontSize: 15, fontWeight: "bold" },
+        },
+      ]}
+    />
   );
 
   return (
@@ -135,9 +144,10 @@ const Navbar: React.FC = () => {
             display: "flex",
             gap: 28,
             flex: 1,
+            alignItems: "center",
           }}
         >
-          {navLinks.map((link) => (
+          {navLinks.filter(canSee).map((link) => (
             <Link
               key={link.to}
               to={link.to}
@@ -172,6 +182,8 @@ const Navbar: React.FC = () => {
               />
             </Link>
           ))}
+
+          {/* Support: ทุก role มองเห็นเสมอ */}
           <Dropdown
             overlay={supportMenu}
             placement="bottomLeft"
@@ -196,7 +208,6 @@ const Navbar: React.FC = () => {
 
       {/* Right: Actions */}
       <div style={{ marginLeft: "auto" }}>
-        {!isMobile ? (
           <Space size={16} align="center">
             {!user ? (
               <Button
@@ -215,7 +226,7 @@ const Navbar: React.FC = () => {
                   size={24}
                   icon={<FaUserCircle />}
                   style={{ backgroundColor: "#E6F4FF", color: "#00306E" }}
-                ></Avatar>
+                />
                 Sign in
               </Button>
             ) : (
@@ -242,34 +253,13 @@ const Navbar: React.FC = () => {
                     size={28}
                     icon={<FaUserCircle />}
                     style={{ backgroundColor: "#E6F4FF", color: "#00306E" }}
-                  >
-                    {/* {displayName ? initials : null} */}
-                  </Avatar>
+                  />
                   {displayName || "User"}
                   <DownOutlined style={{ fontSize: 12 }} />
                 </Button>
               </Dropdown>
             )}
           </Space>
-        ) : (
-          <Space>
-            <Badge dot>
-              <Button
-                type="text"
-                aria-label="Notifications"
-                icon={<FaBell />}
-                style={{ color: "white", fontSize: 18, height: 44 }}
-              />
-            </Badge>
-            <Button
-              type="text"
-              aria-label="Open menu"
-              icon={<FaBars />}
-              onClick={() => setOpen(true)}
-              style={{ color: "white", fontSize: 20, height: 44 }}
-            />
-          </Space>
-        )}
       </div>
     </Header>
   );
