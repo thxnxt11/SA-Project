@@ -17,7 +17,6 @@ import {
   Avatar,
 } from "antd";
 import dayjs, { Dayjs } from "dayjs";
-import { FaUserCircle } from "react-icons/fa";
 import {
   UserOutlined,
   PhoneOutlined,

@@ -210,6 +210,10 @@ const SignUpForm: React.FC = () => {
                       required: true,
                       message: "Please enter your phone number",
                     },
+                    {
+                      pattern: /^\d{10}$/,
+                      message: "กรอกให้ครบ 10 หลัก",
+                    },
                   ]}
                 >
                   <Input

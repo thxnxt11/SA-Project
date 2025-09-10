@@ -267,7 +267,7 @@ const Payment: React.FC = () => {
         zoneType: it.zone_type,
         zone: it.zone,
         seatLabel: it.seat_label ?? undefined,
-        queueNumber: it.queue_number ?? undefined, // คอมโพเนนต์ ETicketSuccess รองรับ field นี้
+        queueNumber: it.queue_number ?? undefined, 
         priceTHB: it.price,
       };
     });
