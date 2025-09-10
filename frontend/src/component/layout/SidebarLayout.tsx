@@ -89,13 +89,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         onClick: () => navigate("/organizer/promotion"),
         roles: ["organizer"],
       },
-      {
-        key: "/organizer/calendarvenue",
-        icon: <FaRegCalendarAlt style={{ fontSize: 20 }} />,
-        label: <span title="ปฏิทินสถานที่">ปฏิทินสถานที่</span>,
-        onClick: () => navigate("/organizer/calendarvenue"),
-        roles: ["organizer", "admin"],
-      },
+
       {
         key: "/warehouse/dashboardwarehouse",
         icon: <MdOutlineSpaceDashboard style={{ fontSize: 20 }} />,
@@ -144,6 +138,13 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         label: <span title="จัดการทีมงาน">จัดการทีมงาน</span>,
         onClick: () => navigate("/admin/staff "),
         roles: ["admin"],
+      },
+      {
+        key: "/organizer/calendarvenue",
+        icon: <FaRegCalendarAlt style={{ fontSize: 20 }} />,
+        label: <span title="ปฏิทินสถานที่">ปฏิทินสถานที่</span>,
+        onClick: () => navigate("/organizer/calendarvenue"),
+        roles: ["organizer", "admin"],
       },
       {
         key: "/assignment",

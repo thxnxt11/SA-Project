@@ -22,21 +22,7 @@ const SignIn: React.FC = () => {
     setLoading(true);
     try {
       const result = await login(values.email, values.password);
-      console.log("result from login():", result);
 
-      message.success("Signed in successfully!");
-
-      const redirectTo =
-        location.state?.from?.pathname ||
-        new URLSearchParams(location.search).get("redirect");
-      console.log("Redirect To Path: ", redirectTo);
-      if (redirectTo && redirectTo !== "/signin") {
-        console.log("redirecting to:", redirectTo);
-        navigate(redirectTo, { replace: true });
-        return;
-      }
-
-      // ถ้าไม่มี redirect URL ให้ใช้ logic เดิมตาม role
       const role =
         result?.user?.role ??
         result?.role ??
@@ -50,21 +36,31 @@ const SignIn: React.FC = () => {
       const rid = Number(roleIdRaw);
       const rname = String(role || "").toLowerCase();
 
-      const target =
-        rid === 2 || rname === "member"
-          ? "/Eventix"
-          : rid === 1 || rname === "organizer"
-          ? "/organizer/dashboard"
-          : rid === 3 || rname === "admin"
-          ? "/organizer/dashboard"
-          : rid === 4 || rname === "staff"
-          ? "/organizer/dashboard"
-          : "/signin";
+      console.log("Login successful, role info:", { rid, rname });
 
-      console.log("computed target:", target, "rid:", rid, "role:", rname);
-      navigate(target, { replace: true });
+      // กำหนด target path ตาม role
+      let targetPath = "/";
+
+      if (rid === 1 || rname === "organizer") {
+        targetPath = "/organizer/dashboard";
+      } else if (rid === 3 || rname === "admin") {
+        targetPath = "/organizer/dashboard";
+      } else if (rid === 4 || rname === "staff") {
+        targetPath = "/assignment";
+      } else if (rid === 2 || rname === "member") {
+        // สำหรับ member ให้ไปที่ path ที่เก็บไว้หรือ default
+        const redirectTo =
+          location.state?.from?.pathname ||
+          new URLSearchParams(location.search).get("redirect") ||
+          "/dashboard";
+        targetPath = redirectTo !== "/signin" ? redirectTo : "/dashboard";
+      }
+      message.success("Signed in successfully!");
+      setTimeout(() => {
+        navigate(targetPath, { replace: true });
+      }, 100);
     } catch (e: any) {
-      console.error("signin error:", e?.response || e);
+      console.error("Sign in error:", e?.response || e);
       message.error(e?.response?.data?.message || "Sign in failed");
     } finally {
       setLoading(false);
@@ -139,9 +135,11 @@ const SignIn: React.FC = () => {
                 className="custom-input"
               />
             </Form.Item>
+
             <Link to="/forget-password" style={{ marginLeft: "68%" }}>
               Forgot password?
             </Link>
+
             <Form.Item>
               <Button
                 type="primary"

@@ -26,10 +26,6 @@ const App: React.FC = () => {
       <Router>
         <Routes>
           <Route path="/" element={<Navigate to="/Eventix" replace />} />
-          <Route path="/*" element={<MemberRoutes />} />
-          <Route path="/organizer/*" element={<OrganizerRoutes />} />
-          <Route path="/forbidden" element={<div>403 Not access right</div>} />
-          <Route path="*" element={<Navigate to="/Eventix" replace />} />
           <Route
             path="/forget-password"
             element={
@@ -46,6 +42,9 @@ const App: React.FC = () => {
               </PublicRoute>
             }
           />
+          <Route path="/forbidden" element={<div>403 Not access right</div>} />
+          <Route path="/organizer/*" element={<OrganizerRoutes />} />
+          <Route path="/*" element={<MemberRoutes />} />
         </Routes>
       </Router>
     </AuthProvider>

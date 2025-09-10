@@ -8,6 +8,7 @@ import (
 
 	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/entity"
+	"github.com/yourname/went-back/services"
 )
 
 func Addseatzone(c *gin.Context) {
@@ -151,4 +152,25 @@ func UpdateSeatzone(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"updated": tx.RowsAffected})
+}
+
+func GenerateSeats(c *gin.Context){
+	var in services.GenerateSeat
+	if err := c.ShouldBindJSON(&in); err != nil{
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: "+ err.Error()})
+		return
+	}
+
+	db := connection.DB()
+	svc := services.SeatService{DB: db}
+	seats,err := svc.GenerateSeatForVenue(in)
+	if err != nil{
+		c.JSON(http.StatusBadRequest,gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated,gin.H{
+		"venue_id:": in.VenueID,
+		"total_seats": len(seats),
+		"rows": in.TotalSeat/15,
+	})
 }

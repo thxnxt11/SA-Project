@@ -139,7 +139,7 @@ func main() {
 		api.GET("/zoneconcert/:user_id", zone.GetConcertsByUserID)
 		api.GET("/zoneshowdate/:id", zone.GetShowDatesByConcertID)
 		api.GET("/zonetype", zone.ListZoneTypes)
-
+		api.POST("/seats/generate", zone.GenerateSeats)
 		api.GET("/zone/:id", zone.GetZonesByShowDateID)
 		api.PUT("/zone/:id", zone.UpdateZone)
 		api.POST("/zone", zone.AddZone)

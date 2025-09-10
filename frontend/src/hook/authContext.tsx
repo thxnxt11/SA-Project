@@ -131,7 +131,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({
 
     if (!userObj) {
       try {
-        const me = await axios.get(`${API_URL}/auth/profile`);
+        const me = await axios.get(`${API_URL}/user/profile`);
         const profileData = me.data ?? null;
 
         if (profileData) {
