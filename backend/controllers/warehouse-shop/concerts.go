@@ -1,5 +1,4 @@
-// controllers/concert_controller.go
-package controllers
+package products
 
 import (
 	"net/http"

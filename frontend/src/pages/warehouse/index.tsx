@@ -4,10 +4,11 @@ import { movementsAPI, productsAPI } from "../../services/https";
 const { Title } = Typography;
 import CountUp from 'react-countup';
 import "./index.css";
+import SidebarLayout from "../../component/layout/SidebarLayout";
 
 const columns = [
   // { title: "ProductID", dataIndex: "product_id", key: "product_id" },
-  { title: "Name", dataIndex: "product_name", key: "product_name" },
+  { title: "Name", dataIndex: "product_name", key: "product_name" ,width:400},
   { title: "Variant", dataIndex: "variant_name", key: "variant_name" },
   { title: "Action", dataIndex: "updated", key: "updated",
      render: (action: string) => {
@@ -19,7 +20,7 @@ const columns = [
       return <Tag color={color}>{action}</Tag>;
     },},
   { title: "Amounts", dataIndex: "amount", key: "amount" },
-  { title: "Total", dataIndex: "total", key: "total" },
+  { title: "Total", dataIndex: "quantity", key: "quantity" },
   { title: "Staff", dataIndex: "staff_name", key: "staff_name" },
   {
     title: "Updated At",
@@ -39,7 +40,7 @@ const DashboardWarehouse: React.FC = () => {
       const res = await movementsAPI.getAllProducts();
       if (res.status === 200) {
 
-        console.log(res.data);
+        console.log("move",res.data);
         setData(res.data);
       } else {
         messageApi.error("ไม่สามารถโหลดข้อมูล stock movement ได้");
@@ -77,11 +78,13 @@ const DashboardWarehouse: React.FC = () => {
   // const statStyle = {background: "#e6edf7ff", padding: 0 , height: 150, textAlign: "center"} as const;
 
   return (
+    <SidebarLayout>
+
     <div style={{ padding: 10 ,height:"100%"}}>
       {contextHolder}   
       <div>
         <Title level={3}>Warehouse Overview</Title>
-        <Row gutter={[50, 40]} style={{width:"80%",margin:"auto"}}>
+        <Row gutter={[50, 40]} style={{width:"90%",margin:"auto"}}>
           <Col span={6}>
             <Card className="statStyle" style={{background: "#C6E7FF"}}>
               <Statistic className="stat-custom"
@@ -124,6 +127,7 @@ const DashboardWarehouse: React.FC = () => {
           />
       </div>
     </div>
+    </SidebarLayout>
   );
 };
 

@@ -16,16 +16,13 @@ import {
   Upload,
   message,
   Divider,
-  type UploadFile,
 } from "antd";
 import {
-  EyeOutlined,
   EditOutlined,
   DeleteOutlined,
   PlusOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import axios from "axios";
 import {
   productsAPI,
   concertAPI,
@@ -33,10 +30,12 @@ import {
   colorsAPI,
   sizesAPI,
   variantAPI,
+  uploadAPI,
 } from "../../../services/https";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../../hook/authContext";
+import SidebarLayout from "../../../component/layout/SidebarLayout";
 
 
 const { Title } = Typography;
@@ -47,7 +46,6 @@ const EditWarehouse: React.FC = () => {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
   const [form] = Form.useForm();
@@ -58,7 +56,7 @@ const EditWarehouse: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [colors, setColors] = useState<any[]>([]);
   const [sizes, setSizes] = useState<any[]>([]);
-  const { user } = useAuth(); // ดึง user ปัจจุบัน
+  const { user } = useAuth(); 
 
   const onGetInitialData = async () => {
     try {
@@ -100,24 +98,31 @@ const EditWarehouse: React.FC = () => {
     onGetInitialData();
   }, []);
 
-  // ✅ ลบข้อมูล
+  const handleUploadProductImage = async (file: File): Promise<string> => {
+    try {
+      const res = await uploadAPI.uploadProductImage(file); // หรือ uploadAPI.uploadProductImage
+      return res.data.data.url; // return URL ที่ได้จาก backend
+    } catch (err) {
+      console.error("Upload error:", err);
+      message.error("อัปโหลดรูปสินค้าไม่สำเร็จ");
+      return "";
+    }
+  };
+
   const handleDelete = async (id: number) => {
     try {
       await productsAPI.deleteByID(id);
       messageApi.success("ลบสินค้าสำเร็จ");
-      // fetchData();
       onGetInitialData();
     } catch {
       messageApi.error("ลบสินค้าไม่สำเร็จ");
     }
   };
 
-  // ✅ เปิด Modal แก้ไข
   const handleEdit = (record: any) => {
   setEditingProduct(record);
 
   if ([1, 3].includes(record.category_id)) {
-    // ✅ กรณี Color + Size
     const groupedVariants = record.variants?.reduce((acc: any[], v: any) => {
       const existing = acc.find(item => item.color === v.color?.ID);
       if (existing) {
@@ -131,9 +136,9 @@ const EditWarehouse: React.FC = () => {
             ? [
                 {
                   uid: v.ID.toString(),
-                  name: v.picture,
+                  name: v.picture.split("/").pop(),
                   status: "done",
-                  url: v.picture,
+                  url: `http://localhost:8000${v.picture}`,
                 },
               ]
             : [],
@@ -149,31 +154,31 @@ const EditWarehouse: React.FC = () => {
       variants: groupedVariants,
     });
   } else {
-    // ✅ กรณี category อื่น
+
     const firstVariant = record.variants?.[0] || {};
 
     form.setFieldsValue({
-      ...record,
-      category_id: record.category_id,
-      quantity: firstVariant.quantity || 0,
-      picture: firstVariant.picture
-        ? [
-            {
-              uid: firstVariant.ID?.toString() || "-1",
-              name: firstVariant.picture,
-              status: "done",
-              url: firstVariant.picture,
-            },
-          ]
-        : [],
-    });
+    ...record,
+    category_id: record.category_id,
+    quantity: firstVariant.quantity || 0,
+    picture: firstVariant.picture
+      ? [
+          {
+            uid: firstVariant.ID?.toString() || "-1",
+            name: firstVariant.picture.split("/").pop(), 
+            status: "done",
+            url:  `http://localhost:8000${firstVariant.picture}`,
+          },
+        ]
+      : [],
+  });
+
   }
+  console.log("Edit: ",record);
 
   setOpen(true);
 };
 
-
-  // ✅ ลบ Variant
   const handleDeleteVariant = async (variantId: number) => {
     try {
       await variantAPI.deleteByID(variantId);
@@ -184,8 +189,6 @@ const EditWarehouse: React.FC = () => {
     }
   };
 
-
-  // ✅ บันทึกการแก้ไข
   const handleUpdate = async () => {
   try {
     const values = await form.validateFields();
@@ -202,14 +205,11 @@ const EditWarehouse: React.FC = () => {
     const payloadVariants: any[] = [];
 
     if ([1, 3].includes(values.category_id)) {
-      // ✅ Color + Size เหมือนเดิม
       if (Array.isArray(values.variants)) {
         for (const v of values.variants) {
-          let base64Image = "";
-
-          if (v.picture && v.picture.length > 0 && v.picture[0].originFileObj) {
-            base64Image = await getBase64(v.picture[0].originFileObj);
-          }
+          let pictureUrl = v.picture?.[0]?.originFileObj
+            ? await handleUploadProductImage(v.picture[0].originFileObj)
+            : v.picture?.[0]?.url || null;
 
           for (const [sizeId, quantity] of Object.entries(v.sizes || {})) {
             const qty = Number(quantity);
@@ -224,7 +224,7 @@ const EditWarehouse: React.FC = () => {
                 color_id: Number(v.color),
                 size_id: sid,
                 quantity: qty,
-                picture: base64Image,
+                picture: pictureUrl,
               });
             } else if (qty === 0 && existingId) {
               await variantAPI.deleteByID(existingId);
@@ -234,10 +234,9 @@ const EditWarehouse: React.FC = () => {
       }
     } else {
       // ✅ กรณี category อื่น (ไม่มีสี/ขนาด)
-      let base64Image = "";
-      if (values.picture && values.picture.length > 0 && values.picture[0].originFileObj) {
-        base64Image = await getBase64(values.picture[0].originFileObj);
-      }
+      let pictureUrl = values.picture?.[0]?.originFileObj
+        ? await handleUploadProductImage(values.picture[0].originFileObj)
+        : editingProduct?.variants?.[0]?.picture || null;
 
       // หา variant ตัวแรก (ถ้ามี)
       const firstVariant = editingProduct?.variants?.[0] || {};
@@ -247,7 +246,7 @@ const EditWarehouse: React.FC = () => {
         color_id: null,
         size_id: null,
         quantity: values.quantity,
-        picture: base64Image || firstVariant.picture || null,
+        picture: pictureUrl || firstVariant.picture || null,
       });
     }
 
@@ -263,7 +262,7 @@ const EditWarehouse: React.FC = () => {
       variants: payloadVariants,
     };
 
-    const response = await productsAPI.update(editingProduct.ID, payload);
+    await productsAPI.update(editingProduct.ID, payload);
     messageApi.success("อัปเดตสินค้าสำเร็จ");
     setOpen(false);
     onGetInitialData();
@@ -277,12 +276,12 @@ const EditWarehouse: React.FC = () => {
     (item.product_name ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
-  const columns = [
+  const columns  = [
     {
       title: "Product Name",
       dataIndex: "product_name",
       key: "product_name",
-      width: 400,
+      width: 500,
     },
     {
       title: "Category",
@@ -303,13 +302,14 @@ const EditWarehouse: React.FC = () => {
       title: "Minimum Quantity",
       dataIndex: "minimum",
       key: "minimum",
+      width:200,
     },
     {
       title: "Action",
       key: "actions",
+      width:50,
       render: (_: any, record: any) => (
         <Space size="middle">
-          {/* <Button icon={<EyeOutlined />} /> */}
           <Button
             icon={<EditOutlined />}
             style={{ backgroundColor: "#1677ff", color: "white" }}
@@ -317,7 +317,7 @@ const EditWarehouse: React.FC = () => {
           />
           <Popconfirm
             title="คุณแน่ใจหรือไม่ที่จะลบ?"
-            onConfirm={() => handleDelete(record.ID)} // 👈 ใช้ ID
+            onConfirm={() => handleDelete(record.ID)} 
           >
             <Button danger icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -327,6 +327,7 @@ const EditWarehouse: React.FC = () => {
   ];
 
   return (
+    <SidebarLayout>
     <div style={{ padding: 10 ,height:"100%" }}>
       <Row gutter={[50, 20]} align="middle">
         <Col span={12}>
@@ -338,22 +339,11 @@ const EditWarehouse: React.FC = () => {
             icon={<PlusOutlined />}
             style={{ background: "#A4A4A4" }}
             onClick={ () => navigate("/warehouse/create")}
-          >
+            >
             New Merchandise
           </Button>
         </Col>
       </Row>
-
-      {/* <div
-        style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}
-      >
-        <Input.Search
-          placeholder="Search Product"
-          allowClear
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ width: "60%" }}
-        />
-      </div> */}
 
       <Table
         columns={columns}
@@ -361,7 +351,7 @@ const EditWarehouse: React.FC = () => {
         pagination={{ pageSize: 10 }}
         loading={loading}
         rowKey="ID"
-        style={{width:"90%",margin:"20px auto"}}
+        style={{width:"90%",margin:"20px auto",textAlign:"center"}}
       />
 
       {/* ✅ Modal ฟอร์มแก้ไข */}
@@ -373,7 +363,7 @@ const EditWarehouse: React.FC = () => {
         okText="บันทึก"
         cancelText="ยกเลิก"
         width={"50%"}
-      >
+        >
         <Form layout="vertical" form={form}>
           {/* Product Info */}
           <Card>
@@ -383,7 +373,7 @@ const EditWarehouse: React.FC = () => {
                   label="Product Name"
                   name="product_name"
                   rules={[{ required: true, message: "กรุณากรอกชื่อสินค้า" }]}
-                >
+                  >
                   <Input placeholder="เช่น เสื้อยืด Eventix" />
                 </Form.Item>
                 <Col>
@@ -419,7 +409,7 @@ const EditWarehouse: React.FC = () => {
                       label="Price"
                       name="product_price"
                       rules={[{ required: true, message: "กรุณากรอกราคา" }]}
-                    >
+                      >
                       <InputNumber
                         min={0}
                         style={{ width: "100%" }}
@@ -432,12 +422,12 @@ const EditWarehouse: React.FC = () => {
                       label="Minimum Quantity"
                       name="minimum"
                       rules={[{ required: true, message: "กรุณากรอกจำนวนขั้นต่ำ" }]}
-                    >
+                      >
                       <InputNumber
                         min={0}
                         style={{ width: "100%" }}
                         placeholder="เช่น 50"
-                      />
+                        />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -448,11 +438,11 @@ const EditWarehouse: React.FC = () => {
                   label="Product Detail"
                   name="product_detail"
                   rules={[{ required: true, message: "กรุณากรอกรายละเอียดสินค้า" }]}
-                >
+                  >
                   <Input.TextArea
                     placeholder="เช่น เนื้อผ้า cotton 100%"
                     style={{ minHeight: "205px" }}
-                  />
+                    />
                 </Form.Item>
               </Col>
             </Row>
@@ -467,32 +457,32 @@ const EditWarehouse: React.FC = () => {
                   <div>
                     {fields.map(({ key, name, ...restField }, variantIndex) => (
                       <Card
-                        key={key}
-                        title={`Color ${variantIndex + 1}`}
-                        style={{ marginBottom: 16 }}
-                        extra={
-                          fields.length > 1 && (
-                            <Popconfirm
-                              title="คุณแน่ใจหรือไม่ที่จะลบ?"
-                              onConfirm={async () => {
-                                // if (variant?.IDs?.[0]) {
-                                // await handleDeleteVariant(variant.IDs[0]); // ลบจาก backend
-                                // }
-                                remove(name); // ลบจาก UI
-                              }}
+                      key={key}
+                      title={`Color ${variantIndex + 1}`}
+                      style={{ marginBottom: 16 }}
+                      extra={
+                        fields.length > 1 && (
+                          <Popconfirm
+                          title="คุณแน่ใจหรือไม่ที่จะลบ?"
+                          onConfirm={async () => {
+                            // if (variant?.IDs?.[0]) {
+                              // await handleDeleteVariant(variant.IDs[0]); // ลบจาก backend
+                              // }
+                              remove(name); // ลบจาก UI
+                            }}
                             >
                               <Button danger icon={<DeleteOutlined />} />
                             </Popconfirm>
                           )
                         }
-                      >
+                        >
                         {/* Select Color */}
                         <Form.Item
                           {...restField}
                           label="Product Color"
                           name={[name, "color"]}
                           rules={[{ required: true, message: "กรุณาเลือกสีสินค้า" }]}
-                        >
+                          >
                           <Select placeholder="Select color">
                             {colors.map((c) => (
                               <Option key={c.ID} value={c.ID}>
@@ -509,7 +499,7 @@ const EditWarehouse: React.FC = () => {
                             padding: 16,
                             borderRadius: 10,
                           }}
-                        >
+                          >
 
 
                           {/* Upload Image */}
@@ -519,11 +509,14 @@ const EditWarehouse: React.FC = () => {
                               label="Product Picture"
                               name={[name, "picture"]}
                               valuePropName="fileList"
-                              getValueFromEvent={e => Array.isArray(e) ? e : e?.fileList}
+                              getValueFromEvent={(e: any) => {
+                                if (Array.isArray(e)) return e;
+                                return e?.fileList ?? [];
+                              }}
                               rules={[
                                 { required: true, message: "กรุณาอัปโหลดรูปสินค้า" },
                               ]}
-                            >
+                              >
                               <Upload
                                 listType="picture-card"
                                 maxCount={1}
@@ -533,7 +526,7 @@ const EditWarehouse: React.FC = () => {
                                   height: "240px",
                                   margin: "0 auto",
                                 }}
-                              >
+                                >
                                 <div>
                                   <UploadOutlined />
                                   <div>Upload</div>
@@ -555,7 +548,7 @@ const EditWarehouse: React.FC = () => {
                                   textAlign: "center",
                                   fontWeight: "bold",
                                 }}
-                              >
+                                >
                                 Size
                               </Col>
                               <Col
@@ -564,21 +557,21 @@ const EditWarehouse: React.FC = () => {
                                   textAlign: "center",
                                   fontWeight: "bold",
                                 }}
-                              >
+                                >
                                 Quantity
                               </Col>
                             </Row>
                             {sizes.map((sizeItem) => (
                               <Row
-                                key={`${sizeItem.id}`}
-                                align="middle"
-                                gutter={16}
-                                style={{ margin: 8 }}
+                              key={`${sizeItem.id}`}
+                              align="middle"
+                              gutter={16}
+                              style={{ margin: 8 }}
                               >
                                 <Col
                                   span={12}
                                   style={{ display: "flex", justifyContent: "center" }}
-                                >
+                                  >
                                   <Button disabled style={{ width: "80%" }}>
                                     {sizeItem.size}
                                   </Button>
@@ -586,16 +579,16 @@ const EditWarehouse: React.FC = () => {
                                 <Col
                                   span={12}
                                   style={{ display: "flex", justifyContent: "center" }}
-                                >
+                                  >
                                   <Form.Item
                                     name={[name, "sizes", sizeItem.id]}
                                     // initialValue={0}
                                     style={{ marginBottom: 0, width: "80%" }}
-                                  >
+                                    >
                                     <InputNumber 
                                       min={0} 
                                       style={{ width: "100%" }} 
-                                    />
+                                      />
                                   </Form.Item>
                                 </Col>
                               </Row>
@@ -610,7 +603,7 @@ const EditWarehouse: React.FC = () => {
                         onClick={() => add()}
                         block
                         icon={<PlusOutlined />}
-                      >
+                        >
                         เพิ่มสีสินค้าใหม่
                       </Button>
                     </Form.Item>
@@ -629,7 +622,7 @@ const EditWarehouse: React.FC = () => {
                     label="Quantity"
                     name="quantity"
                     rules={[{ required: true, message: "กรุณากรอกจำนวนสินค้า" }]}
-                  >
+                    >
                     <InputNumber min={1} style={{ width: "100%" }} />
                   </Form.Item>
                 </Col>
@@ -641,12 +634,12 @@ const EditWarehouse: React.FC = () => {
                     valuePropName="fileList"
                     getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
                     rules={[{ required: true, message: "กรุณาอัปโหลดรูปสินค้า" }]}
-                  >
+                    >
                     <Upload
                       listType="picture-card"
                       maxCount={1}
                       beforeUpload={() => false}
-                    >
+                      >
                       <div>
                         <UploadOutlined />
                         <div>Upload</div>
@@ -662,6 +655,7 @@ const EditWarehouse: React.FC = () => {
         {contextHolder}
         </Modal>
         </div>
+    </SidebarLayout>
   );
 };
 

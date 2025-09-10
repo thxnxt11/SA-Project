@@ -1,5 +1,5 @@
 // src/components/layout/Navbar.tsx
-import React, { useMemo } from "react";
+import React, { Children, useMemo } from "react";
 import {
   Layout,
   Button,
@@ -19,8 +19,10 @@ import { Content } from "antd/es/layout/layout";
 
 const { Header } = Layout;
 const { useBreakpoint } = Grid;
-
-const NavbarShop: React.FC = () => {
+interface NavbarShopProps {
+  children?: React.ReactNode;
+}
+const NavbarShop:  React.FC<NavbarShopProps> = ({ children }) =>{
   const screens = useBreakpoint();
   const isMobile = !screens.md;
   const navigate = useNavigate();
@@ -145,7 +147,7 @@ const NavbarShop: React.FC = () => {
                 type="text"
                 aria-label="Notifications"
                 icon={<ShoppingCartOutlined />}
-                onClick={() => navigate(`/shopping/cart/:id`)}
+                onClick={() => navigate(`/shopping/cart/${user?.id}`)}
                 style={{
                   color: "white",
                   fontSize: 18,
@@ -229,17 +231,18 @@ const NavbarShop: React.FC = () => {
       </div>
     </Header>
     <Content
-          style={{
-            margin: "24px 16px",
-            padding: 0,
-            minHeight: 617,
-            // background: colorBgContainer,
-            // borderRadius: borderRadiusLG,
-          }}
-        >
-          <Outlet />
-        </Content>
-    </>
+      style={{
+        margin: "24px 16px",
+        padding: 24,
+        minHeight: 617,
+        // background: colorBgContainer,
+        // borderRadius: borderRadiusLG,
+      }}
+    >
+      {children}
+      {/* <Outlet /> */}
+    </Content>
+</>
   );
 };
 

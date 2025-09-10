@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
+import NavbarShop from "../../../component/layout/navshop";
 import "../payment/payment.css";
 import { Row, Col, Card, Typography, Checkbox, Button, Space, message, Modal, Alert } from "antd";
 import { CreditCardOutlined, WalletOutlined, BankOutlined } from "@ant-design/icons";
@@ -7,7 +8,7 @@ import QRPromptPay from "./promptpay_qr";
 import { UploadModal } from "./upload";
 import { paymentOrderAPI, uploadAPI } from "../../../services/https";
 import BankAccountModal from "../../../component/payment/BankAccountModal";
-import Loader from "../../../component/loader/loader";
+import SuccessModal from "./successModal";
 
 const { Title, Text } = Typography;
 const { Meta } = Card;
@@ -27,49 +28,39 @@ const PaymentOrderPage: React.FC = () => {
   const [bankModalOpen, setBankModalOpen] = useState(false);
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [loadingUpload, setLoadingUpload] = useState(false);
-  const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
   
-  // Countdown for payment
   const PAY_TIMELEFT = 600; // 10 mins
-  const countdownKey = `booking_start_time_${paymentId ?? "temp"}`;
   const [paymentTimeLeft, setPaymentTimeLeft] = useState(PAY_TIMELEFT);
   
   const [QRModalVisible, setQRModalVisible] = useState(false);
   const handleCloseUploadModal = () => setUploadModalOpen(false);
-  const handleCloseTicket = () => {
-    navigate("/shoping");
-  };
 
   useEffect(() => {
-    const storedStartTime = localStorage.getItem(countdownKey);
-    let startTime = storedStartTime
-    ? parseInt(storedStartTime, 10)
-      : Date.now();
-    if (!storedStartTime)
-      localStorage.setItem(countdownKey, startTime.toString());
+  const startTime = Date.now(); 
 
-    const timer = setInterval(async () => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const timeLeft = PAY_TIMELEFT - elapsed;
+  const timer = setInterval(async () => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const timeLeft = PAY_TIMELEFT - elapsed;
 
-      if (timeLeft <= 0) {
-        clearInterval(timer);
-        localStorage.removeItem(countdownKey);
-        setPaymentTimeLeft(0);
-        message.error("หมดเวลาการชำระเงิน");
-        try {
-          await paymentOrderAPI.expirePaymentOrder(paymentId); // สมมติว่าเพิ่มฟังก์ชันนี้ใน paymentOrderAPI
-        } catch (e) {
-          console.error("Failed to expire payment order:", e);
-        }
-        navigate("/concerts", { replace: true });
-      } else {
-        setPaymentTimeLeft(timeLeft);
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      setPaymentTimeLeft(0);
+      message.error("หมดเวลาการชำระเงิน");
+      try {
+        await paymentOrderAPI.expirePaymentOrder(paymentId);
+      } catch (e) {
+        console.error("Failed to expire payment order:", e);
       }
-    }, 1000);
+      navigate("/concerts", { replace: true });
+    } else {
+      setPaymentTimeLeft(timeLeft);
+    }
+  }, 1000);
 
-    return () => clearInterval(timer);
-  }, [countdownKey, navigate]);
+  return () => clearInterval(timer);
+}, [paymentId, navigate]);
+
 
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -77,7 +68,6 @@ const PaymentOrderPage: React.FC = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
-  // 🔹 ดึงข้อมูล PaymentOrder จาก backend
   useEffect(() => {
     if (!id) return;
 
@@ -87,21 +77,24 @@ const PaymentOrderPage: React.FC = () => {
         const order = res.data.payment_order;
 
         setPaymentOrder({
+          id: order.ID,
           discount: order.discount,       // Discount จาก backend
           totalPrice: order.total_price,  // TotalPrice จาก backend
-          receipt_url: order.receipt_url
+          receipt_url: order.receipt_url,
+          paid_at: order.paid_at,
         });
         const methodsRes = await paymentOrderAPI.getAllPaymentMethods();
         setPaymentMethods(methodsRes.data);
 
-        console.log(res.data.payment_order);
+
+        console.log("PaymetnOrders: ",res.data.payment_order);
       } catch (e) {
         console.error(e);
         message.error("ไม่สามารถดึงข้อมูลเริ่มต้นได้");
       }
     })();
   }, []);
-  
+
 
   const selectedMethod = paymentMethods.find(pm => pm.id === selectedPaymentMethodId);
 
@@ -127,7 +120,6 @@ const PaymentOrderPage: React.FC = () => {
     return <CreditCardOutlined style={{ fontSize: 40 }} />;
   };
 
-  
   // เมื่อกด Payment
   const handleConfirmPayment = async () => {
     if (!selectedPaymentMethodId) {
@@ -159,7 +151,14 @@ const PaymentOrderPage: React.FC = () => {
     }
   };
   
-  
+  const orderForModal = paymentOrder ? {
+    id: paymentOrder.id,
+    items: selectedItems,
+    totalPrice: selectedItems.reduce((sum: number, i: any) => sum + i.price * i.quantity, 0) - (paymentOrder.discount || 0),
+    discount: paymentOrder.discount || 0,
+    paid_at: paymentOrder.paid_at,
+  } : null;
+
   const handleUploadAndUpdate = async (file: File) => {
   if (!selectedPaymentMethodId) {
     message.warning("กรุณาเลือกวิธีชำระเงินก่อนอัปโหลดสลิป");
@@ -168,13 +167,14 @@ const PaymentOrderPage: React.FC = () => {
 
   setLoadingUpload(true);
     try {
-      // 1) อัปโหลดสลิป
+      //  อัปโหลดสลิป
       const formData = new FormData();
       formData.append("file", file);
       const res = await uploadAPI.upload(formData);
       const receiptUrl = res.data.data.url;
+      console.log(res.data.data.url);
 
-      // 2) อัปเดต PaymentOrder → ทั้ง method, status, receipt_url
+      //  อัปเดต PaymentOrder 
       await paymentOrderAPI.updatePaymentOrder(paymentId, {
       method_id: selectedPaymentMethodId,
       status_id: 2,
@@ -183,6 +183,7 @@ const PaymentOrderPage: React.FC = () => {
 
       message.success("อัปโหลดสลิปและอัปเดตการชำระเงินเรียบร้อย");
       setUploadModalOpen(false);
+      setSuccessModalOpen(true);
     } catch (e) {
       console.error(e);
       message.error("อัปโหลดหรืออัปเดตไม่สำเร็จ");
@@ -199,17 +200,17 @@ const PaymentOrderPage: React.FC = () => {
 
   
   return (
+    <NavbarShop>
+
     <div className="payment-container">
-      {/* <Row gutter={24}> */}
-        {/* Left: Payment Methods */}
         <Col xs={24} lg={16}
           style={{margin:"20px auto"}}
-        >
+          >
           <Card className="payment-section" >
             <Meta 
               title={<span style={{ fontSize: 24, fontWeight: 'bold' }}>Payment Methods</span>} 
               description={<span style={{ fontSize: 16, margin:10}}>เลือกช่องทางการชำระเงิน</span>}
-            />
+              />
             <Row gutter={[16, 16] }>
               {paymentMethods.map((pm) => (
                 <Col xs={24} sm={12} key={pm.id} >
@@ -217,7 +218,7 @@ const PaymentOrderPage: React.FC = () => {
                     className={`option-card ${selectedPaymentMethodId === pm.id ? "selected" : "unselected"}`}
                     hoverable
                     onClick={() => setSelectedPaymentMethodId(pm.id)}
-                  >
+                    >
                     <Checkbox checked={selectedPaymentMethodId === pm.id} />
                     <div className="option-info">{iconForPayment(pm.payment_method)}</div>
                     <Text strong>{pm.payment_method}</Text>
@@ -228,12 +229,12 @@ const PaymentOrderPage: React.FC = () => {
           </Card>
         </Col>
 
-        {/* Right: Cart & Summary */}
+        {/* Right: Summary */}
         <Col xs={24} lg={8} 
         style={{margin: "0 auto"}}>
           <Card 
             className="price-summary"
-          >
+            >
             <Title level={4} >Order Summary</Title>
             <div className="summary-header">
                 <Text strong style={{ fontSize: 18 }}>
@@ -253,7 +254,7 @@ const PaymentOrderPage: React.FC = () => {
             </div>
 
             {paymentOrder?.discount !== 0 && (
-                <div className="summary-item discount">
+              <div className="summary-item discount">
                   <Text style={{ color: "#52c41a", fontSize: 17 }}>
                     ส่วนลด/Discount
                   </Text>
@@ -280,7 +281,7 @@ const PaymentOrderPage: React.FC = () => {
                     style={{ marginTop: 16 }}
                     loading={loadingPayment}
                     onClick={handleConfirmPayment}
-                  >
+                    >
                     Payment
                   </Button>
                   <Button
@@ -288,7 +289,7 @@ const PaymentOrderPage: React.FC = () => {
                     className="payment-button"
                     onClick={() => setUploadModalOpen(true)}
                     style={{ marginTop: 16, backgroundColor: "#00b40c" }}
-                  >
+                    >
                     Upload Receipt
                   </Button>
                 </Space>
@@ -296,24 +297,20 @@ const PaymentOrderPage: React.FC = () => {
 
           </Card>
         </Col>
-      {/* </Row> */}
-
-      {/* Modals */}
-      {/* PromptPay QR Modal */}
       <Modal
         open={QRModalVisible}
         onCancel={() => setQRModalVisible(false)}
         footer={null}
         centered
         width={300}
-      >
+        >
         <QRPromptPay amount={paymentOrder?.totalPrice}  />
         <Alert
           type="warning"
           showIcon
           style={{ marginTop: 16, textAlign: "center" }}
           message={`QR จะหมดอายุภายใน ${formatTime(paymentTimeLeft)} นาที`}
-        />
+          />
       </Modal>
 
       {/* Bank Account Modal */}
@@ -321,7 +318,7 @@ const PaymentOrderPage: React.FC = () => {
         open={bankModalOpen}
         onClose={() => setBankModalOpen(false)}
         data={bankInfo}
-      />
+        />
 
       {/* Upload Slip Modal */}
       <UploadModal
@@ -329,11 +326,14 @@ const PaymentOrderPage: React.FC = () => {
         onClose={handleCloseUploadModal}
         onUpload={handleUploadAndUpdate}
         loading={loadingUpload}
-      />
-
-      {showFullScreenLoader && <Loader />}
-
+        />
+      <SuccessModal
+        open={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        order={orderForModal}
+        />
     </div>
+    </NavbarShop>
   );
 };
 

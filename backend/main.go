@@ -70,35 +70,32 @@ func main() {
 		// api.GET("/eticket/user/:user_id/concert/:concert_id/show/:show_date_id",eTicketCtl.GetETicketByShowID)
 		// api.GET("/user/:user_id",user.GetUserDataById)
 		// api.GET("/genders",user.GetAllGender)
-		// api.PUT("/user/:user_id",user.UpdateUserDataById)
-		
-	}
+		// api.PUT("/user/:user_id",user.UpdateUserDataById
 
-	// {warehouse}
-	r.GET("/concerts", controllers.GetConcerts)
-	r.GET("/categories", controllers.GetCategories)
-	r.GET("/sizes", controllers.GetSizes)
-	r.GET("/colors", controllers.GetColors)
-	r.POST("/products", controllers.CreateProduct)
-	r.GET("/products", controllers.FindProducts)
-	r.GET("/products/:id", controllers.FindProductDetail)
-	r.PUT("/products/:id", controllers.UpdateProduct)
-	r.DELETE("/products/:id", controllers.DeleteProductById)
-	r.DELETE("/variant/:id", controllers.DeleteVariantById)
-	r.GET("/stockmovements", controllers.GetStockMovements)
-	r.POST("/payment-orders/create", controllers.CreatePaymentOrder)
-	r.GET("/payment-orders/methods",controllers.GetAllPaymentMethods)
-	r.GET("/payment-orders/:id",controllers.GetPaymentOrderByID)
-	r.PUT("/payment-orders/:id", controllers.UpdatePaymentOrder)
-	r.PUT("/payment-orders/:id/expire",controllers.ExpirePaymentOrder)
-
-	cartGroup := r.Group("/cart")
-	{
-		cartGroup.POST("/add", controllers.AddToCart)        // เพิ่มสินค้า
-		cartGroup.GET("/:user_id", controllers.GetCartByUserID) // แสดงตะกร้า
-		cartGroup.PUT("/item/:id", controllers.UpdateCartItem)  // อัปเดตจำนวน
-		cartGroup.DELETE("/item/:id", controllers.RemoveCartItem) // ลบสินค้า
-		cartGroup.PATCH("/items/:id/select",controllers.UpdateCartItemSelected)//เลือกสินค้าในตะกร้า
+		// {warehouse}
+		api.GET("/concerts", products.GetConcerts)
+		api.GET("/categories", products.GetCategories)
+		api.GET("/sizes", products.GetSizes)
+		api.GET("/colors", products.GetColors)
+		api.POST("/products", products.CreateProduct)
+		api.GET("/products", products.FindProducts)
+		api.GET("/products/:id", products.FindProductDetail)
+		api.PUT("/products/:id", products.UpdateProduct)
+		api.DELETE("/products/:id", products.DeleteProductById)
+		api.DELETE("/variant/:id", products.DeleteVariantById)
+		api.GET("/stockmovements", products.GetStockMovements)
+		api.POST("/payment-orders/create", products.CreatePaymentOrder)
+		api.GET("/payment-orders/methods",products.GetAllPaymentMethods)
+		api.GET("/payment-orders/:id",products.GetPaymentOrderByID)
+		api.PUT("/payment-orders/:id", products.UpdatePaymentOrder)
+		api.PUT("/payment-orders/:id/expire",products.ExpirePaymentOrder)
+		api.POST("/cart/add", products.AddToCart)  
+		api.GET("/cart/:user_id", products.GetCartByUserID) 
+		api.PUT("/cart/item/:id", products.UpdateCartItem)  
+		api.DELETE("/cart/item/:id", products.RemoveCartItem) 
+		api.PATCH("/cart/items/:id/select",products.UpdateCartItemSelected)
+		api.POST("/upload/order-receipt",products.UploadReceiptImage)
+		api.POST("/upload/product",products.UploadProductImage)
 	}
 
 	r.Static("/uploads", "./uploads")

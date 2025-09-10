@@ -90,7 +90,21 @@ func SetupDatabase() {
     db.FirstOrCreate(Organizer, &entity.User{
         Email: "ENTERTAIN@gmail.com",
     })
-
+    Admin := &entity.User{
+        FirstName: "Admin",
+        LastName:  "Nongmos",
+        Email:     "mostnpt14@gmail.com",
+        Age:       21,
+        Password:  hashedPassword,
+        BirthDay:  BirthDay,
+        Phonenum:  "xxx-xxx-xxxx",
+        GenderID:  1,
+        RoleID:    3,
+    }
+    db.FirstOrCreate(Admin, &entity.User{
+        Email: "mostnpt14@gmail.com",
+    })
+    
     //promotion type
    db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
       PromotionType: "Code",
@@ -149,7 +163,7 @@ func SetupDatabase() {
     })
     
     // --- Action ---
-    action := []string{"IN", "OUT", "UPDATE"}
+    action := []string{"IN", "OUT", "UPDATE" , "SALE"}
     for _, ac := range action {
         db.FirstOrCreate(&entity.Action{}, entity.Action{Action: ac})
     }
@@ -186,16 +200,15 @@ func SetupDatabase() {
         ProductPrice:   1299.00,
         Minimum:        100,
         Sales:          0,
-        Total:          0,
+        Total:          20,
         ConcertID:        1,
     })
 
     db.FirstOrCreate(&entity.Variant{}, entity.Variant{
-        ProductID:    1,
-        ColorID:     1,
-        SizeID:  2,
-        Quantity:  20,
-        Picture:    "https://down-th.img.susercontent.com/file/sg-11134201-7ra21-mbfamov4c61958",
-
+        ProductID:      1,
+        ColorID:        1,
+        SizeID:         2,
+        Quantity:       20,
+        Picture:        "/uploads/products/1757523971551195800_oneShirt1.jpg",
     })
 }

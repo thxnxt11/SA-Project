@@ -1,4 +1,4 @@
-package controllers
+package products
 
 import (
 	"errors"
@@ -108,6 +108,7 @@ func UpdatePaymentOrder(c *gin.Context) {
 		StatusID    *uint   `json:"status_id"`
 		PromotionID *uint   `json:"promotion_id"`
 		ReceiptURL  *string `json:"receipt_url"`
+		// UserID		 uint    `json:"user_id"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -157,9 +158,13 @@ func UpdatePaymentOrder(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
+			if err := CreateStockMovement(tx, item.VariantID, item.Quantity, order.Cart.UserID, 4); err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
 		}
 	}	
-
 
 	tx.Commit()
 	c.JSON(http.StatusOK, gin.H{"payment_order": order})

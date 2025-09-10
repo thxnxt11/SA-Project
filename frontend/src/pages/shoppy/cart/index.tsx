@@ -13,6 +13,7 @@ import {
   Input,
   Space,
 } from "antd";
+import NavbarShop from "../../../component/layout/navshop";
 import { CheckCircle } from "lucide-react";
 import { DeleteOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -138,12 +139,12 @@ const CartPages: React.FC = () => {
       const payload = {
         code: discountCode,
         target:"product",
+        concert_id:1
       };
 
       console.log("validate send", payload);
       const res = await promotionAPI.validateCode(payload);
       console.log("validate response", res?.data);
-
   
       if (res?.data?.valid) {
         const pct = res.data.data.discount_percent ?? 0;
@@ -211,10 +212,11 @@ const CartPages: React.FC = () => {
   };
 
   return (
-    <div style={{ width:"70%", margin: "20px auto", 
-    }}>
-      <Row gutter={80}>
-        <Col span={15} >
+    <NavbarShop>
+
+    <div style={{ width:"100%", margin: "20px auto", }}>
+      <Row gutter={40} style={{ width:"80%",marginBottom:12 ,padding:1 ,  margin: "0 auto",}}>
+        <Col span={16} >
           {/*  เลือกทั้งหมด + เคลียร์ตะกร้า */}
           <Card style={{ marginBottom:12 ,padding:1 , background:"#F6F6F8"}}>
             <Row justify="space-between" align="middle">
@@ -222,7 +224,7 @@ const CartPages: React.FC = () => {
                 <Checkbox
                   checked={isAllSelected}
                   onChange={(e) => handleSelectAll(e.target.checked)}
-                >
+                  >
                   Select All
                 </Checkbox>
               </Col>
@@ -232,11 +234,11 @@ const CartPages: React.FC = () => {
                   onConfirm={removeAllItems}
                   okText="ใช่"
                   cancelText="ยกเลิก"
-                >
+                  >
                  <Button 
                   danger icon={<DeleteOutlined/>}
                   disabled={cartItems.length === 0}
-                >
+                  >
                   Clear Cart
                 </Button>
                 </Popconfirm>
@@ -247,7 +249,7 @@ const CartPages: React.FC = () => {
           {/* Table รายการสินค้า */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {cartItems.map((item) => (
-            <Card key={item.id} style={{ marginBottom: 12,  background:"#F6F6F8"}}>
+              <Card key={item.id} style={{ marginBottom: 12,  background:"#F6F6F8"}}>
               <Row gutter={16} style={{ alignItems: "stretch" }}>
 
                 {/* ✅ Checkbox เลือกรายการ */}
@@ -262,7 +264,7 @@ const CartPages: React.FC = () => {
                     <Checkbox
                       checked={selectedRowKeys.includes(item.id)}
                       onChange={() => toggleSelect(item.id)}
-                    />
+                      />
                   </div>
                 </Col>
 
@@ -281,16 +283,16 @@ const CartPages: React.FC = () => {
                       overflow: "hidden",
                       backgroundColor: "#fafafa",
                     }}
-                  >
+                    >
                     <img
-                      src={item.picture}
+                      src={`http://localhost:8000${item.picture}`}
                       alt={item.name}
                       style={{
-                        maxWidth: "100%",
-                        maxHeight: "100%",
+                        // maxWidth: "100%",
+                        height: "100%",
                         objectFit: "cover",
                       }}
-                    />
+                      />
                   </div>
                 </Col>
 
@@ -298,7 +300,7 @@ const CartPages: React.FC = () => {
                 <Col span={12}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <div style={{ fontWeight: "bold", fontSize: 16 }}>{item.name}</div>
-                    <div>{item.color} | {item.size}</div>
+                    <div>{item.color}  {item.size}</div>
                     <div>THB {item.price.toLocaleString()}</div>
                   </div>
                 </Col>
@@ -317,11 +319,11 @@ const CartPages: React.FC = () => {
                         min={1}
                         value={item.quantity}
                         onChange={(value) => updateQuantity(item.id, value || 1)}
-                      />
+                        />
                       <Popconfirm
                         title="ลบสินค้านี้หรือไม่?"
                         onConfirm={() => removeItem(item.id)}
-                      >
+                        >
                         <Button danger icon={<DeleteOutlined />} />
                       </Popconfirm>
                     </div>
@@ -334,8 +336,8 @@ const CartPages: React.FC = () => {
         </Col>
 
         {/* Sidebar สรุปยอด */}
-        <Col span={7}>
-          <Card style={{background:"#F6F6F8"}}>
+        <Col span={8} >
+          <Card style={{background:"#F6F6F8",}}>
             <div>{/* ช่องใส่รหัสส่วนลด */}
               <Title level={4}>Discount Code</Title>
               <Space.Compact style={{ width: '100%' }}>
@@ -350,15 +352,15 @@ const CartPages: React.FC = () => {
                 </Button>
               </Space.Compact>
               {appliedDiscount && (
-                    <div
-                      style={{
-                        marginTop: "10px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
-                        color: appliedDiscount.code ? "#00c50aff" : "red",
-                      }}
-                    >
+                <div
+                style={{
+                  marginTop: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  color: appliedDiscount.code ? "#00c50aff" : "red",
+                }}
+                >
                       {appliedDiscount.code ? (
                         <>
                           <CheckCircle size={16} /> {appliedDiscount.message}
@@ -408,7 +410,7 @@ const CartPages: React.FC = () => {
                   .reduce(
                     (total, item) =>
                       total + item.price * item.quantity * (1 - discountRate),0)
-                  .toLocaleString()}
+                    .toLocaleString()}
               </span>
             </Title>
             <Button
@@ -416,13 +418,14 @@ const CartPages: React.FC = () => {
               disabled={selectedItems.length === 0}
               onClick={handleConfirmOrder}
               block
-            >
+              >
               ยืนยันการสั่งซื้อ ({selectedItems.length} รายการ)
             </Button>
           </Card>
         </Col>
       </Row>
     </div>
+    </NavbarShop>
   );
 };
 

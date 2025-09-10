@@ -43,10 +43,10 @@ const SignIn: React.FC = () => {
         rid === 2 || rname === "member"
           ? "/concerts"
           : rid === 1 || rname === "organizer"
-          ? "/warehouse/dashboardwarehouse"
-          // ? "/organizer/dashboard"
-          : rid === 3 || rname === "admin"
           ? "/organizer/dashboard"
+          : rid === 3 || rname === "admin"
+          ?"/warehouse/dashboardwarehouse"
+          // ? "/organizer/dashboard"
           : rid === 4 || rname === "staff"
           ? "/organizer/dashboard"
           : "/signin";

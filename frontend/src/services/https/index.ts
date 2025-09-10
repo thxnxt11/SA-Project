@@ -6,7 +6,7 @@ import type { PromotionInterface } from "../../interface/promotion";
 
 const ORGANIZER_API_URL = "http://localhost:8000/organizer";
 const PUBLIC_API_URL = "http://localhost:8000/api";
-const BASE_URL = "http://localhost:8000";
+// const BASE_URL = "http://localhost:8000";
 
 const getCookie = (name: string): string | null => {
   const cookies = document.cookie.split("; ");
@@ -130,7 +130,7 @@ export const promotionAPI = {
 
 // Concert APIs
 export const concertAPI = {
-  getAll: () => Get(`${BASE_URL}/concerts`, false),
+  getAll: () => Get(`${PUBLIC_API_URL}/concerts`, false),
   getById: (id: number) => Get(`${PUBLIC_API_URL}/concert/${id}`, false),
 };
 
@@ -145,70 +145,81 @@ export const ShowDateAPI = {
 
 export const uploadAPI = {
   upload: (data: FormData) => axios.post(`${PUBLIC_API_URL}/upload`, data),
+  uploadReceipt: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return await axios.post(`${PUBLIC_API_URL}/upload/order-receipt`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+  uploadProductImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return await axios.post(`${PUBLIC_API_URL}/upload/product`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
 // Fetch categories
 export const categoriesAPI = {
-  getAllCategories: () => Get(`${BASE_URL}/categories`, false),
+  getAllCategories: () => Get(`${PUBLIC_API_URL}/categories`, false),
 };
 // Fetch colors
 export const colorsAPI ={
-  getAllColors : () => Get(`${BASE_URL}/colors`, false),}
+  getAllColors : () => Get(`${PUBLIC_API_URL}/colors`, false),}
 ;
 // Fetch sizes
 export const sizesAPI = {
-  getAllSizes : () => Get(`${BASE_URL}/sizes`, false)
+  getAllSizes : () => Get(`${PUBLIC_API_URL}/sizes`, false)
 };
 // Fetch sizes
 export const actionAPI = {
-  getAllSizes : () => Get(`${BASE_URL}/action`, false)
+  getAllSizes : () => Get(`${PUBLIC_API_URL}/action`, false)
 };
 
 // Create product
 export const productsAPI = {
-  createProduct : (payload: any) => Post(`${BASE_URL}/products`, payload),
-  getAllProducts : () => Get(`${BASE_URL}/products`, false),
-  getByProductID : (ID: number) => Get(`${BASE_URL}/products/${ID}`, false),
-  // update: (id: number, data: ProductInterface) =>
-  //   Update(`${BASE_URL}/products/${id}`, data),
+  createProduct : (payload: any) => Post(`${PUBLIC_API_URL}/products`, payload),
+  getAllProducts : () => Get(`${PUBLIC_API_URL}/products`, false),
+  getByProductID : (ID: number) => Get(`${PUBLIC_API_URL}/products/${ID}`, false),
   update: (id: number, payload: any) => {
-    return axios.put(`${BASE_URL}/products/${id}`, payload);
+    return axios.put(`${PUBLIC_API_URL}/products/${id}`, payload);
   },
-  deleteByID: (id: number) => Delete(`${BASE_URL}/products/${id}`, false),
+  deleteByID: (id: number) => Delete(`${PUBLIC_API_URL}/products/${id}`, false),
 };
 
 export const variantAPI = {
-  deleteByID: (id: number) => Delete(`${BASE_URL}/variant/${id}`),
+  deleteByID: (id: number) => Delete(`${PUBLIC_API_URL}/variant/${id}`),
 }
 
 export const movementsAPI = {
-  getAllProducts : () => Get(`${BASE_URL}/stockmovements`, false),
+  getAllProducts : () => Get(`${PUBLIC_API_URL}/stockmovements`, false),
+  create: (data: any) => axios.post("/stock-movements", data),
 };
 
 export const cartAPI = {
-  // เพิ่มสินค้าเข้า Cart
   addToCart: (payload: { user_id: number; variant_id: number; quantity: number }) => {
-    return axios.post(`${BASE_URL}/cart/add`, payload);
+    return axios.post(`${PUBLIC_API_URL}/cart/add`, payload);
   },
   getCartByUserID: (user_id: number) => {
-    return axios.get(`${BASE_URL}/cart/${user_id}`);
-  },
+    return axios.get(`${PUBLIC_API_URL}/cart/${user_id}`);
+  },  
   updateCartItem: (item_id: number, quantity: number) => {
-    return axios.put(`${BASE_URL}/cart/item/${item_id}`, { quantity });
+    return axios.put(`${PUBLIC_API_URL}/cart/item/${item_id}`, { quantity });
   },
   removeCartItem: (item_id: number) => {
-    return axios.delete(`${BASE_URL}/cart/item/${item_id}`);
+    return axios.delete(`${PUBLIC_API_URL}/cart/item/${item_id}`);
   },
-  //toggle select
   updateCartItemSelected: (id: number, selected: boolean) =>
-    axios.patch(`${BASE_URL}/cart/items/${id}/select`, { selected }),
+    axios.patch(`${PUBLIC_API_URL}/cart/items/${id}/select`, { selected }),
 };
 
 export const paymentOrderAPI = {
-  createPaymentOrder: (data: any) => axios.post(`${BASE_URL}/payment-orders/create`, data),
-  getAllPaymentMethods: () => axios.get(`${BASE_URL}/payment-orders/methods`),
-  getPaymentOrderById: (id: number) => axios.get(`${BASE_URL}/payment-orders/${id}`),
+  createPaymentOrder: (data: any) => axios.post(`${PUBLIC_API_URL}/payment-orders/create`, data),
+  getAllPaymentMethods: () => axios.get(`${PUBLIC_API_URL}/payment-orders/methods`),
+  getPaymentOrderById: (id: number) => axios.get(`${PUBLIC_API_URL}/payment-orders/${id}`),
 
-  updatePaymentOrder: (id: number, data: any) => axios.put(`${BASE_URL}/payment-orders/${id}`, data),
-  expirePaymentOrder: (id: number) => axios.put(`${BASE_URL}/payment-orders/${id}/expire`),
+  updatePaymentOrder: (id: number, data: any) => axios.put(`${PUBLIC_API_URL}/payment-orders/${id}`, data),
+  expirePaymentOrder: (id: number) => axios.put(`${PUBLIC_API_URL}/payment-orders/${id}/expire`),
 };

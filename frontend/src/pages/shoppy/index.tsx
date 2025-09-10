@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Typography,  Row, Col, Card, Spin, Carousel } from "antd";
 import { useNavigate } from "react-router-dom";
 import { productsAPI } from "./../../services/https";
+import NavbarShop from "../../component/layout/navshop";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -50,85 +51,86 @@ const ShoppingPage: React.FC = () => {
   );
 
   return (
-    <div style={{ padding: "40px 80px", background: "#fff", minHeight: "100vh" }}>
-      {/* หัวข้อ */}
-      <div style={{ textAlign: "center", marginBottom: 40 }}>
-        <Title level={2}>New Arrivals</Title>
-      </div>
-    <div style={{ margin: "0 auto", width:"80%"}}>
+    <NavbarShop>
 
-              <Carousel  
-                style={{ margin: "0 auto" }}
-                arrows
-              >
-                {pages.map((page, pageIndex) => (
-                  <div key={pageIndex}>
-                    <Row gutter={[24, 32]} justify="center" style={contentStyle}>
-                      {page.map((product) => (
-                        <Col key={product.ID}>
-                          <Card
-                            hoverable
-                            onClick={() => navigate(`/shopping/productdetail/${product.ID}`)}
-                            style={{
-                              width: 270,
-                              height: 380,
-                              background: "#f1f3f4",
-                              overflow: "hidden",   
-                              display: "flex",
-                              flexDirection: "column",
-                              textAlign: "center",
-                            }}
-                            styles={{
-                              body: {
-                                padding: 0, 
-                              },
-                            }}
-                          >
-                            {/* รูปสินค้า */}
-                            <div
-                              style={{
-                                flexGrow: 1,
-                                background: "#fff",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                overflow: "hidden",
-                              }}
-                            >
-                              <img
-                                src={product.variants?.[0]?.picture || "/no-image.png"}
-                                alt={product.product_name}
-                                style={{
-                                  height: 270,
-                                  width: "100%",
-                                  objectFit: "cover",
-                                  // overflow: "hidden",
-                                }}
-                              />
-                            </div>
-
-                            {/* เนื้อหา */}
-                            <div style={{ background: "#f1f3f4", padding: 8 }}>
-                              <Paragraph
-                                ellipsis={{ rows: 2 }}
-                                style={{ fontSize: 16, marginBottom: 8, height: 44 }}
-                              >
-                                {product.product_name}
-                              </Paragraph>
-                              <Text strong style={{ color: "#2167ff", fontSize: 20 }}>
-                                ฿ {product.product_price?.toLocaleString()}
-                              </Text>
-                            </div>
-                          </Card>
-                        </Col>
-                      ))}
-                    </Row>
-                  </div>
-                ))}
-              </Carousel>
-
+      <div style={{ padding: "40px 80px", background: "#fff", minHeight: "100vh" }}>
+        {/* หัวข้อ */}
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <Title level={2}>New Arrivals</Title>
         </div>
-    </div>
+        <div style={{ margin: "0 auto", width:"1250px",height:"450px"}}>
+          <Carousel  
+            // style={{ margin: "0 auto" }}
+            arrows
+            >
+            {pages.map((page, pageIndex) => (
+              <div key={pageIndex}>
+                <Row gutter={[24, 32]} justify="center" style={contentStyle}>
+                  {page.map((product) => (
+                    <Col key={product.ID}>
+                      <Card
+                        hoverable
+                        onClick={() => navigate(`/shopping/productdetail/${product.ID}`)}
+                        style={{
+                          width: 270,
+                          height: 380,
+                          background: "#f1f3f4",
+                          overflow: "hidden",   
+                          display: "flex",
+                          flexDirection: "column",
+                          textAlign: "center",
+                        }}
+                        styles={{
+                          body: {
+                            padding: 0, 
+                          },
+                        }}
+                        >
+                        {/* รูปสินค้า */}
+                        <div
+                          style={{
+                            flexGrow: 1,
+                            background: "#fff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            overflow: "hidden",
+                          }}
+                          >
+                          <img
+                            src={`http://localhost:8000${product?.variants?.[0]?.picture}` || "/no-image.png"}
+                            alt={product.product_name}
+                            style={{
+                              height: 270,
+                              width: "100%",
+                              objectFit: "cover",
+                              // overflow: "hidden",
+                            }}
+                            />
+                        </div>
+
+                        {/* เนื้อหา */}
+                        <div style={{ background: "#f1f3f4", padding: 8 }}>
+                          <Paragraph
+                            ellipsis={{ rows: 2 }}
+                            style={{ fontSize: 16, marginBottom: 8, height: 44 }}
+                            >
+                            {product.product_name}
+                          </Paragraph>
+                          <Text strong style={{ color: "#2167ff", fontSize: 20 }}>
+                            ฿ {product.product_price?.toLocaleString()}
+                          </Text>
+                        </div>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+              </div>
+            ))}
+          </Carousel>
+        </div>
+      </div>
+    </NavbarShop>
   );
 };
 

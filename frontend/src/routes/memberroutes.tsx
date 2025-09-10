@@ -91,14 +91,25 @@ export default function MemberRoutes() {
         }
       /> */}
       {/* shoppy (public) */}
-      <Route path="shopping" element={<NavbarShop />}>
-        <Route index element={<ShoppingPage />} />
-        <Route path="productdetail/:id" element={<ProductDetailPage />} />
-        <Route path="cart/:id" element={<CartPages />} />
-        <Route path="payment-orders/:id" element={<PaymentOrderPage />} />
+        <Route path="/shopping" element={<ShoppingPage />} />
+        <Route path="/shopping/productdetail/:id" element={<ProductDetailPage />}/>
+        <Route path="/shopping/cart/:id" 
+          element={
+            <RequireAuth>
+              <CartPages />
+            </RequireAuth>
+          } 
+         />
+        <Route path="/shopping/payment-orders/:id" 
+          element={
+            <RequireAuth>
+              <PaymentOrderPage />
+            </RequireAuth>
+          } 
+        />
         <Route path="*" element={<Navigate to="/shopping" replace />} />
 
-      </Route>
+      {/* </Route> */}
 
       {/* 404 fallback for public */}
       <Route path="*" element={<Navigate to="/concerts" replace />} />

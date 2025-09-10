@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
+import NavbarShop from "../../../component/layout/navshop";
 import { useParams } from "react-router-dom";
-import { Card, Row, Col, Typography, Button, Divider, message } from "antd";
+import { Card, Row, Col, Typography, Button, Divider, message ,Image} from "antd";
 import { ShoppingCartOutlined } from "@ant-design/icons";
 import type { ProductInterface } from "../../../interface/product";
 import type { ColorInterface } from "../../../interface/color";
@@ -60,45 +61,54 @@ const ProductDetailPage: React.FC = () => {
   );
 
   const handleAddToCart = async () => {
-    if (!product) {
-      message.warning("ยังไม่มีข้อมูลสินค้า");
-      return;
-    }
-    if (!selectedColor || !selectedSize) {
-      message.warning("กรุณาเลือกสีและขนาด");
-      return;
-    }
-    if (!user_id) {
-      message.error("กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้า");
-      return;
-    }
+  if (!product) {
+    message.warning("ยังไม่มีข้อมูลสินค้า");
+    return;
+  }
+  if (!user_id) {
+    message.error("กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้า");
+    return;
+  }
 
-    const matchedVariant = product.variants?.find(
-      v => v.color?.id === selectedColor.id && v.size?.id === selectedSize.id
-    );
+  if (availableColors.length > 0 && !selectedColor) {
+    message.warning("กรุณาเลือกสี");
+    return;
+  }
+  if (availableSizes.length > 0 && !selectedSize) {
+    message.warning("กรุณาเลือกขนาด");
+    return;
+  }
+  const matchedVariant = product.variants?.find(v => {
+    const matchColor = availableColors.length > 0 ? v.color?.id === selectedColor?.id : true;
+    const matchSize  = availableSizes.length > 0 ? v.size?.id === selectedSize?.id : true;
+    return matchColor && matchSize;
+  });
 
-    if (!matchedVariant) {
-      message.error("ไม่พบสินค้าที่เลือกในสต๊อก");
-      return;
-    }
+  if (!matchedVariant) {
+    message.error("ไม่พบสินค้าที่เลือกในสต๊อก");
+    return;
+  }
 
-    try {
-      setLoading(true);
-      await cartAPI.addToCart({
-        user_id,
-        variant_id: matchedVariant.id!,
-        quantity: 1,
-      });
-      message.success("เพิ่มสินค้าไปยังตะกร้าเรียบร้อย");
-    } catch (err) {
-      console.error(err);
-      message.error("เกิดข้อผิดพลาดในการเพิ่มสินค้า");
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+    await cartAPI.addToCart({
+      user_id,
+      variant_id: matchedVariant.id!,
+      quantity: 1,
+    });
+    message.success("เพิ่มสินค้าไปยังตะกร้าเรียบร้อย");
+  } catch (err) {
+    console.error(err);
+    message.error("เกิดข้อผิดพลาดในการเพิ่มสินค้า");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
+    <NavbarShop>
+
     <Card style={{ maxWidth: 1000, margin: "40px auto", padding: 24 }}>
       <Row gutter={[32, 32]}>
         {/* รูปสินค้า */}
@@ -113,12 +123,12 @@ const ProductDetailPage: React.FC = () => {
               alignItems: "center",
               overflow: "hidden",
             }}
-          >
-            <img
-              src={product?.variants?.[0]?.picture || "/no-image.png"}
+            >
+            <Image
+              src={`http://localhost:8000${product?.variants?.[0]?.picture}`|| "/no-image.png"}
               alt={product?.product_name || "no-name"}
-              style={{ height: "380px", objectFit: "cover" }}
-            />
+              style={{ height: "380px",width: "270px", objectFit: "cover" }}
+              />
           </Card>
         </Col>
 
@@ -127,7 +137,7 @@ const ProductDetailPage: React.FC = () => {
           xs={24}
           md={14}
           style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}
-        >
+          >
           <div style={{ flexGrow: 1 }}>
             <Title level={3}>{product?.product_name || "No Name"}</Title>
             <Text type="secondary">{product?.product_detail || "ไม่มีรายละเอียดสินค้า"}</Text>
@@ -142,10 +152,10 @@ const ProductDetailPage: React.FC = () => {
                 <Text strong>Select Color:</Text>
                 {availableColors.map((color) => (
                   <Button
-                    key={`color-${color.id}`}
-                    onClick={() => setSelectedColor(color)}
-                    type={selectedColor?.id === color.id ? "primary" : "default"}
-                    style={{ marginLeft: 8 }}
+                  key={`color-${color.id}`}
+                  onClick={() => setSelectedColor(color)}
+                  type={selectedColor?.id === color.id ? "primary" : "default"}
+                  style={{ marginLeft: 8 }}
                   >
                     {color?.color || "Unknown"}
                   </Button>
@@ -159,10 +169,10 @@ const ProductDetailPage: React.FC = () => {
                 <Text strong>Select Size:</Text>
                 {availableSizes.map((size) => (
                   <Button
-                    key={`size-${size.id}`}
-                    onClick={() => setSelectedSize(size)}
-                    type={selectedSize?.id === size.id ? "primary" : "default"}
-                    style={{ marginLeft: 8 }}
+                  key={`size-${size.id}`}
+                  onClick={() => setSelectedSize(size)}
+                  type={selectedSize?.id === size.id ? "primary" : "default"}
+                  style={{ marginLeft: 8 }}
                   >
                     {size?.size || "Unknown"}
                   </Button>
@@ -187,6 +197,7 @@ const ProductDetailPage: React.FC = () => {
         </Col>
       </Row>
     </Card>
+    </NavbarShop>
   );
 };
 

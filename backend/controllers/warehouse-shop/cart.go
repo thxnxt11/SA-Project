@@ -1,4 +1,4 @@
-package controllers
+package products
 
 import (
 	"net/http"
@@ -90,14 +90,30 @@ func GetCartByUserID(c *gin.Context) {
     // map data ไป response struct
     items := make([]CartItemResponse, 0, len(cart.CartItems))
     for _, item := range cart.CartItems {
+        var color, size, name, picture string
+        var price float32
+
+        if item.Variant != nil {
+            if item.Variant.Color != nil {
+                color = item.Variant.Color.Color
+            }
+            if item.Variant.Size != nil {
+                size = item.Variant.Size.Size
+            }
+            if item.Variant.Product != nil {
+                name = item.Variant.Product.ProductName
+                price = float32(item.Variant.Product.ProductPrice)
+            }
+            picture = item.Variant.Picture
+        }
         items = append(items, CartItemResponse{
             ID:       item.ID,
-            Name:     item.Variant.Product.ProductName,
-            Color:    item.Variant.Color.Color,
-            Size:     item.Variant.Size.Size,
-            Price:    float32(item.Variant.Product.ProductPrice),
+            Name:     name,
+            Color:    color,
+            Size:     size,
+            Price:    price,
             Quantity: int(item.Quantity),
-            Picture:  item.Variant.Picture,
+            Picture:  picture,
             Selected: item.Selected,
         })
     }

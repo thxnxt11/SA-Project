@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Table, Typography, Card, message } from "antd";
-import axios from "axios";
 import type { ColumnsType } from "antd/es/table";
+import SidebarLayout from "../../../component/layout/SidebarLayout";
+import { productsAPI } from "../../../services/https";
 
 const { Text } = Typography;
 
@@ -20,7 +21,7 @@ const CheckWarehouse: React.FC = () => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const res = await axios.get("http://localhost:8000/products");
+        const res = await productsAPI.getAllProducts();
 
         const rows: Row[] = (res.data as any[]).map((p) => ({
           product_id: Number(p.ID ?? p.id),
@@ -28,8 +29,6 @@ const CheckWarehouse: React.FC = () => {
           minimum: Number(p.minimum ?? p.Minimum ?? 0),
           total: Number(p.total ?? p.Total ?? 0),
         }));
-
-        // เรียงจาก total น้อย → มาก
         rows.sort((a, b) => a.total - b.total);
 
         setData(rows);
@@ -64,7 +63,7 @@ const columns: ColumnsType<Row> = [
     dataIndex: "product_name",
     key: "product_name",
     align: "center",
-    width:400,
+    width:500,
   },
   {
     title: "Minimum Quantity",
@@ -94,22 +93,24 @@ const columns: ColumnsType<Row> = [
 ];
 
   return (
-    <div style={{ background: "#fff", padding: 0 }}>
-      <h1 style={{ fontSize: 28, fontWeight: "bold" }}>🔔 Low Stock</h1>
-      <Text type="secondary" style={{ marginLeft: 24 ,}}>
-        สินค้าใกล้หมด
-      </Text>
+    <SidebarLayout>
+      <div style={{ background: "#fff", padding: 0 }}>
+        <h1 style={{ fontSize: 28, fontWeight: "bold" }}>🔔 Low Stock</h1>
+        <Text type="secondary" style={{ marginLeft: 24 ,}}>
+          สินค้าใกล้หมด
+        </Text>
 
-      <Table
-        rowKey={(record) => String(record.product_id)}
-        columns={columns}
-        dataSource={data}
-        bordered
-        pagination={{ pageSize: 5 }}
-        loading={loading}
-        style={{ marginTop: 16,width:"90%", margin:"20px auto"}}
-      />
-    </div>
+        <Table
+          rowKey={(record) => String(record.product_id)}
+          columns={columns}
+          dataSource={data}
+          bordered
+          pagination={{ pageSize: 5 }}
+          loading={loading}
+          style={{ marginTop: 16,width:"80%", margin:"20px auto"}}
+          />
+      </div>
+    </SidebarLayout>
   );
 };
 

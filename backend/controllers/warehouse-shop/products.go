@@ -1,4 +1,4 @@
-package controllers
+package products
 
 import (
 	"net/http"
@@ -25,7 +25,6 @@ func FindProductById(c *gin.Context) {
         return
     }
 
-    // แปลง Variants ให้ส่งเฉพาะ field ที่ต้องการ
     var variants []map[string]interface{}
     for _, v := range product.Variants {
         var color map[string]interface{}
@@ -55,7 +54,6 @@ func FindProductById(c *gin.Context) {
         })
     }
 
-    // สร้าง response ใหม่
     response := map[string]interface{}{
         "id":          product.ID,
         "product_name": product.ProductName,
@@ -126,8 +124,6 @@ func FindProductDetail(c *gin.Context) {
     c.JSON(http.StatusOK, response)
 }
 
-
-	
 // GET /products
 func FindProducts(c *gin.Context) {
     var products []entity.Product
@@ -145,8 +141,6 @@ func FindProducts(c *gin.Context) {
     c.JSON(http.StatusOK, products)
 }
 
-
-
 // POST /products
 type ProductPayload struct {
     ProductName string           `json:"product_name"`
@@ -159,7 +153,6 @@ type ProductPayload struct {
     Variants    []entity.Variant `json:"variants"`
 }
 
-// POST /products
 func CreateProduct(c *gin.Context) {
     var payload ProductPayload
     if err := c.ShouldBindJSON(&payload); err != nil {
@@ -176,7 +169,6 @@ func CreateProduct(c *gin.Context) {
         return
     }
 
-    // สร้าง Product พร้อม Variants
     product := entity.Product{
         ProductName:   payload.ProductName,
         CategoryID:    payload.CategoryID,
@@ -194,21 +186,13 @@ func CreateProduct(c *gin.Context) {
         return
     }
 
-    // สร้าง StockMovement สำหรับแต่ละ Variant
     for _, v := range product.Variants {
-        sm := entity.StockMovement{
-            VariantID: v.ID,
-            Amount:    v.Quantity,
-            StaffID:   payload.StaffID,
-            ActionID:  1, // 1 = เพิ่ม
-        }
-        if err := db.Create(&sm).Error; err != nil {
+        if err := CreateStockMovement(db, v.ID, v.Quantity, payload.StaffID, 1); err != nil {
             c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
             return
         }
     }
 
-    // อัปเดต total ของ Product
     if err := UpdateProductTotal(product.ID); err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
@@ -252,42 +236,32 @@ func UpdateProduct(c *gin.Context) {
         return
     }
 
-    // อัปเดต/สร้าง Variants + StockMovement
     for _, v := range payload.Variants {
         v.ProductID = product.ID
         var oldVariant entity.Variant
 
         if v.ID != 0 {
-            // โหลด variant เดิม
             db.Where("id = ? AND product_id = ?", v.ID, product.ID).First(&oldVariant)
             db.Model(&entity.Variant{}).Where("id = ?", v.ID).Updates(v)
 
-            // เช็คจำนวนเปลี่ยนแปลง
             diff := int(v.Quantity) - int(oldVariant.Quantity)
             if diff != 0 {
                 actionID := uint(2) // decrease
                 if diff > 0 {
                     actionID = 1 // increase
                 }
-                sm := entity.StockMovement{
-                    VariantID: v.ID,
-                    Amount:    uint(abs(diff)),
-                    StaffID:   payload.StaffID,
-                    ActionID:  actionID,
+                if err := CreateStockMovement(db, v.ID, uint(abs(diff)), payload.StaffID, actionID); err != nil {
+                    c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                    return
                 }
-                db.Create(&sm)
             }
         } else {
-            // สร้าง variant ใหม่
             db.Create(&v)
-            // สร้าง StockMovement เพิ่ม
-            sm := entity.StockMovement{
-                VariantID: v.ID,
-                Amount:    v.Quantity,
-                StaffID:   payload.StaffID,
-                ActionID:  1,
+            if err := CreateStockMovement(db, v.ID, v.Quantity, payload.StaffID, 1); err != nil {
+                c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                return
             }
-            db.Create(&sm)
+
         }
     }
 

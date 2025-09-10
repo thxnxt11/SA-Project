@@ -1,12 +1,13 @@
-package controllers
+package products
 
 import (
-    "net/http"
-    // "strconv"
+	"net/http"
+	// "strconv"
 
-    "github.com/gin-gonic/gin"
-    "github.com/yourname/went-back/connection"
-    "github.com/yourname/went-back/entity"
+	"github.com/gin-gonic/gin"
+	"github.com/yourname/went-back/connection"
+	"github.com/yourname/went-back/entity"
+	"gorm.io/gorm"
 )
 
 // GET /stockmovements - ดึงข้อมูลทั้งหมดพร้อม product และ staff
@@ -29,12 +30,13 @@ func GetStockMovements(c *gin.Context) {
     var response []map[string]interface{}
     for _, m := range movements {
         productName := ""
-        total := uint(0)
+        // total := uint(0)
         variantName := ""
+        quantity := uint(0)
         if m.Variant != nil {
             if m.Variant.Product != nil {
                 productName = m.Variant.Product.ProductName
-                total = m.Variant.Product.Total
+                // total = m.Variant.Product.Total
             }
             colorName := ""
             sizeName := ""
@@ -45,6 +47,7 @@ func GetStockMovements(c *gin.Context) {
                 sizeName = m.Variant.Size.Size
             }
             variantName = colorName + " - " + sizeName
+            quantity = m.Variant.Quantity
         }
 
         staffName := ""
@@ -64,11 +67,21 @@ func GetStockMovements(c *gin.Context) {
             "variant_name": variantName,
             "amount":       m.Amount,
             "updated":      actionName,
-            "total":        total,
+            "quantity":     quantity,
             "staff_name":   staffName,
             "updated_at":   m.UpdatedAt,
         })
     }
 
     c.JSON(http.StatusOK, response)
+}
+
+func CreateStockMovement(db *gorm.DB, variantID, amount, staffID, actionID uint) error {
+    sm := entity.StockMovement{
+        VariantID: variantID,
+        Amount:    amount,
+        StaffID:   staffID,
+        ActionID:  actionID,
+    }
+    return db.Create(&sm).Error
 }

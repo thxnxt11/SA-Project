@@ -19,9 +19,12 @@ import {
   concertAPI,
   categoriesAPI,
   colorsAPI,
-  sizesAPI
+  sizesAPI,
+  uploadAPI,
+  productsAPI
 } from "../../../services/https";
 import { useAuth } from "../../../hook/authContext";
+import SidebarLayout from "../../../component/layout/SidebarLayout";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -78,15 +81,14 @@ const CreateWarehouse: React.FC = () => {
     return () => {};
 }, []);
 
-  const getBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
-  };
-
+  // const getBase64 = (file: File): Promise<string> => {
+  //   return new Promise((resolve, reject) => {
+  //     const reader = new FileReader();
+  //     reader.readAsDataURL(file);
+  //     reader.onload = () => resolve(reader.result as string);
+  //     reader.onerror = error => reject(error);
+  //   });
+  // };
 
 const onFinish = async (values: any) => {
   try {
@@ -96,9 +98,11 @@ const onFinish = async (values: any) => {
       // สำหรับหมวด 1,3 (color + size)
       if (Array.isArray(values.variants)) {
         for (const v of values.variants) {
-          let base64Image = "";
+          let pictureUrl = "";
           if (v.picture && v.picture.length > 0 && v.picture[0].originFileObj) {
-            base64Image = await getBase64(v.picture[0].originFileObj);
+           const res = await uploadAPI.uploadProductImage(v.picture[0].originFileObj);
+           console.log(res.data.url);
+            pictureUrl = res.data.data.url;
           }
 
           Object.entries(v)
@@ -111,7 +115,7 @@ const onFinish = async (values: any) => {
                   color_id: Number(v.color),
                   size_id: sid,
                   quantity: qty,
-                  picture: base64Image,
+                  picture: pictureUrl,
                 });
               }
             });
@@ -119,16 +123,17 @@ const onFinish = async (values: any) => {
       }
     } else {
       // สำหรับหมวดอื่น
-      let base64Image = "";
+      let pictureUrl = "";
       if (values.picture && values.picture.length > 0 && values.picture[0].originFileObj) {
-        base64Image = await getBase64(values.picture[0].originFileObj);
+        const res = await uploadAPI.uploadProductImage(values.picture[0].originFileObj);
+        pictureUrl = res.data.data.url;
       }
 
       payloadVariants.push({
         color_id: null,
         size_id: null,
         quantity: values.quantity,
-        picture: base64Image,
+        picture: pictureUrl,
       });
     }
 
@@ -143,8 +148,8 @@ const onFinish = async (values: any) => {
       variants: payloadVariants, 
     };
 
-    console.log(payload);
-    const res = await axios.post("http://localhost:8000/products", payload);
+    console.log("create",payload);
+    const res = await productsAPI.createProduct(payload);
 
     if (res.status === 201) {
       message.success(res.data.message || "เพิ่มสินค้าสำเร็จ!");
@@ -159,20 +164,22 @@ const onFinish = async (values: any) => {
 };
 
   return (
+    <SidebarLayout>
+
     <div style={{ padding: 10 ,height:"100%" }}>
       {contextHolder}
       <Title level={3}>Add Product</Title>
 
       <Form layout="vertical" form={form} onFinish={onFinish}>
         {/* Product Info */}
-      <Card>
+      <Card style={{ margin: "0 auto", width: "90%" }}>
         <Row>
           <Col style={{ marginLeft: "2%", width: "45%" }}>
             <Form.Item
               label="Product Name"
               name="product_name"
               rules={[{ required: true, message: "กรุณากรอกชื่อสินค้า" }]}
-            >
+              >
               <Input placeholder="เช่น เสื้อยืด Eventix" />
             </Form.Item>
             <Col>
@@ -180,7 +187,7 @@ const onFinish = async (values: any) => {
                 label="Concert"
                 name="concert_id"
                 // rules={[{ required: flase, message: "เลือกคอนเสิร์ต" }]}
-              >
+                >
                 <Select placeholder="เลือกคอนเสิร์ต">
                     {concerts.map(c => (
                       <Option key={c.ID} value={c.ID}>{c.concert}</Option>
@@ -203,21 +210,21 @@ const onFinish = async (values: any) => {
                   </Select>
                 </Form.Item>
               </Col>
-              <Col span={8}>
+              <Col span={7}>
                 <Form.Item
                   label="Price"
                   name="product_price"
                   rules={[{ required: true, message: "กรุณากรอกราคา" }]}
-                >
+                  >
                   <InputNumber min={0} style={{width: "100%" }} placeholder="เช่น 100"/>
                 </Form.Item>
               </Col>
-              <Col span={8}>
+              <Col span={9}>
                 <Form.Item
                   label="Minimum Quantity"
                   name="minimum"
                   rules={[{ required: true, message: "กรุณากรอกจำนวนขั้นต่ำ" }]}
-                >
+                  >
                   <InputNumber min={0} style={{ width: "100%" }} placeholder="เช่น 50"/>
                 </Form.Item>
               </Col>
@@ -245,12 +252,12 @@ const onFinish = async (values: any) => {
                 <div>
                   {fields.map(({ key, name, ...restField }, variantIndex) => (
                     <Card
-                      key={key}
-                      title={`Color ${variantIndex + 1}`}
-                      style={{ marginBottom: 16 }}
-                      extra={fields.length > 1 && (
-                        <Button danger onClick={() => remove(name)}>Delete</Button>
-                      )}
+                    key={key}
+                    title={`Color ${variantIndex + 1}`}
+                    style={{ marginBottom: 16 }}
+                    extra={fields.length > 1 && (
+                      <Button danger onClick={() => remove(name)}>Delete</Button>
+                    )}
                     >
                       {/* Select Color */}
                       <Form.Item
@@ -258,7 +265,7 @@ const onFinish = async (values: any) => {
                         label="Product Color"
                         name={[name, "color"]}
                         rules={[{ required: true, message: "กรุณาเลือกสีสินค้า" }]}
-                      >
+                        >
                         <Select placeholder="Select color">
                           {colors.map(c => (
                             <Option key={c.ID} value={c.ID}>{c.color}</Option>
@@ -276,13 +283,13 @@ const onFinish = async (values: any) => {
                             valuePropName="fileList"
                             getValueFromEvent={e => Array.isArray(e) ? e : e?.fileList}
                             rules={[{ required: true, message: "กรุณาอัปโหลดรูปสินค้า" }]}
-                          >
+                            >
                             <Upload
                               listType="picture-card"
                               maxCount={1}
                               beforeUpload={() => false}
                               style={ {width: "210px" ,height:"240px" ,margin: "0 auto"}}
-                            >
+                              >
                               <div>
                                 <UploadOutlined />
                                 <div>Upload</div>
@@ -312,7 +319,7 @@ const onFinish = async (values: any) => {
                                   name={[name, `${sizeItem.id}`]}
                                   initialValue={0}
                                   style={{ marginBottom: 0, width: "80%" }}
-                                >
+                                  >
                                   <InputNumber min={0} style={{ width: "100%" }} />
                                 </Form.Item>
                               </Col>
@@ -340,7 +347,7 @@ const onFinish = async (values: any) => {
               label="Quantity to Add"
               name="quantity"
               rules={[{ required: true, message: "กรุณากรอกจำนวนสินค้า" }]}
-            >
+              >
               <InputNumber min={1} style={{ width: "100%" }} />
             </Form.Item>
 
@@ -350,12 +357,12 @@ const onFinish = async (values: any) => {
               valuePropName="fileList"
               getValueFromEvent={(e) => Array.isArray(e) ? e : e?.fileList}
               rules={[{ required: true, message: "กรุณาอัปโหลดรูปสินค้า" }]}
-            >
+              >
               <Upload
                 listType="picture-card"
                 maxCount={1}
                 beforeUpload={() => false}
-              >
+                >
                 <div>
                   <UploadOutlined />
                   <div>Upload</div>
@@ -373,6 +380,7 @@ const onFinish = async (values: any) => {
         </div>
       </Form>
     </div>
+    </SidebarLayout>
   );
 };
 
