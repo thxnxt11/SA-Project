@@ -225,10 +225,7 @@ const SeatGrid: React.FC<Props> = ({
     return () => window.removeEventListener("keydown", onKey);
   }, [clearSelection, markAvailable, markUnavailable]);
 
-  // ====== REAL CENTERING LOGIC ======
-  // 1) try to scroll container so target seat is centered.
-  // 2) if no horizontal scroll is possible (grid narrower than container),
-  //    compute required left padding to visually center the target seat.
+
 
   const [leftPad, setLeftPad] = React.useState<number>(0);
   const [highlightTarget, setHighlightTarget] = React.useState<boolean>(false);
@@ -333,7 +330,7 @@ const SeatGrid: React.FC<Props> = ({
               // This is the trick: if we couldn’t scroll, we add padding-left
               // so the target seat’s center aligns with container’s center.
               paddingLeft: leftPad,
-              // Optional: prevent the grid from stretching weirdly
+              margin: "0 auto",
               width: gridWidth,
             }}
           >
