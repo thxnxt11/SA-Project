@@ -9,9 +9,10 @@ import (
 	"github.com/yourname/went-back/connection"
 	"github.com/yourname/went-back/controllers/booking"
 	"github.com/yourname/went-back/controllers/concert"
-	"github.com/yourname/went-back/controllers/zone"
+	"github.com/yourname/went-back/controllers/payment"
 	"github.com/yourname/went-back/controllers/promotion"
 	"github.com/yourname/went-back/controllers/user"
+	"github.com/yourname/went-back/controllers/zone"
 )
 
 func main() {
@@ -101,6 +102,8 @@ func main() {
 		api.POST("/seatzone/:id",zone.Addseatzone)
 		api.DELETE("/seatzone/:id",zone.Deleteseatzone)
 		api.PUT("/seatzone/:id/seat/:seat_id",zone.UpdateSeatzone)
+
+		api.GET("/payment",payment.GetAllPayments)
 	}
 
 	// static uploads

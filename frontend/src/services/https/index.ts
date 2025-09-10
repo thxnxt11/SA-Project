@@ -231,4 +231,12 @@ export const zoneApi = {
     const r = await Get(`${PUBLIC_API_URL}/zonetype`);
     return r?.data;
   },
-};
+}
+
+
+export const payApi = {
+  getallpayment: async() =>{
+    const r = await Get(`${PUBLIC_API_URL}/payment`);
+    return r?.data;
+  },
+}
