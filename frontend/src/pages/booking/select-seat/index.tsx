@@ -1,25 +1,16 @@
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "../../../component/layout/navbar";
-import {
-  Button,
-  Card,
-  Col,
-  Divider,
-  Form,
-  Row,
-  Space,
-  message,
-  Spin,
-} from "antd";
-import { FaCircleCheck } from "react-icons/fa6";
-import { RxCrossCircled } from "react-icons/rx";
-import { TbTicket } from "react-icons/tb";
+import { Card, Col, Divider, Row, message, Spin } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import Loader from "../../../component/loader/loader";
 import { bookingAPI, seatAPI } from "../../../services/https";
 import { useAuth } from "../../../hook/authContext";
 import type { bookingInterface } from "../../../interface/booking";
+import SeatGrid, {
+  type SeatRow as SeatRowType,
+} from "../../../component/booking/seatGrid";
+import TicketSummary from "../../../component/booking/ticketSummary";
 
 type SeatFromAPI = {
   id: number;
@@ -28,20 +19,6 @@ type SeatFromAPI = {
   row: string;
   number: number;
   status: string;
-};
-
-type SeatCell = {
-  id: string; // unique สำหรับ key
-  seatId: number;
-  seatAvailableId: number;
-  seatNumber: string;
-  code: string; // รหัสที่นั่ง เช่น "A1", "B2"
-  status: "available" | "booked" | "locked" | "unavailable";
-};
-
-type SeatRow = {
-  row: string; // "A","B",...
-  seats: SeatCell[];
 };
 
 const thb = new Intl.NumberFormat("th-TH");
@@ -56,24 +33,22 @@ const normalizeStatus = (
   return "available";
 };
 
-// สร้างกริดที่นั่งจาก SeatFromAPI[]
-const buildSeatGrid = (items: SeatFromAPI[]): SeatRow[] => {
-  const cells: (SeatCell & { row: string })[] = items.map((it) => {
+// สร้างกริดที่นั่งจาก SeatFromAPI[] ให้เป็นโครงสร้างที่ SeatGrid ต้องการ
+const buildSeatGrid = (items: SeatFromAPI[]): SeatRowType[] => {
+  const cells = items.map((it) => {
     const status = normalizeStatus(it.status);
-
     return {
       id: `${it.seatid}-${it.code}`,
       seatId: it.seatid,
       seatAvailableId: it.id,
       seatNumber: it.number.toString(),
-      code: it.code, // เก็บ code สำหรับแสดงใน selectedSeats
+      code: it.code,
       status,
       row: it.row,
     };
   });
 
-  // group by row
-  const map = new Map<string, SeatCell[]>();
+  const map = new Map<string, any[]>();
   cells.forEach((c) => {
     if (!map.has(c.row)) map.set(c.row, []);
     map.get(c.row)!.push({
@@ -92,14 +67,22 @@ const buildSeatGrid = (items: SeatFromAPI[]): SeatRow[] => {
     )
     .map(([row, arr]) => ({
       row,
-      seats: arr.sort((a, b) => Number(a.seatNumber) - Number(b.seatNumber)),
+      seats: arr.sort(
+        (a: any, b: any) => Number(a.seatNumber) - Number(b.seatNumber)
+      ),
     }));
 };
+
+const BORDER_SOFT = "#d3d3d3ff";
+const CARD_BG = "#F6F6F8";
 
 const SelectSeat: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // state ที่รับมาจากหน้า select zone
+  const navState = location.state || {};
   const {
     showDate,
     showTime,
@@ -109,22 +92,30 @@ const SelectSeat: React.FC = () => {
     zoneId,
     concertInfo,
     concertId,
-  } = location.state || {};
+    showDateId,
+  } = navState;
 
-  // Standing zone: เริ่มเลือกไว้ 1 ใบแบบเหมารวม
-  const [selectedSeats, setSelectedSeats] = useState<string[]>(() => {
-    const isStanding = (zoneType ?? "").toLowerCase() === "standing";
-    return isStanding ? ["Standing"] : [];
-  });
+  const isStanding = (zoneType ?? "").toLowerCase() === "standing";
 
-  // โหลดที่นั่งจาก DB
+  // ถ้าเข้ามาโดยไม่มี context ที่จำเป็น ให้ย้อนกลับ
+  useEffect(() => {
+    if (!zoneId || !concertId) {
+      message.warning("Missing booking context. Redirecting...");
+      navigate(-1);
+    }
+  }, [zoneId, concertId, navigate]);
+
+  // standing เริ่มเลือก 1 ใบ
+  const [selectedSeats, setSelectedSeats] = useState<string[]>(
+    isStanding ? ["Standing"] : []
+  );
+
+  // โหลดที่นั่งจาก API
   const [loading, setLoading] = useState(false);
-  const [seatRows, setSeatRows] = useState<SeatRow[]>([]);
+  const [seatRows, setSeatRows] = useState<SeatRowType[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
-    const isStanding = (zoneType ?? "").toLowerCase() === "standing";
-
     if (!zoneId || isStanding) {
       setSeatRows([]);
       setLoading(false);
@@ -132,61 +123,74 @@ const SelectSeat: React.FC = () => {
       return;
     }
 
-    const abort = new AbortController();
+    let didCancel = false;
 
     const fetchSeats = async () => {
       setLoading(true);
       setApiError(null);
       try {
         const res = await seatAPI.getByZoneId(zoneId);
+        if (didCancel) return;
 
-        if (abort.signal.aborted) return;
         if (!res || (res.status && res.status !== 200)) {
           throw new Error(
             `HTTP ${res?.status || "Unknown"} ${res?.statusText || "Error"}`
           );
         }
-
         const data = res.data || res;
         const items: SeatFromAPI[] = Array.isArray(data) ? data : [];
-        console.log("Seat: ", data);
-
         const grid = buildSeatGrid(items);
-        if (!abort.signal.aborted) setSeatRows(grid);
+        if (!didCancel) setSeatRows(grid);
       } catch (e) {
-        if (!abort.signal.aborted) {
+        if (!didCancel) {
           console.error("Fetch seats error:", e);
           setApiError("ไม่สามารถโหลดผังที่นั่งได้");
         }
       } finally {
-        if (!abort.signal.aborted) setLoading(false);
+        if (!didCancel) setLoading(false);
       }
     };
 
     fetchSeats();
-    return () => abort.abort();
-  }, [zoneId, zoneType]);
+    return () => {
+      didCancel = true;
+    };
+  }, [zoneId, isStanding]);
 
-  // เลือก/ยกเลิกเลือก seat (จำกัดสูงสุด 2)
-  const handleSeatClick = (seatCode: string, status: string) => {
-    if (status === "available") {
-      setSelectedSeats((prevSelected) => {
-        if (prevSelected.includes(seatCode)) {
-          return prevSelected.filter((code) => code !== seatCode); // ยกเลิกเลือก
-        } else if (prevSelected.length < 2) {
-          return [...prevSelected, seatCode]; // เลือกใหม่
-        } else {
-          message.warning("สามารถเลือกได้สูงสุด 2 ที่นั่ง");
-          return prevSelected;
-        }
+  // เลือก/ยกเลิก seat (สูงสุด 2)
+  const handleSeatClick = useCallback(
+    (
+      seatCode: string,
+      status: "available" | "booked" | "locked" | "unavailable"
+    ) => {
+      if (status !== "available" || isStanding) return;
+      setSelectedSeats((prev) => {
+        if (prev.includes(seatCode))
+          return prev.filter((code) => code !== seatCode);
+        if (prev.length < 2) return [...prev, seatCode];
+        message.warning("สามารถเลือกได้สูงสุด 2 ที่นั่ง");
+        return prev;
       });
-    }
-  };
+    },
+    [isStanding]
+  );
 
-  const [loadingBooking, setLoadingBooking] = useState(false);
-  const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
+  const handleCancel = useCallback(() => navigate(-1), [navigate]);
 
-  //แปลง seatcode เป็น seatAvailableId
+  const displayQuantity = useMemo(
+    () => (isStanding ? 1 : selectedSeats.length),
+    [isStanding, selectedSeats.length]
+  );
+
+  const displaySeatNo = useMemo(
+    () => (isStanding ? "Standing" : selectedSeats.join(", ")),
+    [isStanding, selectedSeats]
+  );
+
+  const totalPriceNumber = Number(zonePrice || 0) * displayQuantity;
+  const totalPriceText = thb.format(totalPriceNumber);
+
+  // map code -> seatAvailableId
   const codeToId = useMemo(() => {
     const m = new Map<string, number>();
     seatRows.forEach((row) =>
@@ -195,18 +199,21 @@ const SelectSeat: React.FC = () => {
     return m;
   }, [seatRows]);
 
-  const handleBooking = async () => {
+  // จอง
+  const [loadingBooking, setLoadingBooking] = useState(false);
+  const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
+
+  const handleBooking = useCallback(async () => {
     try {
       if (!zoneId) {
         message.error("Zone ID is missing.");
         return;
       }
-      const showDateId = (location.state && location.state?.showDateId) || null;
       if (!showDateId) {
         message.error("ShowDate ID is missing.");
         return;
       }
-      const isStanding = (zoneType ?? "").toLowerCase() === "standing";
+
       let seatIds: number[] = [];
       if (!isStanding) {
         seatIds = selectedSeats
@@ -222,6 +229,7 @@ const SelectSeat: React.FC = () => {
           return;
         }
       }
+
       const quantity = isStanding ? 1 : seatIds.length;
       const payload: bookingInterface = {
         user_id: Number(user?.id),
@@ -231,11 +239,10 @@ const SelectSeat: React.FC = () => {
         total_price: Number(zonePrice || 0) * quantity,
         booking_status_id: 1, // pending
         booking_date: new Date().toISOString(),
-        expired_date: "", // backend สร้างให้
+        expired_date: "", // สร้างที่ backend
       };
-      if (!isStanding) {
-        payload.seat_ids = seatIds;
-      }
+      if (!isStanding) payload.seat_ids = seatIds;
+
       setLoadingBooking(true);
       const res = await bookingAPI.create(payload);
 
@@ -255,14 +262,14 @@ const SelectSeat: React.FC = () => {
       setTimeout(() => {
         navigate("/bookingdetail", {
           state: {
-            concertInfo: concertInfo,
+            concertInfo,
             bookingData,
             bookingId,
             showDate,
             showTime,
             zone: zoneName,
             seatNo: displaySeatNo,
-            quantity: quantity,
+            quantity,
             unitPrice: zonePrice,
           },
         });
@@ -278,30 +285,22 @@ const SelectSeat: React.FC = () => {
     } finally {
       setLoadingBooking(false);
     }
-  };
-
-  const handleCancel = () => navigate(-1);
-
-  const displayQuantity = useMemo(
-    () =>
-      (zoneType ?? "").toLowerCase() === "standing" ? 1 : selectedSeats.length,
-    [zoneType, selectedSeats.length]
-  );
-
-  const displaySeatNo = useMemo(
-    () =>
-      (zoneType ?? "").toLowerCase() === "standing"
-        ? "Standing"
-        : selectedSeats.join(", "),
-    [zoneType, selectedSeats]
-  );
-
-  const totalPrice = (zonePrice || 0) * displayQuantity;
-
-  const dividerStyle: React.CSSProperties = {
-    borderColor: "#d3d3d3ff",
-    margin: "10px 0",
-  };
+  }, [
+    zoneId,
+    showDateId,
+    isStanding,
+    selectedSeats,
+    codeToId,
+    user?.id,
+    zonePrice,
+    concertId,
+    navigate,
+    concertInfo,
+    showDate,
+    showTime,
+    zoneName,
+    displaySeatNo,
+  ]);
 
   return (
     <>
@@ -314,407 +313,160 @@ const SelectSeat: React.FC = () => {
           justify="center"
           style={{ width: "100%", maxWidth: "1200px" }}
         >
-          {/* โซนนั่ง: แสดงผังที่นั่งจาก DB */}
-          {(zoneType ?? "").toLowerCase() !== "standing" && (
+          {/* โซนนั่ง: ผังที่นั่ง + legend */}
+          {!isStanding && (
             <Col>
               <Card
                 style={{
                   width: 1200,
                   minHeight: 400,
-                  borderColor: "#d3d3d3ff",
-                  backgroundColor: "#F6F6F8",
+                  borderColor: BORDER_SOFT,
+                  backgroundColor: CARD_BG,
                   borderRadius: 15,
-                  padding: "20px",
+                  padding: 20,
                   boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
                 }}
               >
-                <>
+                {/* STAGE bar */}
+                <div
+                  style={{
+                    backgroundColor: "#ffffffff",
+                    height: 70,
+                    width: "60%",
+                    margin: "0 auto 40px auto",
+                    borderRadius: "10px 10px 0 0",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    color: "black",
+                    fontSize: 20,
+                    fontWeight: "bold",
+                    border: "1px solid black",
+                  }}
+                >
+                  STAGE
+                </div>
+
+                {/* Seat Grid */}
+                {loading ? (
                   <div
                     style={{
-                      backgroundColor: "#ffffffff",
-                      height: "70px",
-                      width: "60%",
-                      margin: "0 auto 40px auto",
-                      borderRadius: "10px 10px 0 0",
                       display: "flex",
                       justifyContent: "center",
-                      alignItems: "center",
-                      color: "black",
-                      fontSize: "20px",
-                      fontWeight: "bold",
-                      border: "1px solid black",
+                      padding: 40,
                     }}
                   >
-                    STAGE
+                    <Spin size="large" />
                   </div>
+                ) : (
+                  <SeatGrid
+                    rows={seatRows}
+                    selectedCodes={selectedSeats}
+                    loading={false}
+                    apiError={apiError}
+                    onSeatClick={handleSeatClick}
+                  />
+                )}
 
-                  {loading ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        padding: 40,
-                      }}
-                    >
-                      <Spin size="large" />
-                    </div>
-                  ) : apiError ? (
-                    <p style={{ textAlign: "center", color: "#c00" }}>
-                      {apiError}
-                    </p>
-                  ) : seatRows.length === 0 ? (
-                    <p style={{ textAlign: "center", color: "#666" }}>
-                      No seats found.
-                    </p>
-                  ) : (
-                    <div
-                      style={{
-                        overflowY: "auto",
-                        paddingRight: "15px",
-                      }}
-                    >
-                      {seatRows.map((rowObj) => (
-                        <div
-                          key={rowObj.row}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          {/* Left Row Label */}
-                          <div
-                            style={{
-                              width: "30px",
-                              textAlign: "center",
-                              fontSize: "24px",
-                              fontWeight: "bold",
-                              marginRight: "30px",
-                              color: "#000",
-                            }}
-                          >
-                            {rowObj.row}
-                          </div>
-
-                          {/* Seats */}
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: "8px",
-                              flexWrap: "wrap",
-                              justifyContent: "center",
-                            }}
-                          >
-                            {rowObj.seats.map((seat) => {
-                              // unavailable = ไม่แสดง ทำเป็น “ที่นั่งโปร่งใส” 
-                              if (seat.status === "unavailable") {
-                                return (
-                                  <div
-                                    key={seat.id}
-                                    style={{
-                                      width: 40,
-                                      height: 40,
-                                      borderRadius: "50%",
-                                      opacity: 0,
-                                      pointerEvents: "none",
-                                      border: "2px solid transparent",
-                                      flexShrink: 0,
-                                    }}
-                                  />
-                                );
-                              }
-
-                              const isSelected = selectedSeats.includes(
-                                seat.code
-                              );
-                              const isBookedOrLocked =
-                                seat.status === "booked" ||
-                                seat.status === "locked";
-
-                              return (
-                                <Card
-                                  key={seat.id}
-                                  onClick={() =>
-                                    !isBookedOrLocked &&
-                                    handleSeatClick(seat.code, seat.status)
-                                  }
-                                  style={{
-                                    width: 40,
-                                    height: 40,
-                                    borderRadius: "50%",
-                                    position: "relative",
-                                    display: "flex",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    cursor: isBookedOrLocked
-                                      ? "not-allowed"
-                                      : "pointer",
-                                    backgroundColor: isBookedOrLocked
-                                      ? "white"
-                                      : isSelected
-                                      ? "#ffffffff"
-                                      : "#2c48ffff",
-                                    borderColor: isBookedOrLocked
-                                      ? "#333"
-                                      : isSelected
-                                      ? "#ffffffff"
-                                      : "#ffffffff",
-                                    borderWidth: 2,
-                                    borderStyle: "solid",
-                                    transition: "all 0.6s ease",
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {isBookedOrLocked ? (
-                                    <RxCrossCircled
-                                      style={{
-                                        fontSize: 40,
-                                        backgroundColor: "#ffffffff",
-                                        borderRadius: "50%",
-                                        color: "#ff0000ff",
-                                        display: "flex",
-                                        justifyItems: "center",
-                                      }}
-                                    />
-                                  ) : isSelected ? (
-                                    <FaCircleCheck
-                                      style={{
-                                        fontSize: 40,
-                                        color: "#00b60fff",
-                                        display: "flex",
-                                        alignItems: "center",
-                                      }}
-                                    />
-                                  ) : (
-                                    <span
-                                      style={{
-                                        fontSize: 14,
-                                        fontWeight: "bold",
-                                        color: "white",
-                                      }}
-                                    >
-                                      {seat.seatNumber}
-                                    </span>
-                                  )}
-                                </Card>
-                              );
-                            })}
-                          </div>
-
-                          {/* Right Row Label */}
-                          <div
-                            style={{
-                              width: "30px",
-                              textAlign: "center",
-                              fontSize: "24px",
-                              fontWeight: "bold",
-                              marginLeft: "30px",
-                              color: "#333",
-                            }}
-                          >
-                            {rowObj.row}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Legend */}
-                  <Divider style={{ borderColor: "#d3d3d3ff" }} />
-                  <div style={{ marginTop: "5px", textAlign: "center" }}>
-                    <FaCircleCheck
-                      style={{
-                        color: "#00b60fff",
-                        fontSize: "18px",
-                        marginRight: "8px",
-                        verticalAlign: "middle",
-                      }}
-                    />{" "}
-                    Selected
-                    <RxCrossCircled
-                      style={{
-                        backgroundColor: "#ffffffff",
-                        borderRadius: "50%",
-                        color: "#ff0000ff",
-                        fontSize: "20px",
-                        marginLeft: "20px",
-                        marginRight: "8px",
-                        verticalAlign: "middle",
-                      }}
-                    />{" "}
-                    Booked / Locked
+                {/* Legend */}
+                <Divider style={{ borderColor: BORDER_SOFT }} />
+                <div style={{ marginTop: 5, textAlign: "center" }}>
+                  {/* Selected */}
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginRight: 20,
+                    }}
+                  >
                     <span
                       style={{
-                        display: "inline-block",
-                        width: "20px",
-                        height: "20px",
-                        backgroundColor: "#2c48ffff",
+                        width: 20,
+                        height: 20,
                         borderRadius: "50%",
-                        marginLeft: "20px",
-                        marginRight: "10px",
-                        border: "1px solid #ffffffff",
-                        verticalAlign: "middle",
+                        background: "#fff",
+                        border: "2px solid #fff",
+                        boxShadow: "0 0 0 2px #00b60f inset",
                       }}
-                    ></span>{" "}
+                    />
+                    Selected
+                  </span>
+                  {/* Booked / Locked */}
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginRight: 20,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: "#fff",
+                        border: "2px solid #333",
+                        position: "relative",
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          background:
+                            "linear-gradient(45deg, transparent 45%, #ff0000 45%, #ff0000 55%, transparent 55%)",
+                          borderRadius: "50%",
+                          opacity: 0.9,
+                        }}
+                      />
+                    </span>
+                    Booked / Locked
+                  </span>
+                  {/* Available */}
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 20,
+                        height: 20,
+                        background: "#2c48ff",
+                        borderRadius: "50%",
+                        border: "1px solid #fff",
+                      }}
+                    />
                     Available
-                  </div>
-                </>
+                  </span>
+                </div>
               </Card>
             </Col>
           )}
 
-          {/* ใบสรุปตั๋ว */}
-          {((zoneType ?? "").toLowerCase() === "standing" ||
-            selectedSeats.length > 0) && (
-            <div>
-              <Col xs={24} style={{ marginLeft: "21px" }}>
-                <Card
-                  style={{
-                    width: 1200,
-                    marginTop: "24px",
-                    borderColor: "#d3d3d3ff",
-                    backgroundColor: "#F6F6F8",
-                    borderRadius: 15,
-                    padding: "15px",
-                    textAlign: "left",
-                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                  }}
-                >
-                  {/* Title */}
-                  <h1
-                    style={{
-                      position: "absolute",
-                      top: 15,
-                      margin: 0,
-                      fontWeight: "bold",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                    }}
-                  >
-                    <TbTicket style={{ fontSize: "130%" }} />
-                    Ticket Information
-                  </h1>
-                  <Divider
-                    style={{
-                      borderColor: "#d3d3d3ff",
-                      marginTop: "40px",
-                      marginBottom: "10px",
-                    }}
-                  />
-
-                  <Row
-                    gutter={[0, 3]}
-                    style={{ fontSize: "24px" }}
-                    align="middle"
-                  >
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      ShowDate:
-                    </Col>
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      <strong>{showDate}</strong>
-                    </Col>
-                    <Divider style={dividerStyle} />
-
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      ShowTime:
-                    </Col>
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      <strong>{showTime}</strong>
-                    </Col>
-                    <Divider style={dividerStyle} />
-
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      Zone:
-                    </Col>
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      <strong>{zoneName}</strong>
-                    </Col>
-                    <Divider style={dividerStyle} />
-
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      Seat No:
-                    </Col>
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      <strong>{displaySeatNo}</strong>
-                    </Col>
-                    <Divider style={dividerStyle} />
-
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      Quantity:
-                    </Col>
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      <strong>{displayQuantity}</strong>
-                    </Col>
-                    <Divider style={dividerStyle} />
-
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      Unit Price (THB):
-                    </Col>
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      <strong>฿ {thb.format(zonePrice || 0)}</strong>
-                    </Col>
-                    <Divider style={dividerStyle} />
-
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      Total Price (THB):
-                    </Col>
-                    <Col span={12} style={{ fontSize: "18px" }}>
-                      <strong>฿ {totalPrice}</strong>
-                    </Col>
-                    <Divider style={dividerStyle} />
-                  </Row>
-                </Card>
-              </Col>
-
-              <Row
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  marginTop: 30,
-                }}
-              >
-                <Form.Item>
-                  <Space size={30}>
-                    <Button
-                      onClick={handleCancel}
-                      type="default"
-                      size="large"
-                      style={{
-                        height: 48,
-                        fontSize: 20,
-                        padding: "0 24px",
-                        borderRadius: 8,
-                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                      }}
-                    >
-                      Cancel
-                    </Button>
-
-                    <Button
-                      type="primary"
-                      onClick={handleBooking}
-                      loading={loadingBooking}
-                      size="large"
-                      style={{
-                        height: 48,
-                        fontSize: 20,
-                        padding: "0 24px",
-                        borderRadius: 8,
-                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                      }}
-                    >
-                      Booking
-                    </Button>
-                    {showFullScreenLoader && <Loader />}
-                  </Space>
-                </Form.Item>
-              </Row>
-            </div>
+          {/* ใบสรุปตั๋ว (standing หรือ เลือกที่นั่งแล้วค่อยแสดง) */}
+          {(isStanding || selectedSeats.length > 0) && (
+            <TicketSummary
+              showDate={showDate}
+              showTime={showTime}
+              zoneName={zoneName}
+              displaySeatNo={displaySeatNo}
+              displayQuantity={isStanding ? 1 : selectedSeats.length}
+              unitPrice={Number(zonePrice || 0)}
+              totalPriceText={totalPriceText}
+              onCancel={handleCancel}
+              onBooking={handleBooking}
+              loadingBooking={loadingBooking}
+              showFullScreenLoader={showFullScreenLoader}
+            />
           )}
         </Row>
       </div>
+      {showFullScreenLoader && <Loader />}
     </>
   );
 };

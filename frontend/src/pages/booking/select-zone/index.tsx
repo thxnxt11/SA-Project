@@ -1,17 +1,24 @@
 import React, { useEffect, useMemo, useState } from "react";
+import {Col, message, Spin, Grid, Row } from "antd";
 import type { RadioChangeEvent } from "antd";
 import Navbar from "../../../component/layout/navbar";
-import { Card, Col, Radio, message, Spin, Grid, Row, Tag } from "antd";
-import { useNavigate, useParams } from "react-router-dom";
 import chart from "../../../assets/chart.svg";
+
 import type { ZoneInterface } from "../../../interface/zone";
 import type { ConcertInterface } from "../../../interface/concert";
 import type { ShowDatesInterface } from "../../../interface/showdate";
 import { concertAPI, ShowDateAPI } from "../../../services/https";
+import { useNavigate, useParams } from "react-router-dom";
+
+import ConcertChartCard from "../../../component/booking/concertChartGard";
+import ShowDateSelector from "../../../component/booking/showdateSelect";
+import ZoneList from "../../../component/booking/zoneList";
 
 const { useBreakpoint } = Grid;
 
-const thb = new Intl.NumberFormat("th-TH");
+const zonePriceNumber = (z: ZoneInterface) => Number(z.zone_price ?? 0);
+const zoneNameText = (z: ZoneInterface) => z.zone_name || "Zone";
+const zoneTypeText = (z: ZoneInterface) => z.zone_type || "—";
 
 const extractTime = (raw?: string): string => {
   if (!raw) return "—";
@@ -38,32 +45,11 @@ const formatDateLong = (iso?: string): string => {
     .toUpperCase();
 };
 
-const calcAvailableSeats = (zone: ZoneInterface): number => {
-  if (typeof zone.available_count === "number") return zone.available_count;
-  if (zone.capacity) {
-    const capacity = zone.capacity;
-    const sold = zone.seat_sold || 0;
-    const holds = zone.pending_holds || 0;
-    return Math.max(0, capacity - sold - holds);
-  }
-  return 0;
-};
-
-const zonePriceNumber = (z: ZoneInterface): number => Number(z.zone_price ?? 0);
-const zoneNameText = (z: ZoneInterface): string =>
-  z.zone_name ? z.zone_name : "Zone";
-const zoneTypeText = (z: ZoneInterface): string =>
-  z.zone_type ? z.zone_type : "—";
-
-const AVAILABLE_BG = "#22c55e";
-const SOLDOUT_BG = "#ef4444";
-const StandingColor = "gold";
-const SeatingColor = "purple";
-
 const SelectZone: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const screens = useBreakpoint();
+
   const [loading, setLoading] = useState(false);
   const [concert, setConcert] = useState<ConcertInterface | null>(null);
   const [selectedZones, setSelectedZones] = useState<ZoneInterface[]>([]);
@@ -143,6 +129,7 @@ const SelectZone: React.FC = () => {
     () => concert?.ShowDates ?? [],
     [concert]
   );
+
   const selectedShowDate: ShowDatesInterface | undefined = useMemo(() => {
     if (!selectedShowDateId) return undefined;
     return showDates.find((d) => d.ID === selectedShowDateId);
@@ -157,8 +144,18 @@ const SelectZone: React.FC = () => {
 
   const handleZoneCardClick = (zone: ZoneInterface) => {
     const sd = selectedShowDate;
-    const available = calcAvailableSeats(zone);
     if (!sd) return message.warning("กรุณาเลือกวันที่ก่อน");
+
+    const available =
+      typeof zone.available_count === "number"
+        ? zone.available_count
+        : Math.max(
+            0,
+            (zone.capacity || 0) -
+              (zone.seat_sold || 0) -
+              (zone.pending_holds || 0)
+          );
+
     if (available <= 0) return message.warning("โซนนี้ที่นั่งไม่ว่าง");
 
     navigate("/selectseat", {
@@ -204,30 +201,10 @@ const SelectZone: React.FC = () => {
         <Row gutter={[cardSpacing, cardSpacing]} justify="center" align="top">
           {/* Left: Concert Chart */}
           <Col xs={24} md={10}>
-            <Card
-              style={{
-                width: "100%",
-                borderColor: "#d3d3d3ff",
-                backgroundColor: "#F6F6F8",
-                borderRadius: 15,
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-              }}
-            >
-              <h2 style={{ marginTop: -8, textAlign: "center" }}>
-                Concert Chart
-              </h2>
-              <div style={{ display: "flex", justifyContent: "center" }}>
-                <img
-                  src={
-                    concert?.chart_image
-                      ? `http://localhost:8000${concert.chart_image}`
-                      : chart
-                  }
-                  alt="chart"
-                  style={{ width: "100%", borderRadius: 8 }}
-                />
-              </div>
-            </Card>
+            <ConcertChartCard
+              chartImage={concert?.chart_image}
+              fallbackSrc={chart}
+            />
           </Col>
 
           {/* Right: Select Date + Zones */}
@@ -239,173 +216,18 @@ const SelectZone: React.FC = () => {
                 gap: cardSpacing,
               }}
             >
-              <Card
-                style={{
-                  width: "100%",
-                  borderColor: "#d3d3d3ff",
-                  backgroundColor: "#F6F6F8",
-                  borderRadius: 15,
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                  maxWidth: 600,
-                }}
-              >
-                <h2 style={{ marginTop: -8 }}>Select Date</h2>
-                <Radio.Group
-                  onChange={onShowDateChange}
-                  value={selectedShowDateId}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    marginTop: 12,
-                  }}
-                >
-                  {showDates.map((d) => (
-                    <Radio
-                      key={`showdate-${d.ID}`}
-                      value={d.ID}
-                      style={{ fontSize: "18px" }}
-                    >
-                      Show Date: {formatDateLong(d.show_date)}{" "}
-                      {extractTime(d.show_date)}
-                    </Radio>
-                  ))}
-                </Radio.Group>
-              </Card>
+              <ShowDateSelector
+                showDates={showDates}
+                selectedShowDateId={selectedShowDateId}
+                onChange={onShowDateChange}
+              />
 
               {selectedShowDateId && (
-                <Card
-                  style={{
-                    width: "100%",
-                    borderColor: "#d3d3d3ff",
-                    backgroundColor: "#F6F6F8",
-                    borderRadius: 15,
-                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                    maxWidth: 600,
-                  }}
-                  bodyStyle={{ padding: 16 }}
-                >
-                  <h1 style={{ textAlign: "center", margin: "4px 0 12px" }}>
-                    Seat Available
-                  </h1>
-                  <div style={{ overflow: "auto", maxHeight: 520 }}>
-                    <Col>
-                      <div style={{ maxWidth: 540, margin: "0 auto" }}>
-                        {zonesForSelectedDate.length > 0 ? (
-                          zonesForSelectedDate.map((zone) => {
-                            const id = zone.ID;
-                            const name = zoneNameText(zone);
-                            const type = zoneTypeText(zone);
-                            const price = thb.format(zonePriceNumber(zone));
-                            const available = calcAvailableSeats(zone);
-                            const disabled = available === 0;
-                            let zoneTypeColor = AVAILABLE_BG;
-                            let text = AVAILABLE_BG;
-                            if (type.toLowerCase().includes("standing")) {
-                              zoneTypeColor = StandingColor;
-                              text = "#000000";
-                            } else if (type.toLowerCase().includes("seating")) {
-                              zoneTypeColor = SeatingColor;
-                              text = "#ffffff";
-                            }
-                            return (
-                              <Card
-                                key={id}
-                                hoverable={!disabled}
-                                style={{
-                                  borderRadius: 12,
-                                  margin: "8px 0",
-                                  cursor: disabled ? "not-allowed" : "pointer",
-                                  opacity: disabled ? 0.85 : 1,
-                                  // backgroundColor: zoneTypeColor,
-                                }}
-                                bodyStyle={{ padding: 12 }}
-                                onClick={() =>
-                                  !disabled && handleZoneCardClick(zone)
-                                }
-                              >
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    gap: 12,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      flexDirection: "column",
-                                    }}
-                                  >
-                                    <span
-                                      style={{ fontSize: 16, fontWeight: 700 }}
-                                    >
-                                      Zone: {name}
-                                    </span>
-                                    <span
-                                      style={{
-                                        fontSize: 16,
-                                        color: "#424242ff",
-                                        fontWeight: 500,
-                                      }}
-                                    >
-                                      <Tag
-                                        style={{
-                                          backgroundColor: zoneTypeColor,
-                                          color: text,
-                                        }}
-                                      >
-                                        {type}
-                                      </Tag>{" "}
-                                      - ฿{price}
-                                    </span>
-                                  </div>
-                                  <div
-                                    style={{
-                                      minWidth: 72,
-                                      height: 36,
-                                      padding: "0 12px",
-                                      borderRadius: 10,
-                                      backgroundColor: disabled
-                                        ? SOLDOUT_BG
-                                        : AVAILABLE_BG,
-                                      display: "flex",
-                                      justifyContent: "center",
-                                      alignItems: "center",
-                                      boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        fontSize: 16,
-                                        fontWeight: 800,
-                                        color: "white",
-                                        lineHeight: 1,
-                                      }}
-                                    >
-                                      {available}
-                                    </span>
-                                  </div>
-                                </div>
-                              </Card>
-                            );
-                          })
-                        ) : (
-                          <p
-                            style={{
-                              textAlign: "center",
-                              color: "#666",
-                              marginTop: 16,
-                            }}
-                          >
-                            No zones available for this date.
-                          </p>
-                        )}
-                      </div>
-                    </Col>
-                  </div>
-                </Card>
+                <ZoneList
+                  zones={zonesForSelectedDate}
+                  selectedShowDate={selectedShowDate}
+                  onZoneClick={handleZoneCardClick}
+                />
               )}
             </div>
           </Col>
