@@ -77,6 +77,7 @@ func SetupDatabase() {
        &entity.Assignment{},
        &entity.AssignmentStatus{},
        &entity.StaffAssignment{},
+       &entity.ReportReply{},
        
    )
    

@@ -18,8 +18,8 @@ type Refund struct {
 	BookingID uint     `json:"booking_id"`
 	Booking   *Booking `gorm:"foreignKey:BookingID" json:"booking"`
 
-	RefundStatusID uint          `json:"refund_status_id"`
-	RefundStatus   *RefundStatus `gorm:"foreignKey:RefundStatusID" json:"refund_status"`
+	 RefundStatusID uint          `json:"refund_status_id"`
+	 RefundStatus   *RefundStatus `gorm:"foreignKey:RefundStatusID" json:"refund_status"`
 
 	PaymentID uint     `json:"payment_id"`
 	Payment   *Payment `gorm:"foreignKey:PaymentID" json:"payment"`

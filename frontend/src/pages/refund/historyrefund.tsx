@@ -39,8 +39,9 @@ export const RefundHis: React.FC = () => {
 
   const statusOptions = [
     { value: 1, label: "รอดำเนินการ" },
-    { value: 2, label: "ดำเนินการเสร็จสิ้น" },
-    { value: 3, label: "ปฏิเสธคำขอ" },
+    { value: 2, label: "กำลังดำเนินการ" },
+    { value: 3, label: "ดำเนินการเสร็จสิ้น" },
+    { value: 4, label: "ปฏิเสธคำขอ" },
   ];
 
   const handleUpdateStatus = async (
