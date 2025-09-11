@@ -6,7 +6,6 @@ import {
   Input,
   Select,
   DatePicker,
-  TimePicker,
   Row,
   Col,
   message,
@@ -44,12 +43,6 @@ const EditTaskAssignment: React.FC<EditTaskAssignmentProps> = ({
   const [staffOptions, setStaffOptions] = useState<StaffInterface[]>([]);
   const [selectedConcert, setSelectedConcert] = useState<string | null>(null);
 
-  const parseDateTime = (date?: string, time?: string) => {
-    if (!date) return undefined;
-    if (!time) return dayjs(date);
-    return dayjs(`${date}T${time}`);
-  };
-
   useEffect(() => {
     if (!visible) return;
 
@@ -65,8 +58,11 @@ const EditTaskAssignment: React.FC<EditTaskAssignmentProps> = ({
         const showDateData: ShowDateInterface[] = showDateRes?.data || [];
         const staffData: StaffInterface[] = staffRes?.data || [];
 
+        // กรองเฉพาะ staff role = 4
+        const filteredStaff = staffData.filter((s) => s.role_id === 4);
+
         setShowDates(showDateData);
-        setStaffOptions(staffData);
+        setStaffOptions(filteredStaff);
 
         if (assignmentId) {
           const assignmentRes = await assignmentAPI.getById(assignmentId);
@@ -88,16 +84,12 @@ const EditTaskAssignment: React.FC<EditTaskAssignmentProps> = ({
             concert: show?.concert?.concert_name || undefined,
             show_date_id: assignment.show_date?.ID,
             staff_ids: staff_ids,
-            startDate: parseDateTime(assignment.assignment_date_start),
-            endDate: parseDateTime(assignment.assignment_date_end),
-            startTime: parseDateTime(
-              assignment.assignment_date_start,
-              assignment.assignment_time_start
-            ),
-            endTime: parseDateTime(
-              assignment.assignment_date_end,
-              assignment.assignment_time_end
-            ),
+            assignment_start: assignment.assignment_start
+              ? dayjs(assignment.assignment_start)
+              : undefined,
+            assignment_end: assignment.assignment_end
+              ? dayjs(assignment.assignment_end)
+              : undefined,
           });
         }
       } catch (err) {
@@ -109,26 +101,21 @@ const EditTaskAssignment: React.FC<EditTaskAssignmentProps> = ({
     };
 
     fetchData();
+
+    fetchData();
   }, [visible, assignmentId, form]);
 
   const handleSubmit = async (values: any) => {
-    const startDate: Dayjs = values.startDate;
-    const endDate: Dayjs = values.endDate;
-    const startTime: Dayjs = values.startTime;
-    const endTime: Dayjs = values.endTime;
+    const start: Dayjs = values.assignment_start;
+    const end: Dayjs = values.assignment_end;
 
-    if (!startDate || !endDate || !startTime || !endTime) {
-      message.error("กรุณากรอกวันที่และเวลาให้ครบ");
+    if (!start || !end) {
+      message.error("กรุณาเลือกวันเวลาเริ่มและสิ้นสุดงาน");
       return;
     }
 
-    if (startDate.isAfter(endDate)) {
-      message.error("Start Date ต้องไม่มากกว่า End Date");
-      return;
-    }
-
-    if (startDate.isSame(endDate) && startTime.isAfter(endTime)) {
-      message.error("Start Time ต้องไม่มากกว่า End Time ในวันเดียวกัน");
+    if (start.isAfter(end)) {
+      message.error("วันเวลาเริ่มงานต้องไม่มากกว่าวันเวลาสิ้นสุดงาน");
       return;
     }
 
@@ -138,17 +125,9 @@ const EditTaskAssignment: React.FC<EditTaskAssignmentProps> = ({
       const payload = {
         task: values.task,
         description: values.description,
-        show_date_id: Number(values.show_date_id), // แปลงเป็น number
-        assignment_date_start: startDate
-          .hour(startTime.hour())
-          .minute(startTime.minute())
-          .second(0)
-          .toISOString(),
-        assignment_date_end: endDate
-          .hour(endTime.hour())
-          .minute(endTime.minute())
-          .second(0)
-          .toISOString(),
+        show_date_id: Number(values.show_date_id),
+        assignment_start: start.format("YYYY-MM-DD HH:mm:ss"),
+        assignment_end: end.format("YYYY-MM-DD HH:mm:ss"),
         staff_ids: values.staff_ids,
       };
 
@@ -165,10 +144,6 @@ const EditTaskAssignment: React.FC<EditTaskAssignmentProps> = ({
       setSaving(false);
     }
   };
-
-  const concertOptions = Array.from(
-    new Set(showDates.map((s) => s.concert?.concert_name).filter(Boolean))
-  ) as string[];
 
   const filteredShowDates = selectedConcert
     ? showDates.filter((s) => s.concert?.concert_name === selectedConcert)
@@ -208,16 +183,24 @@ const EditTaskAssignment: React.FC<EditTaskAssignmentProps> = ({
               >
                 <Select
                   placeholder="เลือกคอนเสิร์ต"
+                  showSearch
+                  optionFilterProp="children"
                   onChange={(val) => {
                     setSelectedConcert(val);
-                    form.setFieldsValue({ show_date_id: undefined });
+                    form.setFieldsValue({ show_date_id: undefined }); // เคลียร์ show date เมื่อเปลี่ยน concert
+                  }}
+                  filterOption={(input, option) => {
+                    const text = option?.children as unknown as string;
+                    return text.toLowerCase().includes(input.toLowerCase());
                   }}
                 >
-                  {concertOptions.map((c) => (
-                    <Option key={c} value={c}>
-                      {c}
-                    </Option>
-                  ))}
+                  {[...new Set(showDates.map((sd) => sd.concert?.concert_name))] // เอาชื่อคอนเสิร์ตไม่ซ้ำ
+                    .filter(Boolean) // กรอง undefined/null
+                    .map((concertName) => (
+                      <Select.Option key={concertName} value={concertName}>
+                        {concertName}
+                      </Select.Option>
+                    ))}
                 </Select>
               </Form.Item>
             </Col>
@@ -241,7 +224,10 @@ const EditTaskAssignment: React.FC<EditTaskAssignmentProps> = ({
                   {filteredShowDates.map((s) => (
                     <Option key={s.ID} value={s.ID}>
                       {s.show_date
-                        ? `${dayjs(s.show_date).format("DD/MM/YYYY HH:mm")} - ${s.venue?.venue_name}`: s.venue?.venue_name}
+                        ? `${dayjs(s.show_date).format("DD/MM/YYYY HH:mm")} - ${
+                            s.venue?.venue_name
+                          }`
+                        : s.venue?.venue_name}
                     </Option>
                   ))}
                 </Select>
@@ -284,23 +270,34 @@ const EditTaskAssignment: React.FC<EditTaskAssignmentProps> = ({
             </Col>
 
             <Col span={12}>
-              <Form.Item label="Start Date" name="startDate">
-                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <Form.Item
+                label="Start Date & Time"
+                name="assignment_start"
+                rules={[
+                  { required: true, message: "กรุณาเลือกวันเวลาเริ่มงาน" },
+                ]}
+              >
+                <DatePicker
+                  showTime={{ format: "HH:mm:ss" }}
+                  format="DD/MM/YYYY HH:mm:ss"
+                  style={{ width: "100%" }}
+                />
               </Form.Item>
             </Col>
+
             <Col span={12}>
-              <Form.Item label="Start Time" name="startTime">
-                <TimePicker format="HH:mm" style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="End Date" name="endDate">
-                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="End Time" name="endTime">
-                <TimePicker format="HH:mm" style={{ width: "100%" }} />
+              <Form.Item
+                label="End Date & Time"
+                name="assignment_end"
+                rules={[
+                  { required: true, message: "กรุณาเลือกวันเวลาสิ้นสุดงาน" },
+                ]}
+              >
+                <DatePicker
+                  showTime={{ format: "HH:mm:ss" }}
+                  format="DD/MM/YYYY HH:mm:ss"
+                  style={{ width: "100%" }}
+                />
               </Form.Item>
             </Col>
 

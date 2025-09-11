@@ -43,6 +43,7 @@ const TaskAssignment: React.FC = () => {
   const [searchText, setSearchText] = useState("");
   const [selectedConcert, setSelectedConcert] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
+  
 
   const [addVisible, setAddVisible] = useState(false);
   const [editVisible, setEditVisible] = useState(false);
@@ -59,12 +60,6 @@ const TaskAssignment: React.FC = () => {
     fetchStatuses();
     fetchShowDates();
   }, []);
-
-  /** Format datetime จาก ISO string ให้สวยงาม */
-  const formatDateTime = (dateStr?: string, format: string = "DD/MM/YYYY") => {
-    if (!dateStr || dateStr === "0001-01-01T00:00:00Z") return "-";
-    return dayjs(dateStr).format(format);
-  };
 
   /** Fetch Assignments */
   const fetchAssignments = async () => {
@@ -87,8 +82,8 @@ const TaskAssignment: React.FC = () => {
           ID: item.ID,
           task: item.task ?? "",
           description: item.description ?? "",
-          assignment_date_start: item.assignment_date_start ?? "",
-          assignment_date_end: item.assignment_date_end ?? "",
+          assignment_start: item.assignment_start ?? "",
+          assignment_end: item.assignment_end ?? "",
           assignment_status_id: item.AssignmentStatusID ?? 0,
           assignment_status: item.assignment_status ?? null,
           show_date_id: item.ShowDateID ?? 0,
@@ -189,7 +184,7 @@ const TaskAssignment: React.FC = () => {
     } catch (err) {
       console.error(err);
       message.error("Failed to delete.");
-      console.log("delete",id)
+      console.log("delete", id);
     }
   };
   /** Table Columns */
@@ -223,85 +218,128 @@ const TaskAssignment: React.FC = () => {
           : "-";
 
         return (
-          <Space direction="vertical" size="small">
-            <Text strong>{concertName}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {venueName}
+          <Space direction="vertical" size={2}>
+            {/* Concert Name */}
+            <Text strong style={{ fontSize: 14, color: "#111" }}>
+              {concertName}
             </Text>
+
+            {/* Venue */}
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {showDateFormatted}{" "}
-              {showTimeFormatted !== "00:00" ? `(${showTimeFormatted})` : ""}
+              Venue: {venueName}
             </Text>
+
+            {/* Show Date */}
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Date: {showDateFormatted}
+            </Text>
+
+            {/* Show Time */}
+            {showTimeFormatted !== "00:00" && (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Time: {showTimeFormatted}
+              </Text>
+            )}
           </Space>
         );
       },
     },
 
-
-
-{
-  title: "Assigned Staff",
-  key: "assignedStaff",
-  render: (_: any, record: AssignmentInterface) => (
-    <Space wrap>
-      {record.staff_assignments?.length
-        ? record.staff_assignments.map((s, idx) => {
-            const { color, text } = getStaffStatusTag(s.assignment_status?.ID);
-            const user = s.user;
-            if (!user) return null;
-
-            const name = `${user.first_name} ${user.last_name}`;
-            const initials = user.first_name [0] + user.last_name [0];
-            const tooltipContent = `${name} - ${user.position?.position || "-"} - ${user.department?.department || "-"}`;
-
-            return (
-              <Space key={idx} size="small" align="center">
-                {/* Avatar แสดงตัวอักษรย่อ */}
-                <Tooltip title={tooltipContent}>
-                  <Avatar size="small" style={{ backgroundColor: "#1890ff" }}>
-                    {initials.toUpperCase()}
-                  </Avatar>
-                </Tooltip>
-
-                {/* ชื่อเต็ม */}
-                <span style={{ fontSize: 12 }}>{name}</span>
-
-                {/* Tag แสดงสถานะ */}
-                <Tag color={color} style={{ fontSize: 12 }}>
-                  {text}
-                </Tag>
-              </Space>
-            );
-          })
-        : "-"}
-    </Space>
-  ),
-},
-
     {
-      title: "Date & Time",
-      key: "datetime",
-      render: (record: AssignmentInterface) => (
-        <Space direction="vertical" size="small">
-          <Space>
-            <CalendarOutlined />
-            <Text style={{ fontSize: 12 }}>
-              {formatDateTime(record.assignment_date_start, "DD/MM/YYYY")}{" "}
-              {record.assignment_date_end &&
-                record.assignment_date_start !== record.assignment_date_end &&
-                `- ${formatDateTime(record.assignment_date_end, "DD/MM/YYYY")}`}
-            </Text>
-          </Space>
-          <Space>
-            <ClockCircleOutlined />
-            <Text style={{ fontSize: 12 }}>
-              {formatDateTime(record.assignment_date_start, "HH:mm")} -{" "}
-              {formatDateTime(record.assignment_date_end, "HH:mm")}
-            </Text>
-          </Space>
+      title: "Assigned Staff",
+      key: "assignedStaff",
+      render: (_: any, record: AssignmentInterface) => (
+        <Space wrap>
+          {record.staff_assignments?.length
+            ? record.staff_assignments.map((s, idx) => {
+                const { color, text } = getStaffStatusTag(
+                  s.assignment_status?.ID
+                );
+                const user = s.user;
+                if (!user) return null;
+
+                const name = `${user.first_name} ${user.last_name}`;
+                const initials = user.first_name[0] + user.last_name[0];
+                const tooltipContent = `${name} - ${
+                  user.position?.position || "-"
+                } - ${user.department?.department || "-"}`;
+
+                return (
+                  <Space key={idx} size="small" align="center">
+                    {/* Avatar แสดงตัวอักษรย่อ */}
+                    <Tooltip title={tooltipContent}>
+                      <Avatar
+                        size="small"
+                        style={{ backgroundColor: "#1890ff" }}
+                      >
+                        {initials.toUpperCase()}
+                      </Avatar>
+                    </Tooltip>
+
+                    {/* ชื่อเต็ม */}
+                    <span style={{ fontSize: 12 }}>{name}</span>
+
+                    {/* Tag แสดงสถานะ */}
+                    <Tag color={color} style={{ fontSize: 12 }}>
+                      {text}
+                    </Tag>
+                  </Space>
+                );
+              })
+            : "-"}
         </Space>
       ),
     },
+
+    {
+      title: "Start / End Date & Time",
+      key: "datetime",
+      render: (record: AssignmentInterface) => {
+        const startDate = record.assignment_start
+          ? dayjs(record.assignment_start).format("DD/MM/YYYY")
+          : "-";
+        const startTime = record.assignment_start
+          ? dayjs(record.assignment_start).format("HH:mm")
+          : "-";
+
+        const endDate = record.assignment_end
+          ? dayjs(record.assignment_end).format("DD/MM/YYYY")
+          : "-";
+        const endTime = record.assignment_end
+          ? dayjs(record.assignment_end).format("HH:mm")
+          : "-";
+
+        return (
+          <Space direction="vertical" size="small">
+            <Space>
+              <CalendarOutlined />
+              <Text style={{ fontSize: 12 }}>
+                <strong>Start Date:</strong> {startDate}
+              </Text>
+            </Space>
+            <Space>
+              <ClockCircleOutlined />
+              <Text style={{ fontSize: 12 }}>
+                <strong>Start Time:</strong> {startTime}
+              </Text>
+            </Space>
+            <Space>
+              <CalendarOutlined />
+              <Text style={{ fontSize: 12 }}>
+                <strong>End Date:</strong> {endDate}
+              </Text>
+            </Space>
+            <Space>
+              <ClockCircleOutlined />
+              <Text style={{ fontSize: 12 }}>
+                <strong>End Time:</strong> {endTime}
+              </Text>
+            </Space>
+          </Space>
+        );
+      },
+    },
+
     {
       title: "Status",
       key: "status",

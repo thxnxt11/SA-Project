@@ -10,6 +10,7 @@ export interface VenueInterface {
   
   venue_type?: VenueTypeInterface;
   stages?: StageInterface[];
+  
 
 
 }

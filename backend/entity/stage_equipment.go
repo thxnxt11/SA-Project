@@ -9,5 +9,7 @@ type StageEquipment struct {
 	StageID uint `json:"stage_id"`
 	Stage *Stage `gorm:"foreignKey: stage_id" json:"stage"`
 
+	StageQuantity    uint `json:"stage_quantity"` // จำนวนอุปกรณ์ที่ assign ให้ Stage
+
 	
 }

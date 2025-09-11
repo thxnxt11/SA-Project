@@ -50,7 +50,7 @@ func (ctrl *VenueController) CreateVenue(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.VenueService.CreateVenueWithStages(&v); err != nil {
+	if err := ctrl.VenueService.CreateVenueWithStagesAndEquipments(&v); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -109,7 +109,23 @@ func (ctrl *VenueController) DeleteStage(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.JSON(http.StatusOK, gin.H{"message": "Stage deleted and equipment restored successfully"})
+}
+
+func (ctrl *VenueController) DeleteEquipment(c *gin.Context) {
+	Idstr := c.Param("id")
+	id, err := strconv.ParseUint(Idstr,10,32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid stage ID"})
+		return
+	}
+
+	if err := ctrl.VenueService.DeleteEquipment(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Stage deleted and equipment restored successfully"})
 }
 
 // ---------------- Types ----------------
@@ -134,12 +150,4 @@ func (ctrl *VenueController) GetStageTypes(c *gin.Context) {
 	c.JSON(http.StatusOK, types)
 }
 
-// GET /api/equipmenttypes
-func (ctrl *VenueController) GetEquipmentTypes(c *gin.Context) {
-	types, err := ctrl.VenueService.GetEquipmentTypes()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, types)
-}
+

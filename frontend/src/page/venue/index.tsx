@@ -13,6 +13,7 @@ import {
   Spin,
   Result,
   Modal,
+  Tooltip,
 } from "antd";
 import {
   EnvironmentOutlined,
@@ -63,7 +64,7 @@ const Venue: React.FC = () => {
   const handleDelete = async (id: number) => {
     try {
       const res = await venueAPI.delete(id);
-      if (res?.status === 200) {
+      if (res?.status === 204) {
         setDeleteStatus("success");
         fetchVenues();
       } else {
@@ -125,34 +126,37 @@ const Venue: React.FC = () => {
                 key={venue.ID}
                 xs={24}
                 sm={12}
-                md={8}
-                lg={6}
+                md={12}
+                lg={8}
                 style={{ display: "flex", justifyContent: "center" }}
               >
                 <Card
                   hoverable
                   title={
-                    <strong
-                      style={{
-                        wordWrap: "break-word",
-                        whiteSpace: "normal",
-                      }}
-                    >
-                      {venue.venue_name || "-"}
-                    </strong>
+                    <Tooltip title={venue.venue_name || "-"} placement="topLeft">
+                      <strong
+                        style={{
+                          wordWrap: "break-word",
+                          whiteSpace: "normal",
+                        }}
+                      >
+                        {venue.venue_name || "-"}
+                      </strong>
+                    </Tooltip>
                   }
                   bordered
                   style={{
                     borderRadius: 10,
                     backgroundColor: "#fff",
                     width: "100%",
-                    maxWidth: 300,
+                    maxWidth: 350,
                     border: "2px solid #ccc",
                     padding: 8,
                   }}
                 >
                   <p>
-                    <EnvironmentOutlined /> {venue.location || "-"}
+                    <EnvironmentOutlined />{" "}
+                    <Tooltip title={venue.location}>{venue.location || "-"}</Tooltip>
                   </p>
                   <p>
                     <TeamOutlined /> ความจุ: {venue.venue_capacity || "-"} คน
@@ -161,17 +165,43 @@ const Venue: React.FC = () => {
                     <FaBuilding /> ประเภท: {venue.venue_type?.venue_type || "-"}
                   </p>
                   <p>
-                    <CalendarOutlined /> เวที: {venue.stages?.length || 0} เวที
+                    <CalendarOutlined /> จำนวนเวที: {venue.stages?.length || 0}
                   </p>
-                  <p>
-                    <PiMicrophoneStageFill /> เวทีในสถานที่:{" "}
-                    {venue.stages?.map((s) => (
-                      <Tag key={s.id}>
-                        name: {s.stage_name} Type:{" "}
-                        {s.stage_type?.stage_type || "-"}
-                      </Tag>
-                    )) || "-"}
-                  </p>
+
+                  {venue.stages && venue.stages.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      <Text strong>รายละเอียดเวที:</Text>
+                      {venue.stages.map((stage) => (
+                        <Card
+                          type="inner"
+                          size="small"
+                          key={stage.id}
+                          style={{ marginTop: 8, borderRadius: 8 }}
+                        >
+                          <p>
+                            <PiMicrophoneStageFill />{" "}
+                            <Tooltip title={stage.stage_name}>
+                              {stage.stage_name}
+                            </Tooltip>{" "}
+                            - {stage.stage_type?.stage_type || "-"}
+                          </p>
+                          <p>
+                            ขนาด: {stage.width || 0}m x {stage.length || 0}m
+                          </p>
+                          {stage.equipments && stage.equipments.length > 0 && (
+                            <p>
+                              อุปกรณ์:{" "}
+                              {stage.equipments.map((eq) => (
+                                <Tag key={eq.equipment_id}>
+                                  {eq.equipment?.equipment_name} x {eq.stage_quantity}
+                                </Tag>
+                              ))}
+                            </p>
+                          )}
+                        </Card>
+                      ))}
+                    </div>
+                  )}
 
                   <div
                     style={{
@@ -250,4 +280,4 @@ const Venue: React.FC = () => {
   );
 };
 
-export default Venue;
+export default Venue; 

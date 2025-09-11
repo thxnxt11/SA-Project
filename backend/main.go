@@ -20,8 +20,12 @@ import (
 
 	assignmentStatusController "github.com/yourname/went-back/controller/assignmentstatus"
 	showDateController "github.com/yourname/went-back/controller/showdate"
+
 	assignmentStatusService "github.com/yourname/went-back/service/assignmentstatus"
 	showDateService "github.com/yourname/went-back/service/showdate"
+
+	equipmentController "github.com/yourname/went-back/controller/venue"
+	equipmentService "github.com/yourname/went-back/service/venue"
 )
 
 func main() {
@@ -36,7 +40,6 @@ func main() {
 	staffAssignService := &staffassignmentService.StaffAssignmentService{DB: connection.DB()}
 	staffAssignCtrl := &staffassignmentController.StaffAssignmentController{Service: staffAssignService}
 
-
 	staffCtrl := &staffController.UserController{Service: userService}
 	assignCtrl := &assignmentController.AssignmentController{Service: assignmentSvc}
 
@@ -49,8 +52,8 @@ func main() {
 	venueService := &service.VenueService{DB: connection.DB()}
 	venueController := &controller.VenueController{VenueService: venueService}
 
-	// stageService := &service.StageService{DB: connection.DB()}
-	// stageController := &controller.StageController{StageService: stageService}
+	equipService := &equipmentService.EquipmentService{DB: connection.DB()}
+	equipCtrl := &equipmentController.EquipmentController{Service: equipService}
 
 	// ================= Gin Router =================
 	r := gin.Default()
@@ -94,44 +97,42 @@ func main() {
 		api.PUT("/staff/staff_assignments/:id/status", staffAssignCtrl.UpdateMyStatus)
 
 		api.GET("/staff/:user_id/assignments", staffAssignCtrl.GetMyAssignments)
-		// ----- ShowDate / Status / Concert -----
 
+		// ----- ShowDate / Status / Concert -----
 		api.GET("/assignment_statuses", assignmentStatusController.GetAllStatuses)
 		api.GET("/showdates", showDateController.GetShowDates)
 		api.GET("/showdates/:id", showDateController.GetShowDate)
-
-
-
 
 		// ----- Venue + Stage รวมกัน -----
 		api.GET("/venues", venueController.GetAllVenues)
 		api.GET("/venues/:id", venueController.GetVenue)
 		api.POST("/venues", venueController.CreateVenue)
 		api.PUT("/venues/:id", venueController.UpdateVenue)
+
 		api.DELETE("/venues/:id", venueController.DeleteVenue)
+		api.DELETE("/stages/:id",venueController.DeleteStage)
+		api.DELETE("/stages_equipments/:id",venueController.DeleteEquipment)
+
 
 		// ----- StageType / VenueType / EquipmentType -----
 		api.GET("/venuetypes", venueController.GetVenueTypes)
 		api.GET("/stagetypes", venueController.GetStageTypes)
-		api.GET("/equipmenttypes", venueController.GetEquipmentTypes)
+		api.GET("/equipmenttypes", equipCtrl.GetEquipmentTypes)
 
-		// // ----- Venue / Stage -----
-		// api.GET("/venues", venueController.GetAllVenues)
-		// api.GET("/venues/:id", venueController.GetVenue)
-		// api.POST("/venues", venueController.CreateVenue)
-		// api.PUT("/venues/:id", venueController.UpdateVenue)
-		// api.DELETE("/venues/:id", venueController.DeleteVenue)
+		// ----- Equipment -----
+		api.GET("/equipments", equipCtrl.GetAllEquipment)        // ดึงอุปกรณ์ทั้งหมด
+		api.GET("/equipments/:id", equipCtrl.GetEquipmentByID)   // ดึงอุปกรณ์ตาม ID
+		api.POST("/equipments", equipCtrl.Create)       // เพิ่มอุปกรณ์ใหม่
+		api.PUT("/equipments/:id", equipCtrl.Update)    // แก้ไขอุปกรณ์
+		api.DELETE("/equipments/:id", equipCtrl.Delete) // ลบอุปกรณ์
 
-		// api.GET("/stages", stageController.GetAllStages)
-		// api.GET("/stages/:id", stageController.GetStage)
-		// api.POST("/stages", stageController.CreateStage)
-		// api.PUT("/stages/:id", stageController.UpdateStage)
-		// api.DELETE("/stages/:id", stageController.DeleteStage)
-		
+		// Stock / Stage Assignment
+		api.POST("/equipments/:id/assign", equipCtrl.AssignToStage)     // Assign อุปกรณ์ให้ Stage
+		api.GET("/equipments/available", equipCtrl.GetAvailableByStage) // ดึงอุปกรณ์ที่ยังใช้งานได้
 
 		// auth
-	r.POST("/signup", user.SignUp)
-	r.POST("/signin", user.SignIn)
+		r.POST("/signup", user.SignUp)
+		r.POST("/signin", user.SignIn)
 
 	}
 

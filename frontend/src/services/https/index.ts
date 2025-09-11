@@ -151,29 +151,35 @@ export const venueAPI = {
   create: (payload: VenueInterface) => Post(`${ADMIN_API_URL}/venues`, payload),
   update: (id: number | string, payload: VenueInterface) => PUT(`${ADMIN_API_URL}/venues/${id}`, payload),
   delete: (id: number | string) => Delete(`${ADMIN_API_URL}/venues/${id}`), // ลบ Venue + Stages ทั้งหมด
+  deletestage:(id : number)=>Delete(`${ADMIN_API_URL}/stage/${id}`), // ลบ stage พร้อม คืน equipment
 
   // Stage (แยกสำหรับแก้ไข Stage เดี่ยว)
-  deleteStage: (id: number | string) => Delete(`${ADMIN_API_URL}/stages/${id}`), // ลบ Stage เดี่ยว
+  deleteStage: (id: number ) => Delete(`${ADMIN_API_URL}/stages/${id}`), // ลบ Stage เดี่ยว
+ 
+  deleteStageEquipment: (id: number) => Delete(`/stages_equipments/${id}`,false), // delte equipment
+
   getStageTypes: () => Get(`${ADMIN_API_URL}/stagetypes`),
 };
 
 
 export const equipmentAPI = {
-  getAll: () => Get(`${ADMIN_API_URL}/equipment`),
+  // ----- CRUD อุปกรณ์ -----
+  getAllEquipments: () => Get(`${ADMIN_API_URL}/equipments`),
   getEquipmentTypes: () => Get(`${ADMIN_API_URL}/equipmenttypes`),
-  getById: (id: number | string) => Get(`${ADMIN_API_URL}/equipment/${id}`),
-  create: (payload: EquipmentInterface) => Post(`${ADMIN_API_URL}/equipment`, payload),
-  update: (id: number | string, payload: EquipmentInterface ) => PUT(`${ADMIN_API_URL}/equipment/${id}`, payload),
-  delete: (id: number | string) => Delete(`${ADMIN_API_URL}/equipment/${id}`),
-};
+  getById: (id: number | string) => Get(`${ADMIN_API_URL}/equipments/${id}`),
+  create: (payload: EquipmentInterface) => Post(`${ADMIN_API_URL}/equipments`, payload),
+  update: (id: number | string, payload: EquipmentInterface) =>
+    PUT(`${ADMIN_API_URL}/equipments/${id}`, payload),
+  delete: (id: number | string) => Delete(`${ADMIN_API_URL}/equipments/${id}`),
 
-// ---------- ShowDate API ----------
-// export const showdateAPI = {
-//   getAll: () => Get(`${ADMIN_API_URL}/showdates`, false),
-//   getById: (id: number) => Get(`${ADMIN_API_URL}/showdate/${id}`, false),
-//   getZonesByShowDateId: (id: number) => Get(`${ADMIN_API_URL}/showdate/${id}/zones`, false),
-//   getSeatsByZoneId: (zoneId: number) => Get(`${ADMIN_API_URL}/zone/${zoneId}/seats`, false),
-// };
+  // ----- Stock / Stage Assignment -----
+  assignToStage: (id: number | string, payload: { stage_id: number; quantity: number }) =>
+    Post(`${ADMIN_API_URL}/equipments/${id}/assign`, payload),
+
+  // ----- อุปกรณ์ที่ยังใช้งานได้ / available -----
+  getAvailableByStage: (stage_id: number | string) =>
+    Get(`${ADMIN_API_URL}/equipments/available?stage_id=${stage_id}`),
+};
 
 
 

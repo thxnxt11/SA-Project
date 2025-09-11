@@ -6,10 +6,10 @@ export interface AssignmentInterface {
   ID?: number;
   task: string;
   description: string;
-  assignment_date_start?: string;
-  assignment_date_end?: string;
-  assignment_time_start?: string;
-  assignment_time_end?: string;
+  assignment_start?: string;
+  assignment_end?: string;
+  // assignment_time_start?: string;
+  // assignment_time_end?: string;
   assignment_status_id?: number; // foreign key ของ status
   assignment_status?: AssignmentStatusInterface; // preload object ของ status
 

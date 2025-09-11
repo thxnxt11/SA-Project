@@ -15,29 +15,22 @@ type AssignmentService struct {
 
 // -------------------- Input --------------------
 type AssignmentInput struct {
-	Task                string `json:"task"`
-	Description         string `json:"description"`
-	ShowDateID          uint   `json:"show_date_id"`
-	AssignmentDateStart string `json:"assignment_date_start"` // YYYY-MM-DD
-	AssignmentDateEnd   string `json:"assignment_date_end"`   // YYYY-MM-DD
-	AssignmentTimeStart string `json:"assignment_time_start"` // HH:mm
-	AssignmentTimeEnd   string `json:"assignment_time_end"`   // HH:mm
-	StaffIDs            []uint `json:"staff_ids"`
+	Task        string `json:"task"`
+	Description string `json:"description"`
+	ShowDateID  uint   `json:"show_date_id"`
+
+	// รับ datetime ตรงๆ เช่น "2025-09-10 14:30:00"
+	AssignmentStart string `json:"assignment_start"`
+	AssignmentEnd   string `json:"assignment_end"`
+
+	StaffIDs []uint `json:"staff_ids"`
 }
 
 // -------------------- Helper --------------------
-// รวมวันกับเวลาเป็น time.Time
-func parseDateTime(dateStr, timeStr string) (time.Time, error) {
-	date, err := time.Parse("2006-01-02", dateStr)
-	if err != nil {
-		return time.Time{}, err
-	}
-	t, err := time.Parse("15:04", timeStr)
-	if err != nil {
-		return time.Time{}, err
-	}
-	return time.Date(date.Year(), date.Month(), date.Day(),
-		t.Hour(), t.Minute(), 0, 0, time.Local), nil
+// parse datetime string เช่น "2025-09-10 14:30:00"
+func parseDateTime(datetimeStr string) (time.Time, error) {
+	loc, _ := time.LoadLocation("Asia/Bangkok")
+	return time.ParseInLocation("2006-01-02 15:04:05", datetimeStr, loc)
 }
 
 // Assign staff ให้ assignment
@@ -107,15 +100,25 @@ func (s *AssignmentService) CreateAssignment(input AssignmentInput) (*entity.Ass
 		return nil, errors.New("task and description are required")
 	}
 
-	startDT, err := parseDateTime(input.AssignmentDateStart, input.AssignmentTimeStart)
+	startDT, err := parseDateTime(input.AssignmentStart)
 	if err != nil {
-		return nil, errors.New("invalid start date/time")
+		return nil, errors.New("invalid start datetime")
 	}
-	endDT, err := parseDateTime(input.AssignmentDateEnd, input.AssignmentTimeEnd)
+	endDT, err := parseDateTime(input.AssignmentEnd)
 	if err != nil {
-		return nil, errors.New("invalid end date/time")
+		return nil, errors.New("invalid end datetime")
 	}
-	if startDT.After(endDT) {
+	if !startDT.Before(endDT) {
+		return nil, errors.New("start datetime must be before end datetime")
+	}
+
+	// ตรวจสอบเวลาปัจจุบัน
+	now := time.Now()
+	if startDT.Before(now) || endDT.Before(now) {
+		return nil, errors.New("assignment start and end time must be in the future")
+	}
+
+	if !startDT.Before(endDT) {
 		return nil, errors.New("start datetime must be before end datetime")
 	}
 
@@ -127,14 +130,12 @@ func (s *AssignmentService) CreateAssignment(input AssignmentInput) (*entity.Ass
 	}()
 
 	assignment := entity.Assignment{
-		Task:                input.Task,
-		Description:         input.Description,
-		ShowDateID:          input.ShowDateID,
-		AssignmentStatusID:  1, // Pending
-		AssignmentDateStart: startDT,
-		AssignmentDateEnd:   endDT,
-		AssignmentTimeStart: startDT,
-		AssignmentTimeEnd:   endDT,
+		Task:               input.Task,
+		Description:        input.Description,
+		ShowDateID:         input.ShowDateID,
+		AssignmentStatusID: 1, // Pending
+		AssignmentStart:    startDT,
+		AssignmentEnd:      endDT,
 	}
 
 	if err := tx.Create(&assignment).Error; err != nil {
@@ -151,9 +152,6 @@ func (s *AssignmentService) CreateAssignment(input AssignmentInput) (*entity.Ass
 		tx.Rollback()
 		return nil, err
 	}
-
-	// อัปเดต status หลังสร้าง
-	s.UpdateAssignmentStatus(assignment.ID)
 
 	return &assignment, nil
 }
@@ -173,24 +171,38 @@ func (s *AssignmentService) UpdateAssignment(id uint, input AssignmentInput) (*e
 		return nil, errors.New("assignment not found")
 	}
 
-	startDT, err := parseDateTime(input.AssignmentDateStart, input.AssignmentTimeStart)
+	startDT, err := parseDateTime(input.AssignmentStart)
 	if err != nil {
 		tx.Rollback()
-		return nil, errors.New("invalid start date/time")
+		return nil, errors.New("invalid start datetime")
 	}
-	endDT, err := parseDateTime(input.AssignmentDateEnd, input.AssignmentTimeEnd)
+	endDT, err := parseDateTime(input.AssignmentEnd)
 	if err != nil {
 		tx.Rollback()
-		return nil, errors.New("invalid end date/time")
+		return nil, errors.New("invalid end datetime")
+	}
+	if !startDT.Before(endDT) {
+		tx.Rollback()
+		return nil, errors.New("start datetime must be before end datetime")
+	}
+
+	// ตรวจสอบเวลาปัจจุบัน
+	now := time.Now()
+	if startDT.Before(now) || endDT.Before(now) {
+		tx.Rollback()
+		return nil, errors.New("assignment start and end time must be in the future")
+	}
+
+	if !startDT.Before(endDT) {
+		tx.Rollback()
+		return nil, errors.New("start datetime must be before end datetime")
 	}
 
 	assignment.Task = input.Task
 	assignment.Description = input.Description
 	assignment.ShowDateID = input.ShowDateID
-	assignment.AssignmentDateStart = startDT
-	assignment.AssignmentDateEnd = endDT
-	assignment.AssignmentTimeStart = startDT
-	assignment.AssignmentTimeEnd = endDT
+	assignment.AssignmentStart = startDT
+	assignment.AssignmentEnd = endDT
 
 	if err := tx.Save(&assignment).Error; err != nil {
 		tx.Rollback()
@@ -219,13 +231,11 @@ func (s *AssignmentService) UpdateAssignment(id uint, input AssignmentInput) (*e
 	return &assignment, nil
 }
 
-// Delete StaffAssignment ของ Assignment
 // DeleteAssignment ลบทั้ง Assignment และ StaffAssignments
 func (s *AssignmentService) DeleteAssignment(assignmentID uint) error {
 	tx := s.DB.Begin()
-	defer tx.Rollback() // rollback ถ้า commit ไม่สำเร็จ
+	defer tx.Rollback()
 
-	// ตรวจสอบว่า Assignment มีอยู่
 	var assignment entity.Assignment
 	if err := tx.First(&assignment, assignmentID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -234,18 +244,15 @@ func (s *AssignmentService) DeleteAssignment(assignmentID uint) error {
 		return err
 	}
 
-	// ลบ StaffAssignments ก่อน
 	if err := tx.Where("assignment_id = ?", assignmentID).
 		Delete(&entity.StaffAssignment{}).Error; err != nil {
 		return fmt.Errorf("failed to delete staff assignments: %w", err)
 	}
 
-	// ลบ Assignment
 	if err := tx.Delete(&assignment).Error; err != nil {
 		return fmt.Errorf("failed to delete assignment: %w", err)
 	}
 
-	// commit transaction
 	if err := tx.Commit().Error; err != nil {
 		return fmt.Errorf("commit failed: %w", err)
 	}
@@ -253,38 +260,47 @@ func (s *AssignmentService) DeleteAssignment(assignmentID uint) error {
 	return nil
 }
 
-
 // UpdateAssignmentStatus อัปเดตสถานะ Assignment ตาม StaffAssignments
 func (s *AssignmentService) UpdateAssignmentStatus(id uint) error {
 	var assignment entity.Assignment
 
-	// ดึง Assignment พร้อม preload StaffAssignments
-	if err := s.DB.Preload("StaffAssignments.AssignmentStatus").First(&assignment, id).Error; err != nil {
+	// โหลด assignment พร้อม staff assignments
+	if err := s.DB.Preload("StaffAssignments").First(&assignment, id).Error; err != nil {
 		return err
 	}
 
-	// กำหนดค่าเริ่มต้น
-	newStatus := uint(1) // Pending
+	// ถ้ายังไม่มี staff assignments ให้สถานะ Pending
+	if len(assignment.StaffAssignments) == 0 {
+		assignment.AssignmentStatusID = 1 // Pending
+		return s.DB.Save(&assignment).Error
+	}
 
-	if len(assignment.StaffAssignments) > 0 {
-		allCompleted := true
-		for _, sa := range assignment.StaffAssignments {
-			if sa.AssignmentStatusID != 3 { // 3 = Completed
-				allCompleted = false
-				break
-			}
-		}
+	// มี staff assignments แล้วเช็คว่า completed ครบไหม
+	allCompleted := true
+	inProgressExists := false
 
-		if allCompleted {
-			newStatus = 3 // Completed
-		} else {
-			newStatus = 2 // In Progress
+	for _, sa := range assignment.StaffAssignments {
+		switch sa.AssignmentStatusID {
+		case 1: // Not Started
+			allCompleted = false
+		case 2: // In Progress
+			allCompleted = false
+			inProgressExists = true
+		case 3: // Completed
+			// do nothing
+		default:
+			allCompleted = false
 		}
 	}
 
-	assignment.AssignmentStatusID = newStatus
+	switch {
+	case allCompleted:
+		assignment.AssignmentStatusID = 3 // Completed
+	case inProgressExists:
+		assignment.AssignmentStatusID = 2 // In Progress
+	default:
+		assignment.AssignmentStatusID = 1 // Pending
+	}
 
-	// บันทึกกลับ DB
 	return s.DB.Save(&assignment).Error
 }
-

@@ -6,7 +6,6 @@ import {
   Input,
   Select,
   DatePicker,
-  TimePicker,
   Row,
   Col,
   message,
@@ -25,7 +24,7 @@ const { TextArea } = Input;
 type TaskAssignmentFormProps = {
   visible: boolean;
   onCancel: () => void;
-  onSave?: () => void; // reload ตารางหลังเพิ่มงาน
+  onSave?: () => void;
 };
 
 const AddTaskAssignment: React.FC<TaskAssignmentFormProps> = ({
@@ -48,8 +47,14 @@ const AddTaskAssignment: React.FC<TaskAssignmentFormProps> = ({
           assignmentAPI.getShowDates(),
           assignmentAPI.getAllStaff(),
         ]);
+
         setShowDates(showDateRes?.data || []);
-        setStaffOptions(staffRes?.data || []);
+
+        // filter staff role_id === 4
+        const staffOnly = (staffRes?.data || []).filter(
+          (s: StaffInterface) => s.role_id === 4
+        );
+        setStaffOptions(staffOnly);
       } catch (err) {
         console.error(err);
         message.error("Failed to load show dates or staff");
@@ -59,35 +64,22 @@ const AddTaskAssignment: React.FC<TaskAssignmentFormProps> = ({
     fetchData();
   }, [visible]);
 
-  const validateDateTime = (
-    startDate: Dayjs,
-    endDate: Dayjs,
-    startTime: Dayjs,
-    endTime: Dayjs
-  ) => {
-    if (startDate.isAfter(endDate, "day"))
-      return "Start date must be before or equal to End date";
-    if (
-      startDate.isSame(endDate, "day") &&
-      startTime.isAfter(endTime, "minute")
-    ) {
-      return "Start time must be before or equal to End time on the same day";
+  const validateDateTime = (start: Dayjs, end: Dayjs) => {
+    const now = dayjs();
+    if (start.isBefore(now) || end.isBefore(now)) {
+      return "วันและเวลาต้องอยู่ในอนาคต";
+    }
+    if (start.isAfter(end)) {
+      return "วันเริ่มต้องน้อยกว่าวันสิ้นสุด";
     }
     return null;
   };
 
   const handleValuesChange = (_: any, allValues: any) => {
-    if (
-      allValues.startDate &&
-      allValues.endDate &&
-      allValues.startTime &&
-      allValues.endTime
-    ) {
+    if (allValues.assignment_start && allValues.assignment_end) {
       const error = validateDateTime(
-        allValues.startDate,
-        allValues.endDate,
-        allValues.startTime,
-        allValues.endTime
+        allValues.assignment_start,
+        allValues.assignment_end
       );
       setDateTimeError(error);
     } else {
@@ -106,14 +98,10 @@ const AddTaskAssignment: React.FC<TaskAssignmentFormProps> = ({
         task: values.task,
         description: values.description,
         show_date_id: values.show_date_id,
-        assignment_date_start: (values.startDate as Dayjs).format("YYYY-MM-DD"),
-        assignment_date_end: (values.endDate as Dayjs).format("YYYY-MM-DD"),
-        assignment_time_start: (values.startTime as Dayjs).format("HH:mm"),
-        assignment_time_end: (values.endTime as Dayjs).format("HH:mm"),
-        staff_ids: values.staff_ids, // ส่ง staff_ids ให้ backend
+        assignment_start: values.assignment_start.format("YYYY-MM-DD HH:mm:ss"),
+        assignment_end: values.assignment_end.format("YYYY-MM-DD HH:mm:ss"),
+        staff_ids: values.staff_ids,
       };
-
-      console.log("Payload to backend:", payload);
 
       await assignmentAPI.create(payload);
       message.success("Task assigned successfully!");
@@ -154,10 +142,8 @@ const AddTaskAssignment: React.FC<TaskAssignmentFormProps> = ({
         onFinish={handleSubmit}
         onValuesChange={handleValuesChange}
         initialValues={{
-          startDate: dayjs(),
-          startTime: dayjs("09:00", "HH:mm"),
-          endDate: dayjs(),
-          endTime: dayjs("18:00", "HH:mm"),
+          assignment_start: dayjs().hour(9).minute(0).second(0),
+          assignment_end: dayjs().hour(18).minute(0).second(0),
         }}
       >
         <Row gutter={16}>
@@ -180,15 +166,23 @@ const AddTaskAssignment: React.FC<TaskAssignmentFormProps> = ({
                 placeholder="เลือกคอนเสิร์ต"
                 onChange={handleConcertChange}
                 allowClear
+                showSearch
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option?.children as unknown as string)
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
               >
                 {concertOptions.map((c, idx) => (
-                  <Option key={idx} value={c}>
+                  <Select.Option key={idx} value={c}>
                     {c}
-                  </Option>
+                  </Select.Option>
                 ))}
               </Select>
             </Form.Item>
           </Col>
+
           <Col span={12}>
             <Form.Item
               label="Show Date & Venue"
@@ -243,34 +237,44 @@ const AddTaskAssignment: React.FC<TaskAssignmentFormProps> = ({
                   }`;
                   return (
                     <Option key={s.ID} value={s.ID} label={label}>
-                      {s.first_name} {s.last_name} ( {s.department?.department}{" "}
-                      - {s.position?.position})
+                      {s.first_name} {s.last_name} ( {s.department?.department} -{" "}
+                      {s.position?.position} )
                     </Option>
                   );
                 })}
               </Select>
             </Form.Item>
           </Col>
+
           <Col span={12}>
-            <Form.Item label="Start Date" name="startDate">
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+            <Form.Item
+              label="Start Date & Time"
+              name="assignment_start"
+              rules={[{ required: true, message: "กรุณาเลือกวันและเวลาเริ่ม" }]}
+            >
+              <DatePicker
+                showTime={{ format: "HH:mm:ss" }}
+                format="DD/MM/YYYY HH:mm:ss"
+                style={{ width: 300 }}
+                disabledDate={(current) => current && current < dayjs().startOf("day")}
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item label="Start Time" name="startTime">
-              <TimePicker format="HH:mm" style={{ width: "100%" }} />
+            <Form.Item
+              label="End Date & Time"
+              name="assignment_end"
+              rules={[{ required: true, message: "กรุณาเลือกวันและเวลาสิ้นสุด" }]}
+            >
+              <DatePicker
+                showTime={{ format: "HH:mm:ss" }}
+                format="DD/MM/YYYY HH:mm:ss"
+                style={{ width: 300 }}
+                disabledDate={(current) => current && current < dayjs().startOf("day")}
+              />
             </Form.Item>
           </Col>
-          <Col span={12}>
-            <Form.Item label="End Date" name="endDate">
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="End Time" name="endTime">
-              <TimePicker format="HH:mm" style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
+
           <Col span={24}>
             <Form.Item
               label="Description"

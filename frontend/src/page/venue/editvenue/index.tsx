@@ -12,11 +12,11 @@ import {
   Select,
   message,
   Spin,
+  Tooltip,
 } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
-import { venueAPI } from "../../../services/https";
+import { venueAPI, equipmentAPI } from "../../../services/https";
 import type { VenueInterface } from "../../../interfaces/venue";
-
 
 const { Option } = Select;
 
@@ -28,41 +28,113 @@ const EditVenue: React.FC = () => {
 
   const [venueTypes, setVenueTypes] = useState<any[]>([]);
   const [stageTypes, setStageTypes] = useState<any[]>([]);
+  const [equipments, setEquipments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // โหลด option จาก backend
+  // stock map ของอุปกรณ์ทั้งหมด
+  const [equipmentStock, setEquipmentStock] = useState<{
+    [key: number]: number;
+  }>({});
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [venueRes, stageRes] = await Promise.all([
+        setLoading(true);
+        const [venueTypeRes, stageTypeRes, eqRes] = await Promise.all([
           venueAPI.getVenueTypes?.(),
-          venueAPI.getStageTypes?.()
-         
+          venueAPI.getStageTypes?.(),
+          equipmentAPI.getAllEquipments?.(),
         ]);
-        setVenueTypes(venueRes?.data || []);
-        setStageTypes(stageRes?.data || []);
-        // กำหนดค่า default form
+        console.log("eq", eqRes);
+
+        setVenueTypes(venueTypeRes?.data || []);
+        setStageTypes(stageTypeRes?.data || []);
+        setEquipments(eqRes?.data || []);
+
+        // สร้าง stock map {equipmentId: remaining_quantity}
+        const stockMap: { [key: number]: number } = {};
+        (eqRes?.data || []).forEach((e: any) => {
+          stockMap[e.ID] = e.remaining_quantity;
+        });
+        setEquipmentStock(stockMap);
+
+        // map stage + equipments ให้ form
+        const stages =
+          venue.stages?.map((s: any) => ({
+            stage_id: s.ID,
+            stage_name: s.stage_name,
+            stage_type_id: s.stage_type_id,
+            width: s.width,
+            length: s.length,
+            equipments: s.equipments?.map((e: any) => ({
+              stage_equipment_id: e.ID,
+              equipment_id: e.equipment.ID,
+              quantity: e.stage_quantity,
+            })),
+            // stage_equipment: s.stage_quantity?.map((se: any) => ({
+            //   equipment_id: se.equipment?.equipment,
+            //   quantity: se.StageQuantity, // ใช้ StageQuantity จาก StageEquipment
+            // })),
+          })) || [];
+
         form.setFieldsValue({
           venue_name: venue.venue_name,
           location: venue.location,
           venue_capacity: venue.venue_capacity,
           venue_type_id: venue.venue_type_id,
-          stages: venue.stages?.map((s) => ({
-            stage_name: s.stage_name,
-            stage_type_id: s.stage_type_id,
-            width: s.width,
-            length: s.length,
-          })) || [],
+          stages,
         });
+        console.log("stages:", stages);
       } catch (error) {
-        console.error("Failed to load types:", error);
+        console.error(error);
         message.error("Cannot load selection data from backend");
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [venue, form]);
+  console.log(venue, form);
+
+  // ฟังก์ชัน update stock ตามทุก stage
+  const updateStock = (allValues: any) => {
+    const newStock: { [key: number]: number } = {};
+    equipments.forEach((e) => {
+      newStock[e.ID] = e.remaining_quantity;
+    });
+
+    allValues.stages?.forEach((stage: any) => {
+      stage.equipments?.forEach((eq: any) => {
+        if (eq.equipment_id && eq.quantity) {
+          newStock[eq.equipment_id] -= eq.quantity;
+        }
+      });
+    });
+
+    setEquipmentStock(newStock);
+  };
+  const handleDeleteEquipment = async (id: number): Promise<void> => {
+    try {
+      await venueAPI.deleteStageEquipment(id);
+      message.success("Equipment deleted successfully!");
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to delete equipment. Please try again.");
+    }
+  };
+  const handleDeleteStage = async (id: number) => {
+    try {
+      await venueAPI.deleteStage(id);
+      message.success("Stage Deleted successfully!");
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to deleted stage. Please try again.");
+    }
+  };
+  const handleValuesChange = (_: any, allValues: any) => {
+    updateStock(allValues);
+  };
 
   const onFinish = async (values: VenueInterface) => {
     try {
@@ -90,18 +162,26 @@ const EditVenue: React.FC = () => {
     <AdminsidebarLayout>
       <div style={{ padding: "20px" }}>
         <h1 style={{ fontWeight: "bold", fontSize: 28 }}>Edit Venue</h1>
-        <p>Update venue and stage details</p>
+        <p>Update venue, stage, and equipment details</p>
 
         <Card style={{ border: "1px solid #212121ff", borderRadius: 8 }}>
-          <Form layout="vertical" form={form} onFinish={onFinish} style={{ marginTop: 16 }}>
+          <Form
+            layout="vertical"
+            form={form}
+            onFinish={onFinish}
+            style={{ marginTop: 16 }}
+            onValuesChange={handleValuesChange}
+          >
             {/* Venue Info */}
-            <h2 style={{ fontWeight: "bold", fontSize: 18 }}>Venue Information</h2>
+            <h2 style={{ fontWeight: "bold", fontSize: 18 }}>
+              Venue Information
+            </h2>
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
                   label="Venue Name"
                   name="venue_name"
-                  rules={[{ required: true, message: "Please enter venue name!" }]}
+                  rules={[{ required: true }]}
                 >
                   <Input placeholder="Enter venue name" />
                 </Form.Item>
@@ -110,7 +190,7 @@ const EditVenue: React.FC = () => {
                 <Form.Item
                   label="Location"
                   name="location"
-                  rules={[{ required: true, message: "Please enter location!" }]}
+                  rules={[{ required: true }]}
                 >
                   <Input placeholder="Enter location" />
                 </Form.Item>
@@ -119,16 +199,16 @@ const EditVenue: React.FC = () => {
                 <Form.Item
                   label="Capacity (people)"
                   name="venue_capacity"
-                  rules={[{ required: true, message: "Please enter capacity!" }]}
+                  rules={[{ required: true }]}
                 >
-                  <InputNumber min={1} style={{ width: "100%" }} placeholder="Enter capacity" />
+                  <InputNumber min={1} style={{ width: "100%" }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
                   label="Venue Type"
                   name="venue_type_id"
-                  rules={[{ required: true, message: "Please select venue type!" }]}
+                  rules={[{ required: true }]}
                 >
                   <Select showSearch allowClear placeholder="Select venue type">
                     {venueTypes.map((vt) => (
@@ -142,28 +222,43 @@ const EditVenue: React.FC = () => {
             </Row>
 
             {/* Stage Info */}
-            <Card style={{ border: "1px solid #ccc", borderRadius: 8, marginTop: 24 }}>
-              <h2 style={{ fontWeight: "bold", fontSize: 18 }}>Stage Information</h2>
+            <Card
+              style={{
+                border: "1px solid #ccc",
+                borderRadius: 8,
+                marginTop: 24,
+              }}
+            >
+              <h2 style={{ fontWeight: "bold", fontSize: 18 }}>
+                Stage Information
+              </h2>
               <Form.List name="stages">
-                {(fields, { add, remove }) => (
+                {(fields, { add: addStage, remove: removeStage }) => (
                   <>
-                    {fields.map(({ key, name, ...restField }, index) => (
+                    {fields.map(({ key, name, ...restField }, stageIndex) => (
                       <Card
                         key={key}
-                        style={{
-                          border: "1px dashed #aaa",
-                          borderRadius: 6,
-                          padding: 16,
-                          marginBottom: 12,
-                          backgroundColor: "#fafafa",
-                        }}
                         type="inner"
-                        title={`Stage ${index + 1}`}
+                        title={`Stage ${stageIndex + 1}`}
                         extra={
-                          <Button danger size="small" onClick={() => remove(name)}>
+                          <Button
+                            danger
+                            onClick={async () => {
+                              const stageId = form.getFieldValue([
+                                "stages",
+                                name,
+                                "stage_id",
+                              ]);
+                              if (stageId) {
+                                await handleDeleteStage(stageId); // ส่ง stageId จริง ๆ ไป
+                              }
+                              removeStage(name);
+                            }}
+                          >
                             Remove Stage
                           </Button>
                         }
+                        style={{ marginBottom: 12 }}
                       >
                         <Row gutter={16}>
                           <Col span={12}>
@@ -171,7 +266,7 @@ const EditVenue: React.FC = () => {
                               {...restField}
                               name={[name, "stage_name"]}
                               label="Stage Name"
-                              rules={[{ required: true, message: "Please enter stage name" }]}
+                              rules={[{ required: true }]}
                             >
                               <Input placeholder="Stage name" />
                             </Form.Item>
@@ -181,7 +276,7 @@ const EditVenue: React.FC = () => {
                               {...restField}
                               name={[name, "stage_type_id"]}
                               label="Stage Type"
-                              rules={[{ required: true, message: "Please select stage type" }]}
+                              rules={[{ required: true }]}
                             >
                               <Select placeholder="Select stage type">
                                 {stageTypes.map((st) => (
@@ -197,7 +292,7 @@ const EditVenue: React.FC = () => {
                               {...restField}
                               name={[name, "width"]}
                               label="Width (meters)"
-                              rules={[{ required: true, message: "Please enter width" }]}
+                              rules={[{ required: true }]}
                             >
                               <InputNumber min={0} style={{ width: "100%" }} />
                             </Form.Item>
@@ -207,16 +302,173 @@ const EditVenue: React.FC = () => {
                               {...restField}
                               name={[name, "length"]}
                               label="Length (meters)"
-                              rules={[{ required: true, message: "Please enter length" }]}
+                              rules={[{ required: true }]}
                             >
                               <InputNumber min={0} style={{ width: "100%" }} />
                             </Form.Item>
                           </Col>
                         </Row>
+
+                        {/* Equipment per stage */}
+                        <Form.List name={[name, "equipments"]}>
+                          {(eqFields, { add: addEq, remove: removeEq }) => (
+                            <>
+                              {eqFields.map(
+                                ({
+                                  key: eqKey,
+                                  name: eqName,
+                                  ...eqRestField
+                                }) => {
+                                  // disable option ถ้าเลือกซ้ำ stage นี้
+                                  const selectedIds = eqFields
+                                    .filter((f) => f.name !== eqName)
+                                    .map((f) =>
+                                      form.getFieldValue([
+                                        "stages",
+                                        name,
+                                        "equipments",
+                                        f.name,
+                                        "equipment_id",
+                                      ])
+                                    )
+                                    .filter(Boolean);
+
+                                  return (
+                                    <Row gutter={16} key={eqKey} align="middle">
+                                      <Col span={12}>
+                                        <Form.Item
+                                          {...eqRestField}
+                                          name={[eqName, "equipment_id"]}
+                                          label="Equipment"
+                                          rules={[{ required: true }]}
+                                        >
+                                          <Select placeholder="Select equipment">
+                                            {equipments.map((e) => (
+                                              <Option
+                                                key={e.ID}
+                                                value={e.ID}
+                                                disabled={selectedIds.includes(
+                                                  e.ID
+                                                )}
+                                              >
+                                                <Tooltip
+                                                  title={`Remaining: ${
+                                                    equipmentStock[e.ID]
+                                                  }, Type: ${e.equipment_type}`}
+                                                >
+                                                  {e.equipment_name}
+                                                </Tooltip>
+                                              </Option>
+                                            ))}
+                                          </Select>
+                                        </Form.Item>
+                                      </Col>
+                                      <Col span={8}>
+                                        <Form.Item
+                                          {...eqRestField}
+                                          name={[eqName, "quantity"]}
+                                          label="Quantity"
+                                          rules={[
+                                            {
+                                              required: true,
+                                              message: "Enter quantity",
+                                            },
+                                            ({ getFieldValue }) => ({
+                                              validator(_, value) {
+                                                const eqId = getFieldValue([
+                                                  "stages",
+                                                  name,
+                                                  "equipments",
+                                                  eqName,
+                                                  "equipment_id",
+                                                ]);
+                                                if (!eqId)
+                                                  return Promise.resolve();
+                                                if (
+                                                  value > equipmentStock[eqId]
+                                                ) {
+                                                  return Promise.reject(
+                                                    new Error(
+                                                      `Exceeds remaining stock: ${equipmentStock[eqId]}`
+                                                    )
+                                                  );
+                                                }
+                                                return Promise.resolve();
+                                              },
+                                            }),
+                                          ]}
+                                        >
+                                          <InputNumber
+                                            min={1}
+                                            style={{ width: "100%" }}
+                                          />
+                                        </Form.Item>
+                                      </Col>
+                                      <Col span={4}>
+                                        <Button
+                                          danger
+                                          onClick={async () => {
+                                            const stageeq_Id =
+                                              form.getFieldValue([
+                                                "stages",
+                                                name,
+                                                "equipments",
+                                                eqName,
+                                                "stage_equipment_id",
+                                              ]);
+                                            console.log("stage_eq", stageeq_Id);
+
+                                            // ถ้ามี stage_equipment_id แสดงว่าเป็น equipment ที่มีอยู่แล้วในฐานข้อมูล
+                                            if (stageeq_Id) {
+                                              try {
+                                                await handleDeleteEquipment(
+                                                  stageeq_Id+
+                                                );
+                                                // หลังจากลบใน backend สำเร็จแล้วค่อยลบใน form
+                                                removeEq(eqName); // แก้จาก removeEq(name) เป็น removeEq(eqName)
+                                              } catch (error) {
+                                                console.error(
+                                                  "Failed to delete equipment:",
+                                                  error
+                                                );
+                                                // ถ้าลบไม่สำเร็จ ไม่ต้องลบใน form
+                                                return;
+                                              }
+                                            } else {
+                                              // ถ้าไม่มี stage_equipment_id แสดงว่าเป็น equipment ใหม่ที่ยังไม่ได้บันทึก
+                                              // ลบใน form ได้เลย
+                                              removeEq(eqName);
+                                            }
+
+                                            // อัพเดท stock หลังจากลบ equipment
+                                            const allValues =
+                                              form.getFieldsValue();
+                                            updateStock(allValues);
+                                          }}
+                                        >
+                                          Remove
+                                        </Button>
+                                      </Col>
+                                    </Row>
+                                  );
+                                }
+                              )}
+                              <Form.Item>
+                                <Button
+                                  type="dashed"
+                                  onClick={() => addEq()}
+                                  block
+                                >
+                                  + Add Equipment
+                                </Button>
+                              </Form.Item>
+                            </>
+                          )}
+                        </Form.List>
                       </Card>
                     ))}
                     <Form.Item>
-                      <Button type="dashed" onClick={() => add()} block>
+                      <Button type="dashed" onClick={() => addStage()} block>
                         + Add Stage
                       </Button>
                     </Form.Item>
@@ -225,12 +477,15 @@ const EditVenue: React.FC = () => {
               </Form.List>
             </Card>
 
-            {/* Action Buttons */}
+            {/* Submit */}
             <Form.Item style={{ marginTop: 24, textAlign: "right" }}>
               <Button type="primary" htmlType="submit">
                 Save Changes
               </Button>
-              <Button style={{ marginLeft: 8 }} onClick={() => navigate("/venue")}>
+              <Button
+                style={{ marginLeft: 8 }}
+                onClick={() => navigate("/venue")}
+              >
                 Cancel
               </Button>
             </Form.Item>

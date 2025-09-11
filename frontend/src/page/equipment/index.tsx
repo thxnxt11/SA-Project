@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect } from "react";
 import {
   Table,
   Button,
@@ -8,156 +9,214 @@ import {
   Space,
   Tag,
   message,
+  Spin,
 } from "antd";
 import AdminsidebarLayout from "../../components/sidebarLayout";
-import AddEquipmentModal from "./addequipment/index";
-import EditEquipmentModal from "./editequipment/index"; // import modal
+import AddEquipmentModal from "./addequipment";
+import EditEquipmentModal from "./editequipment";
+import { equipmentAPI } from "../../services/https/index";
+import type { EquipmentInterface } from "../../interfaces/equipment";
 
 const { Text, Title } = Typography;
 const { Option } = Select;
 
-export interface Equipment {
-  id: number;
-  name: string;
-  equipment_type: string;
-  location: string;
-  stage_name: string;
-  totalQuantity: number;
-  remainingQuantity: number;
-  usedQuantity: number;
-}
-
-const initialEquipments: Equipment[] = [
-  {
-    id: 1,
-    name: "Meyer Sound LEO Family",
-    equipment_type: "เครื่องเสียง",
-    location: "Thunder Dome Arena",
-    stage_name: "Main Stage Alpha",
-    totalQuantity: 24,
-    remainingQuantity: 10,
-    usedQuantity: 14,
-  },
-  {
-    id: 2,
-    name: "LED Wall 10x6m",
-    equipment_type: "จอแสดงผล",
-    location: "Seaside Amphitheater",
-    stage_name: "Sunset Stage",
-    totalQuantity: 1,
-    remainingQuantity: 0,
-    usedQuantity: 1,
-  },
-  {
-    id: 3,
-    name: "Moving Head Lights",
-    equipment_type: "แสงไฟ",
-    location: "Royal Convention Center",
-    stage_name: "Main Hall Stage",
-    totalQuantity: 48,
-    remainingQuantity: 20,
-    usedQuantity: 28,
-  },
-  {
-    id: 4,
-    name: "Wireless Microphone Set",
-    equipment_type: "เครื่องเสียง",
-    location: "-",
-    stage_name: "-",
-    totalQuantity: 10,
-    remainingQuantity: 10,
-    usedQuantity: 0,
-  },
-];
-
 const Equipment: React.FC = () => {
-  const [equipments, setEquipments] = useState<Equipment[]>(initialEquipments);
-  const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(
-    null
-  );
+  const [equipments, setEquipments] = useState<EquipmentInterface[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [editingEquipment, setEditingEquipment] =useState<EquipmentInterface | null>(null);
 
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "unused" | "available">(
-    "all"
-  );
+  const [filterType, setFilterType] = useState<"all" | "unused" | "available">("all");
   const [locationFilter, setLocationFilter] = useState<string>("all");
   const [stageFilter, setStageFilter] = useState<string>("all");
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  // ฟังก์ชันอัปเดตอุปกรณ์
-  const handleUpdateEquipment = (updated: Equipment) => {
-    setEquipments(
-      equipments.map((eq) => (eq.id === updated.id ? updated : eq))
-    );
+
+  // ---------------- Fetch Equipments ----------------
+  const fetchEquipments = async () => {
+    setLoading(true);
+    try {
+      const res = await equipmentAPI.getAllEquipments();
+      const data = res.data || [];
+      setEquipments(data);
+      console.log("Equipments fetched:", data);
+    } catch (err) {
+      message.error("โหลดข้อมูลอุปกรณ์ล้มเหลว");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchEquipments();
+  }, []);
+
+  // ---------------- Add / Update ----------------
+  const handleAddEquipment = async (newEquipment: EquipmentInterface) => {
+    // await equipmentAPI.update(Number(newEquipment.ID),newEquipment);
+    setEquipments([...equipments, newEquipment]);
+    message.success("เพิ่มอุปกรณ์เรียบร้อย");
+    setIsAddModalOpen(false);
+  };
+
+  const handleUpdateEquipment = (updated: EquipmentInterface) => {
+    setEquipments(
+      equipments.map((eq) => (eq.ID === updated.ID ? updated : eq))
+    );
+    message.success("แก้ไขอุปกรณ์เรียบร้อย");
+    setIsEditModalOpen(false);
+  };
+
+  // ---------------- Delete Equipment ----------------
+  const handleDeleteEquipment = async (id: number) => {
+    try {
+      setLoading(true);
+      const res = await equipmentAPI.delete(id);
+      if (res?.status === 200 || res?.status === 204) {
+        // รีเฟรชข้อมูล
+        await fetchEquipments();
+        message.success("ลบอุปกรณ์เรียบร้อยแล้ว");
+      } else {
+        message.error("ลบอุปกรณ์ไม่สำเร็จ");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("ลบอุปกรณ์ล้มเหลว");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ---------------- Filters ----------------
   const locations = Array.from(
-    new Set(equipments.map((eq) => eq.location))
-  ).filter((loc) => loc !== "-");
+    new Set(
+      equipments.flatMap(
+        (eq) =>
+          eq.stage_equipments
+            ?.map((se) => se.stage?.venue?.venue_name)
+            .filter(Boolean) || []
+      )
+    )
+  );
+
   const stages =
     locationFilter === "all"
       ? []
       : Array.from(
           new Set(
-            equipments
-              .filter((eq) => eq.location === locationFilter)
-              .map((eq) => eq.stage_name)
+            equipments.flatMap(
+              (eq) =>
+                eq.stage_equipments
+                  ?.filter(
+                    (se) => se.stage?.venue?.venue_name === locationFilter
+                  )
+                  .map((se) => se.stage?.stage_name)
+                  .filter(Boolean) || []
+            )
           )
-        ).filter((stage) => stage !== "-");
+        );
 
   const filteredEquipments = equipments.filter((eq) => {
-    const matchesSearch = eq.name.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = eq.equipment_name
+      .toLowerCase()
+      .includes(search.toLowerCase());
+
     const matchesFilterType =
       filterType === "unused"
-        ? eq.usedQuantity === 0
+        ? (eq.used_quantity || 0) === 0
         : filterType === "available"
-        ? eq.remainingQuantity > 0
+        ? (eq.remaining_quantity || 0) > 0
         : true;
+
     const matchesLocation =
-      locationFilter === "all" ? true : eq.location === locationFilter;
+      locationFilter === "all"
+        ? true
+        : eq.stage_equipments?.some(
+            (se) => se.stage?.venue?.venue_name === locationFilter
+          );
+
     const matchesStage =
-      stageFilter === "all" ? true : eq.stage_name === stageFilter;
+      stageFilter === "all"
+        ? true
+        : eq.stage_equipments?.some(
+            (se) => se.stage?.stage_name === stageFilter
+          );
+
     return (
       matchesSearch && matchesFilterType && matchesLocation && matchesStage
     );
   });
 
+  // ---------------- Columns ----------------
   const columns = [
     {
       title: "ชื่ออุปกรณ์",
-      dataIndex: "name",
-      key: "name",
-      render: (text: string, record: Equipment) => (
+      dataIndex: "equipment_name",
+      key: "equipment_name",
+      render: (text: string, record: EquipmentInterface) => (
         <>
           <Text strong>{text}</Text>
           <br />
-          <Text type="secondary">{record.equipment_type}</Text>
+          <Text type="secondary">
+            {record.equipment_type?.equipment_type || "-"}
+          </Text>
         </>
       ),
     },
     {
       title:
-        filterType === "available" || filterType == "unused"
+        filterType === "available" || filterType === "unused"
           ? ""
           : "สถานที่ / เวที",
-      dataIndex: "location",
       key: "location",
-      render: (_: any, record: Equipment) =>
-        filterType === "available" || filterType == "unused" ? null : (
-          <>
-            <Text>{record.location}</Text> | <Text>{record.stage_name}</Text>
-          </>
-        ),
+render: (_: any, record: EquipmentInterface) => {
+  if (filterType === "available" || filterType === "unused") return null;
+
+  if (!record.stage_equipments || record.stage_equipments.length === 0) return null;
+
+  // กรองเฉพาะ stage + venue ที่ยังมีอยู่
+  const validStageEquipments = record.stage_equipments.filter(
+    (se) => se.stage && se.stage.venue
+  );
+ 
+  if (validStageEquipments.length === 0) return null;
+
+  // สร้าง unique list ของแต่ละ (venue, stage)
+  const uniqueStageEquipments = Array.from(
+    new Set(
+      validStageEquipments.map(
+        (se) =>
+          `${se.stage.venue?.venue_name}|${se.stage.stage_name}|${se.stage_quantity}`
+      )
+    )
+  ).map((key) => {
+    const [venueName, stageName, quantity] = key.split("|");
+    return { venueName, stageName, quantity };
+  });
+
+  return (
+    <>
+      {uniqueStageEquipments.map((se, idx) => (
+        <div key={idx}>
+          <Text>{se.venueName}</Text> | <Text>{se.stageName}</Text> |{" "}
+          <Text>จำนวน: {se.quantity}</Text>
+        </div>
+      ))}
+    </>
+  );
+},
     },
     {
-      title: "จำนวนทั้งหมด | ใช้งาน | เหลือ",
+      title: "จำนวนทั้งหมด | เหลือ",
       key: "quantity",
-      render: (_: any, record: Equipment) => (
+      render: (_: any, record: EquipmentInterface) => (
         <>
-          <Text>ทั้งหมด: {record.totalQuantity}</Text> |{" "}
-          <Text>ใช้งาน: {record.usedQuantity}</Text> |{" "}
-          <Tag color={record.remainingQuantity === 0 ? "red" : "green"}>
-            เหลือ: {record.remainingQuantity}
+          <Text>ทั้งหมด: {record.total_quantity || 0}</Text> |{" "}
+          {/* <Text>ใช้งาน: {record.used_quantity || 0}</Text> |{" "} */}
+          <Tag color={record.remaining_quantity === 0 ? "red" : "green"}>
+            เหลือ: {record.remaining_quantity || 0}
           </Tag>
         </>
       ),
@@ -165,28 +224,29 @@ const Equipment: React.FC = () => {
     {
       title: "จัดการ",
       key: "action",
-      render: (_: any, record: Equipment) => (
+      render: (_: any, record: EquipmentInterface) => (
         <>
           <Button
             type="link"
             onClick={() => {
               setEditingEquipment(record);
+              console.log("record",record)
               setIsEditModalOpen(true);
             }}
           >
             Edit
           </Button>
-          <Button type="link">Delete</Button>
+          <Button
+            type="link"
+            danger
+            onClick={() => handleDeleteEquipment(Number(record.ID))}
+          >
+            Delete
+          </Button>
         </>
       ),
     },
   ];
-
-  const handleAddEquipment = (newEquipment: Equipment) => {
-    setEquipments([...equipments, newEquipment]);
-    message.success("เพิ่มอุปกรณ์เรียบร้อย");
-    setIsModalOpen(false);
-  };
 
   return (
     <AdminsidebarLayout>
@@ -202,10 +262,11 @@ const Equipment: React.FC = () => {
             <Title level={3}>จัดการอุปกรณ์</Title>
             <Text type="secondary">จัดการอุปกรณ์เวทีและระบบต่างๆ</Text>
           </div>
-          <Button type="primary" onClick={() => setIsModalOpen(true)}>
+          <Button type="primary" onClick={() => setIsAddModalOpen(true)}>
             + เพิ่มอุปกรณ์ใหม่
           </Button>
         </div>
+
         <Space style={{ marginBottom: 20, flexWrap: "wrap" }}>
           <Input
             placeholder="ค้นหาอุปกรณ์..."
@@ -213,6 +274,7 @@ const Equipment: React.FC = () => {
             onChange={(e) => setSearch(e.target.value)}
             style={{ width: 250 }}
           />
+
           <Select
             value={filterType}
             onChange={(value) => setFilterType(value)}
@@ -254,25 +316,32 @@ const Equipment: React.FC = () => {
             </Select>
           )}
         </Space>
-        <Table
-          dataSource={filteredEquipments}
-          columns={columns}
-          rowKey="id"
-          pagination={{ pageSize: 5 }}
-        />
+
+        {loading ? (
+          <Spin />
+        ) : (
+          <Table
+            dataSource={filteredEquipments}
+            columns={columns}
+            rowKey={(record) => record.ID || record.equipment_name}
+            pagination={{ pageSize: 5 }}
+          />
+        )}
+
         <AddEquipmentModal
-          open={isModalOpen}
-          onCancel={() => setIsModalOpen(false)}
+          open={isAddModalOpen}
+          onCancel={() => setIsAddModalOpen(false)}
           onAdd={handleAddEquipment}
-          nextId={equipments.length + 1}
         />
-        
-        <EditEquipmentModal
-          open={isEditModalOpen}
-          onCancel={() => setIsEditModalOpen(false)}
-          onUpdate={handleUpdateEquipment}
-          equipment={editingEquipment!}
-        />
+
+        {editingEquipment && (
+          <EditEquipmentModal
+            open={isEditModalOpen}
+            onCancel={() => setIsEditModalOpen(false)}
+            onSave={handleUpdateEquipment}
+            equipmentId={Number(editingEquipment.ID)}
+          />
+        )}
       </div>
     </AdminsidebarLayout>
   );
