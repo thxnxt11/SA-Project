@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"time"
 
 	"github.com/yourname/went-back/entity"
 	"gorm.io/gorm"
@@ -28,36 +27,43 @@ func (s *StaffAssignmentService) GetMyAssignments(userID uint) ([]entity.Assignm
 
 // รับงาน (Accept)
 func (s *StaffAssignmentService) AcceptAssignment(assignmentID uint, userID uint) error {
-	var sa entity.StaffAssignment
-	err := s.DB.Where("assignment_id = ? AND user_id = ?", assignmentID, userID).First(&sa).Error
+	err := s.DB.Model(&entity.StaffAssignment{}).
+		Where("assignment_id = ? AND user_id = ?", assignmentID, userID).
+		Update("assignment_status_id", 2).Error
+	
+	if err != nil {
+		return err
+	}
+	// อัปเดต Assignment status อัตโนมัติ
+	return s.UpdateAssignmentStatus(assignmentID)
+}
 
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		// สร้าง StaffAssignment ใหม่
-		sa = entity.StaffAssignment{
-			AssignmentID:       assignmentID,
-			UserID:             userID,
-			AssignmentStatusID: 1, // Pending
-			AssignedAt:         time.Now(),
-		}
-		if err := s.DB.Create(&sa).Error; err != nil {
-			return err
-		}
-	} else if err == nil {
-		// อัปเดตเป็น Pending หากถูกยกเลิก
-		if sa.AssignmentStatusID == 4 {
-			sa.AssignmentStatusID = 1
-			if err := s.DB.Save(&sa).Error; err != nil {
-				return err
-			}
-		}
-	} else {
+func (s *StaffAssignmentService) InjectAssignment(assignmentID uint,userID uint) error{
+	err := s.DB.Model(&entity.StaffAssignment{}).
+		Where("assignment_id = ? AND user_id = ?", assignmentID, userID).
+		Update("assignment_status_id", 4).Error
+	
+	if err != nil {
+		return err
+	}
+	// อัปเดต Assignment status อัตโนมัติ
+	return s.UpdateAssignmentStatus(assignmentID)
+}
+
+
+func (s *StaffAssignmentService) CompleteAssignment(assignmentID uint, userID uint) error {
+	// อัปเดต StaffAssignment เป็น completed (3)
+	err := s.DB.Model(&entity.StaffAssignment{}).
+		Where("assignment_id = ? AND user_id = ?", assignmentID, userID).
+		Update("assignment_status_id", 3).Error
+	
+	if err != nil {
 		return err
 	}
 
 	// อัปเดต Assignment status อัตโนมัติ
 	return s.UpdateAssignmentStatus(assignmentID)
 }
-
 // เปลี่ยนสถานะของตัวเอง (1:Pending,2:InProgress,3:Completed,4:Cancelled)
 func (s *StaffAssignmentService) UpdateMyStatus(staffAssignmentID uint, userID uint, statusID uint) error {
 	var sa entity.StaffAssignment

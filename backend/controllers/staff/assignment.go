@@ -29,16 +29,18 @@ func (ctrl *StaffAssignmentController) GetMyAssignments(c *gin.Context) {
 // POST /staff/assignments/:id/accept
 func (ctrl *StaffAssignmentController) AcceptAssignment(c *gin.Context) {
 	assignIdStr := c.Param("assignment_id")
-	assignID,err := strconv.ParseUint(assignIdStr,10,32) 
+	assignID, err := strconv.ParseUint(assignIdStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid assignment_id"})
-	} 
-	uIdStr := c.Param("user_id")
-	userID,err := strconv.ParseUint(uIdStr,10,32)
-	if err != nil{
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+		return // เพิ่ม return เพื่อหยุดการทำงาน
 	}
 
+	uIdStr := c.Param("user_id")
+	userID, err := strconv.ParseUint(uIdStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+		return // เพิ่ม return เพื่อหยุดการทำงาน
+	}
 
 	if err := ctrl.Service.AcceptAssignment(uint(assignID), uint(userID)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to accept assignment"})
@@ -48,6 +50,27 @@ func (ctrl *StaffAssignmentController) AcceptAssignment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Assignment accepted"})
 }
 
+func (ctrl *StaffAssignmentController) InjectAssignment(c *gin.Context){
+	assignIdStr := c.Param("assignment_id")
+	assignID, err := strconv.ParseUint(assignIdStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid assignment_id"})
+		return // เพิ่ม return เพื่อหยุดการทำงาน
+	}
+
+	uIdStr := c.Param("user_id")
+	userID, err := strconv.ParseUint(uIdStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+		return // เพิ่ม return เพื่อหยุดการทำงาน
+	}
+
+	if err := ctrl.Service.InjectAssignment(uint(assignID), uint(userID)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel assignment"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Assignment injected"})
+}
 // PUT /staff/staff_assignments/:id/status
 func (ctrl *StaffAssignmentController) UpdateMyStatus(c *gin.Context) {
 	staffAssignIdStr := c.Param("staff-assignment_id")
@@ -81,4 +104,27 @@ func (ctrl *StaffAssignmentController) UpdateMyStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Status updated"})
+}
+
+func (ctrl *StaffAssignmentController) CompleteAssignment(c *gin.Context) {
+	assignIdStr := c.Param("assignment_id")
+	assignID, err := strconv.ParseUint(assignIdStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid assignment_id"})
+		return
+	}
+
+	uIdStr := c.Param("user_id")
+	userID, err := strconv.ParseUint(uIdStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+		return
+	}
+
+	if err := ctrl.Service.CompleteAssignment(uint(assignID), uint(userID)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete assignment"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Assignment completed"})
 }

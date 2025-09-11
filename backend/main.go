@@ -189,7 +189,9 @@ func main() {
 		api.PATCH("/cart/items/:id/select",products.UpdateCartItemSelected)
 		api.POST("/upload/order-receipt",products.UploadReceiptImage)
 		api.POST("/upload/product",products.UploadProductImage)
-
+		api.POST("/staff/:user_id/assignments/:assignment_id/accept",staffAssignCtrl.AcceptAssignment)
+		api.POST("/staff/:user_id/assignments/:assignment_id/inject",staffAssignCtrl.InjectAssignment)
+		api.POST("/staff/:user_id/assignments/:assignment_id/complete",staffAssignCtrl.CompleteAssignment)
 	}
 
 	// static uploads

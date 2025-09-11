@@ -2,9 +2,9 @@ import React, { useEffect, useRef } from "react";
 import { Modal, Typography, Carousel, Button, message } from "antd";
 import type { CarouselRef } from "antd/es/carousel";
 import logo from "../../assets/logo.png";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { QRCodeCanvas } from "qrcode.react";
+import ArrowButton from "../../component/arrowCarouse";
 
 const { Title, Text } = Typography;
 
@@ -233,46 +233,18 @@ const ETicketSuccess: React.FC<SuccessProps> = ({
           <Text type="secondary">No tickets.</Text>
         ) : multiple ? (
           <div style={{ width: 360, margin: "0 auto", position: "relative" }}>
-            <div
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "-40px",
-                transform: "translateY(-50%)",
-                zIndex: 10,
-              }}
-            >
-              <Button
-                shape="circle"
-                icon={<LeftOutlined />}
-                onClick={() => sliderRef.current?.prev()}
-                style={{
-                  background: "rgba(0, 0, 0, 0.6)",
-                  borderColor: "transparent",
-                  color: "white",
-                }}
-              />
-            </div>
-            <div
-              style={{
-                position: "absolute",
-                top: "50%",
-                right: "-40px",
-                transform: "translateY(-50%)",
-                zIndex: 10,
-              }}
-            >
-              <Button
-                shape="circle"
-                icon={<RightOutlined />}
-                onClick={() => sliderRef.current?.next()}
-                style={{
-                  background: "rgba(0, 0, 0, 0.6)",
-                  borderColor: "transparent",
-                  color: "white",
-                }}
-              />
-            </div>
+            <ArrowButton
+              direction="left"
+              top="50%"
+              onClick={() => sliderRef.current?.prev()}
+              style={{ left: -60, transform: "translateY(-50%)" }}
+            />
+            <ArrowButton
+              direction="right"
+              top="50%"
+              onClick={() => sliderRef.current?.next()}
+              style={{ right: -60, transform: "translateY(-50%)" }}
+            />
 
             <Carousel
               ref={sliderRef}

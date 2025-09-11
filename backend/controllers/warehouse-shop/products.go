@@ -133,6 +133,7 @@ func FindProducts(c *gin.Context) {
         Preload("Concert").
         Preload("Variants.Color").
         Preload("Variants.Size").
+        Order("sales DESC").
         Find(&products).Error; err != nil {
         c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
         return

@@ -13,7 +13,7 @@ const contentStyle: React.CSSProperties = {
   color: '#fff',
   lineHeight: '160px',
   textAlign: 'center',
-  background: '#6194f3ff',
+  // background: '#6194f3ff',
 };
 
 const ShoppingPage: React.FC = () => {

@@ -406,11 +406,18 @@ export const refundAPI = {
 
 export const staffAssignmentAPI = {
   // ดึงงานของตัวเอง
-  getMyAssignments: (id: number | string |undefined) => Get(`${PUBLIC_API_URL}/staff/${id}/assignments`),
+  getMyAssignments: (id: number | string | undefined) =>
+    Get(`${PUBLIC_API_URL}/staff/${id}/assignments`),
 
   // รับงาน (เปลี่ยนสถานะเป็น In Progress)
-  acceptAssignment: (assignmentId: number) =>
-    Post(`${PUBLIC_API_URL}/staff/assignments/${assignmentId}/accept`, {}),
+  acceptAssignment: (
+    assignmentId: number,
+    user_id: number | string | undefined
+  ) =>
+    Post(
+      `${PUBLIC_API_URL}/staff/${user_id}/assignments/${assignmentId}/accept`,
+      {}
+    ),
 
   // อัปเดตสถานะงานของตัวเอง
   updateStatus: (staffAssignmentId: number, statusId: number) =>
@@ -419,6 +426,22 @@ export const staffAssignmentAPI = {
       {
         assignment_status_id: statusId,
       }
+    ),
+  InjectAssignment: (
+    assignmentId: number,
+    user_id: number | string | undefined
+  ) =>
+    Post(
+      `${PUBLIC_API_URL}/staff/${user_id}/assignments/${assignmentId}/inject`,
+      {}
+    ),
+  CompleteAssignment: (
+    assignmentId: number,
+    user_id: number | string | undefined
+  ) =>
+    Post(
+      `${PUBLIC_API_URL}/staff/${user_id}/assignments/${assignmentId}/complete`,
+      {}
     ),
 };
 

@@ -4,11 +4,6 @@ import { staffAssignmentAPI } from "../../services/https";
 import SidebarLayout from "../../component/layout/SidebarLayout";
 import { useAuth } from "../../hook/authContext";
 
-// ถ้าคุณมี StaffAssignmentInterface เดิมที่ไม่สอดคล้องกับรูปทรงหลัง flatten
-// ให้ใช้ any[] ใน state เพื่อความยืดหยุ่น
-// หรือสร้าง type ใหม่สำหรับแถวที่ flatten แล้วก็ได้
-// type MyAssignmentRow = { ID: number; task: string; description: string; assignment_status_id: number; raw?: any };
-
 const statusMap: Record<number, { label: string; color: string }> = {
   1: { label: "Pending", color: "default" },
   2: { label: "In Progress", color: "blue" },
@@ -46,7 +41,8 @@ const MyAssignments: React.FC = () => {
           // ไม่มี staff_assignments ให้ขึ้นแถวว่าง ๆ อย่างน้อย 1 แถว
           return [
             {
-              ID: a.ID ?? a.id, // ใช้ ID ของ assignment
+              ID: `${a.ID ?? a.id}_new`, // unique key สำหรับ table
+              assignmentId: a.ID ?? a.id, // ID ของ assignment จริง
               task: a.task ?? "-",
               description: a.description ?? "-",
               assignment_status_id: 1, // map เป็น Pending
@@ -55,11 +51,12 @@ const MyAssignments: React.FC = () => {
           ];
         }
         // แตกเป็นหลายแถวตาม staff_assignments
-        return items.map((sa: any) => ({
-          ID: sa.ID ?? sa.id ?? a.ID ?? a.id, // ใช้ id ของ staff_assignment เป็น rowKey ถ้ามี
+        return items.map((sa: any, index: number) => ({
+          ID: sa.ID ?? sa.id ?? `${a.ID ?? a.id}_${index}`, // unique key สำหรับ table
+          assignmentId: a.ID ?? a.id, // ID ของ assignment จริง (ใช้สำหรับ API call)
           task: a.task ?? "-",
           description: a.description ?? "-",
-          assignment_status_id: sa.assignment_status_id ?? 1, // 0 -> map เป็น 1 (Pending)
+          assignment_status_id: sa.assignment_status_id ?? 1,
           raw: { assignment: a, staff_assignment: sa },
         }));
       });
@@ -73,11 +70,12 @@ const MyAssignments: React.FC = () => {
     }
   };
 
-  const handleAccept = async (id?: number) => {
-    if (!id) return;
+  const handleAccept = async (assignmentId?: number) => {
+    if (!assignmentId || !user?.id) return;
     try {
       setUpdating(true);
-      await staffAssignmentAPI.acceptAssignment(id);
+      // ส่ง assignmentId ที่ถูกต้อง
+      await staffAssignmentAPI.acceptAssignment(assignmentId, user.id);
       message.success("รับงานเรียบร้อยแล้ว");
       fetchAssignments();
     } catch (err) {
@@ -88,12 +86,29 @@ const MyAssignments: React.FC = () => {
     }
   };
 
-  const handleStatusChange = async (id?: number, statusId?: number) => {
-    if (!id || !statusId) return;
+  const handleInject = async (assignmentId?: number) => {
+    if (!assignmentId || !user?.id) return;
     try {
       setUpdating(true);
-      await staffAssignmentAPI.updateStatus(id, statusId);
-      message.success("อัปเดตสถานะเรียบร้อย");
+      // ส่ง assignmentId ที่ถูกต้อง
+      await staffAssignmentAPI.InjectAssignment(assignmentId, user.id);
+      message.success("ยกเลิกงานเรียบร้อย"); // แก้ข้อความให้ถูกต้อง
+      fetchAssignments();
+    } catch (err) {
+      console.log(err);
+      message.error("ยกเลิกงานไม่สำเร็จ");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleStatusChange = async (assignmentId?: number) => {
+    if (!assignmentId || !user?.id) return;
+    try {
+      setUpdating(true);
+      // ส่ง assignmentId ที่ถูกต้อง
+      await staffAssignmentAPI.CompleteAssignment(assignmentId, user.id);
+      message.success("อัปเดตสถานะทำงานเสร็จเรียบร้อย");
       fetchAssignments();
     } catch (err) {
       console.error(err);
@@ -108,12 +123,8 @@ const MyAssignments: React.FC = () => {
   }, [user?.id]);
 
   const columns = [
-    { title: "Task", 
-      dataIndex: "task", 
-      key: "task" },
-    { title: "Description", 
-      dataIndex: "description", 
-      key: "description" },
+    { title: "Task", dataIndex: "task", key: "task" },
+    { title: "Description", dataIndex: "description", key: "description" },
     {
       title: "Status",
       dataIndex: "assignment_status_id",
@@ -135,19 +146,29 @@ const MyAssignments: React.FC = () => {
         return (
           <div style={{ display: "flex", gap: 8 }}>
             {statusId === 1 && (
-              <Button
-                type="primary"
-                loading={updating}
-                onClick={() => handleAccept(record.ID)}
-              >
-                รับงาน
-              </Button>
+              <div>
+                <Button
+                  type="primary"
+                  loading={updating}
+                  onClick={() => handleAccept(record.assignmentId)} // ใช้ assignmentId แทน ID
+                >
+                  รับงาน
+                </Button>
+                <Button
+                  type="default"
+                  loading={updating}
+                  style={{ marginLeft: 10 }}
+                  onClick={() => handleInject(record.assignmentId)} // ใช้ assignmentId แทน ID
+                >
+                  ไม่รับงาน
+                </Button>
+              </div>
             )}
             {statusId === 2 && (
               <Button
                 type="default"
                 loading={updating}
-                onClick={() => handleStatusChange(record.ID, 3)}
+                onClick={() => handleStatusChange(record.assignmentId)} // ใช้ assignmentId แทน ID
               >
                 ทำงานเสร็จแล้ว
               </Button>
