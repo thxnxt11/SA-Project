@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Card, message, Popconfirm, Table, Tag } from "antd";
+import { Button, Card, message, Popconfirm, Select, Table, Tag } from "antd";
 import type { TableProps } from "antd";
 import Title from "antd/es/typography/Title";
 import dayjs from "dayjs";
@@ -8,7 +8,7 @@ import Navbar from "../../component/layout/navbar";
 import { refundAPI } from "../../services/https";
 import type { Refund } from "../../interface/refund";
 
-export const RefundHis = () => {
+export const RefundHis: React.FC = () => {
   const { user } = useAuth();
   const [data, setData] = useState<Refund[]>([]);
 
@@ -17,7 +17,6 @@ export const RefundHis = () => {
       refundAPI
         .getHistory(Number(user.id))
         .then((response) => {
-          console.log("API Response:", response); // <-- เช็คข้อมูลที่ได้
           if (Array.isArray(response)) {
             const map = response.map((re: any) => ({
               id: re.id,
@@ -32,24 +31,54 @@ export const RefundHis = () => {
               updated_at: re.updated_at,
             }));
             setData(map);
-          } else {
-            console.error("API response is not an array:", response);
           }
         })
-        .catch((err) => console.error("Error fetching refund history:", err));
+        .catch((err) => console.error(err));
     }
   }, [user]);
 
+  const statusOptions = [
+    { value: 1, label: "รอดำเนินการ" },
+    { value: 2, label: "ดำเนินการเสร็จสิ้น" },
+    { value: 3, label: "ปฏิเสธคำขอ" },
+  ];
+
+  const handleUpdateStatus = async (
+    refund_id: number,
+    refund_status_id: number,
+    requester_id: number
+  ) => {
+    try {
+      const res = await refundAPI.updateStatus(
+        refund_id,
+        refund_status_id,
+        requester_id
+      );
+      console.log("Update status response:", res);
+      message.success("อัปเดตสถานะสำเร็จ");
+
+      // อัปเดต state frontend ด้วย
+      setData((prev) =>
+        prev.map((item) =>
+          item.id === refund_id ? { ...item, refund_status_id } : item
+        )
+      );
+    } catch (err) {
+      console.error("Error updating status:", err);
+      message.error("ไม่สามารถอัปเดตสถานะได้");
+    }
+  };
+
   const handleDelete = async (id: number) => {
     try {
-      await refundAPI.delete(id); // id = record.id
+      await refundAPI.delete(id);
       message.success("ลบข้อมูลสำเร็จ");
       setData((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
-      console.error("Error deleting refund:", err);
+      console.error(err);
       message.error("ไม่สามารถลบข้อมูลได้");
     }
-  };  
+  };
 
   const columns: TableProps<Refund>["columns"] = [
     {
@@ -67,14 +96,31 @@ export const RefundHis = () => {
       dataIndex: "amount",
       key: "amount",
     },
-
     {
       title: "Status",
-      dataIndex: "status",
       key: "status",
-      render: (status: string | undefined) => {
-        let color = "blue"; // ค่า default
-        switch (status) {
+      render: (_, record) => {
+        if (user?.role_id === 3) {
+          return (
+            <Select
+              value={record.status}
+              style={{ width: 180 }}
+              onChange={(val) =>
+                handleUpdateStatus(
+                  record.id,
+                  Number(val),
+                  Number(user.id)
+                )
+              }
+              options={statusOptions.map((o) => ({
+                value: o.value,
+                label: o.label,
+              }))}
+            />
+          );
+        }
+        let color = "blue";
+        switch (record.status) {
           case "ดำเนินการเสร็จสิ้น":
             color = "green";
             break;
@@ -85,7 +131,7 @@ export const RefundHis = () => {
             color = "orange";
             break;
         }
-        return <Tag color={color}>{status || "-"}</Tag>;
+        return <Tag color={color}>{record.status || "-"}</Tag>;
       },
     },
     {
@@ -101,11 +147,13 @@ export const RefundHis = () => {
       render: (_, record) => (
         <Popconfirm
           title="ยืนยันการลบ?"
-          onConfirm={() => handleDelete(record.id)} // <-- ตรงนี้ต้องเป็น record.id
+          onConfirm={() => handleDelete(record.id)}
           okText="ใช่"
           cancelText="ไม่"
         >
-          <Button danger>Delete</Button>
+          <Button danger disabled={user?.role_id !== 2}>
+            Delete
+          </Button>
         </Popconfirm>
       ),
     },

@@ -145,7 +145,7 @@ func main() {
 		api.PUT("/seatzone/:id/seat/:seat_id",zone.UpdateSeatzone)
 
 		api.GET("/report-types", reportController.GetReportTypes)
-		api.POST("/reports/:user_id/user", reportController.CreateReport)
+		api.POST("/users/:user_id/reports", reportController.CreateReport)
 		api.GET("/reports/history/:user_id", controllers.GetReportHistory)
 		api.GET("/users/:user_id/bookings", refundController.GetUserBookings)
 		api.GET("/users/:user_id/refundable-bookings", refundController.GetRefundableBookings)
@@ -153,6 +153,8 @@ func main() {
 		api.POST("/users/:user_id/refunds", refundController.CreateRefund)
 		api.GET("/refunds/history/:user_id", refund.GetRefundHistory)
 		api.DELETE("/refunds/:id", refund.DeleteRefund)
+		api.PUT("/refunds/:id/status", refund.UpdateRefundStatus)
+		api.POST("/reports/:report_id/reply", controllers.ReplyReport)
 	}
 
 	// static uploads

@@ -302,7 +302,7 @@ export const reportAPI = {
   ): Promise<any> => {
     // ใช้ axios ตรง ๆ แบบ uploadAPI เพื่อส่ง multipart ได้ถูกต้อง
     const res = await axios.post(
-      `${PUBLIC_API_URL}/reports/${user_id}/user`,
+      `${PUBLIC_API_URL}/users/${user_id}/reports`,
       formData,
       {
         headers: { "Content-Type": "multipart/form-data" },
@@ -316,6 +316,20 @@ export const reportAPI = {
   getHistory: async (user_id: number): Promise<Report[]> => {
     const res = await Get(`${PUBLIC_API_URL}/reports/history/${user_id}`);
     return res?.data as Report[];
+  },
+  // ตอบกลับรายงาน (สำหรับ admin)
+   replyReport: async (
+    report_id: number,
+    message: string,
+    user_id: number,
+    role_id: number
+  ): Promise<any> => {
+    const res = await Post(`${PUBLIC_API_URL}/reports/${report_id}/reply`, {
+      message,
+      user_id,
+      role_id,
+    });
+    return res?.data;
   },
 };
 
@@ -359,6 +373,15 @@ export const refundAPI = {
   // ลบคำขอ Refund
   delete: async (refund_id: number): Promise<any> => {
     const res = await Delete(`${PUBLIC_API_URL}/refunds/${refund_id}`);
+    return res?.data;
+  },
+  // อัพเดทสถานะคำขอ Refund (สำหรับ admin)
+
+  updateStatus: async (refund_id: number, refund_status_id: number ,requester_id: number): Promise<any> => {
+    const res = await Update(`${PUBLIC_API_URL}/refunds/${refund_id}/status`, {
+      refund_status_id,
+      requester_id,
+    });
     return res?.data;
   },
 };

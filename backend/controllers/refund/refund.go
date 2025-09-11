@@ -302,11 +302,64 @@ func (rc *RefundController) canBookingBeRefunded(booking entity.Booking, payment
 // DELETE /api/refunds/:id
 func DeleteRefund(c *gin.Context) {
 	id := c.Param("id")
+	userID := c.Param("user_id")
 
-	if err := connection.DB().Delete(&entity.Refund{}, id).Error; err != nil {
+	var user entity.User
+	if err := connection.DB().First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// ✅ อนุญาตให้ลบได้เฉพาะ role == 2
+	if user.RoleID != 2 {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only role 2 is allowed to delete refunds"})
+		return
+	}
+
+	var refund entity.Refund
+	if err := connection.DB().First(&refund, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Refund not found"})
+		return
+	}
+
+	if err := connection.DB().Delete(&refund).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Refund deleted successfully"})
+}
+
+func UpdateRefundStatus(c *gin.Context) {
+    refundID := c.Param("id")
+
+    var req struct {
+        RefundStatusID uint `json:"refund_status_id"`
+        RequesterID    uint `json:"requester_id"`
+    }
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    // เช็ค requester role
+    var requester entity.User
+    if err := connection.DB().First(&requester, req.RequesterID).Error; err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "ไม่พบผู้ใช้ที่ร้องขอ"})
+        return
+    }
+
+    if requester.RoleID != 3 {
+        c.JSON(http.StatusForbidden, gin.H{"error": "ไม่มีสิทธิ์ในการอัปเดตสถานะ"})
+        return
+    }
+
+    if err := connection.DB().Model(&entity.Refund{}).
+        Where("id = ?", refundID).
+        Update("refund_status_id", req.RefundStatusID).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "Refund status updated successfully"})
 }

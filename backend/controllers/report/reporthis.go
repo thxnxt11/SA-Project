@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yourname/went-back/connection"
@@ -9,18 +10,33 @@ import (
 )
 
 func GetReportHistory(c *gin.Context) {
-    userID := c.Param("user_id")
+	userID := c.Param("user_id")
+	requesterID, err := strconv.Atoi(userID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user_id"})
+		return
+	}
 
-    var reports []entity.Report
-    if err := connection.DB().
-        Preload("User").
-        Preload("ReportType").
-        Preload("ReportStatus").
-        Where("user_id = ?", userID).
-        Find(&reports).Error; err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        return
-    }
+	// โหลด requester เพื่อเช็ก role
+	var requester entity.User
+	if err := connection.DB().First(&requester, requesterID).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ไม่พบผู้ใช้ที่ร้องขอ"})
+		return
+	}
+	var reports []entity.Report
+	query := connection.DB().
+		Preload("User").
+		Preload("ReportType").
+		Preload("ReportStatus")
 
-    c.JSON(http.StatusOK, reports)
+	if requester.RoleID != 3 { // ถ้าไม่ใช่ role==3 ให้กรองเฉพาะของตัวเอง
+		query = query.Where("user_id = ?", requesterID)
+	}
+
+	if err := query.Find(&reports).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, reports)
 }
