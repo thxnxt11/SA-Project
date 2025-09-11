@@ -21,6 +21,10 @@ import { Refund } from "../pages/refund/refund";
 import { RefundHis } from "../pages/refund/historyrefund";
 import RequireRole from "../hook/RequireRole";
 import MyAssignments from "../pages/staff";
+import PaymentOrderPage from "../pages/shoppy/payment";
+import CartPages from "../pages/shoppy/cart";
+import ShoppingPage from "../pages/shoppy";
+import ProductDetailPage from "../pages/shoppy/detail";
 
 export default function MemberRoutes() {
   return (
@@ -139,6 +143,24 @@ export default function MemberRoutes() {
           </RequireAuth>
         }
       />
+      {/* shoppy (public) */}
+        <Route path="/shopping" element={<ShoppingPage />} />
+        <Route path="/shopping/productdetail/:id" element={<ProductDetailPage />}/>
+        <Route path="/shopping/cart/:id" 
+          element={
+            <RequireAuth>
+              <CartPages />
+            </RequireAuth>
+          } 
+         />
+        <Route path="/shopping/payment-orders/:id" 
+          element={
+            <RequireAuth>
+              <PaymentOrderPage />
+            </RequireAuth>
+          } 
+        />
+      {/* </Route> */}
 
       {/* 404 fallback for public */}
       <Route path="*" element={<Navigate to="/Eventix" replace />} />

@@ -9,9 +9,10 @@ import {
   Space,
   Typography,
   Menu,
+  Badge,
 } from "antd";
 import { FaUserCircle} from "react-icons/fa";
-import { DownOutlined } from "@ant-design/icons";
+import { DownOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import logo from "../../assets/logo.png";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hook/authContext";
@@ -45,13 +46,13 @@ const Navbar: React.FC = () => {
     () => [
       { label: "Concert", to: "/concerts" }, // ทุก role เห็น
       { label: "Shopping", to: "/shopping" }, // ทุก role เห็น
-      { label: "Staff", to: "/assignment", roles: ["staff", "admin"] },
+      { label: "Staff", to: "/assignment", roles: ["staff"] },
       {
         label: "Organizer",
         to: "/organizer/dashboard",
-        roles: ["organizer", "admin"],
+        roles: ["organizer"],
       },
-      { label: "Admin", to: "/admin/dashboard", roles: ["admin"] },
+      { label: "Admin", to: "/warehouse/dashboardwarehouse", roles: ["admin"] },
     ],
     []
   );
@@ -230,34 +231,50 @@ const Navbar: React.FC = () => {
                 Sign in
               </Button>
             ) : (
-              <Dropdown
-                menu={userMenu}
-                placement="bottomRight"
-                trigger={["click"]}
-              >
+              <>
+                <Badge dot offset={[-2, 2]}>
                 <Button
-                  type="default"
+                  type="text"
+                  aria-label="Notifications"
+                  icon={<ShoppingCartOutlined />}
+                  onClick={() => navigate(`/shopping/cart/${user?.id}`)}
                   style={{
-                    background: "white",
-                    height: 48,
-                    borderRadius: 999,
-                    paddingInline: 14,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    fontSize: 16,
-                    fontWeight: 600,
+                    color: "white",
+                    fontSize: 18,
+                    height: 44,
                   }}
+                />
+              </Badge>
+                <Dropdown
+                  menu={userMenu}
+                  placement="bottomRight"
+                  trigger={["click"]}
                 >
-                  <Avatar
-                    size={28}
-                    icon={<FaUserCircle />}
-                    style={{ backgroundColor: "#E6F4FF", color: "#00306E" }}
-                  />
-                  {displayName || "User"}
-                  <DownOutlined style={{ fontSize: 12 }} />
-                </Button>
-              </Dropdown>
+                  <Button
+                    type="default"
+                    style={{
+                      background: "white",
+                      height: 48,
+                      borderRadius: 999,
+                      paddingInline: 14,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      fontSize: 16,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Avatar
+                      size={28}
+                      icon={<FaUserCircle />}
+                      style={{ backgroundColor: "#E6F4FF", color: "#00306E" }}
+                    />
+                    {displayName || "User"}
+                    <DownOutlined style={{ fontSize: 12 }} />
+                  </Button>
+                </Dropdown>
+              </>
+              
             )}
           </Space>
       </div>

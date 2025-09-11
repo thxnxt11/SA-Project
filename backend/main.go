@@ -13,10 +13,11 @@ import (
 	"github.com/yourname/went-back/controllers/promotion"
 	refund "github.com/yourname/went-back/controllers/refund"
 	controllers "github.com/yourname/went-back/controllers/report"
+	staffassignmentController "github.com/yourname/went-back/controllers/staff"
 	"github.com/yourname/went-back/controllers/user"
+	products "github.com/yourname/went-back/controllers/warehouse-shop"
 	"github.com/yourname/went-back/controllers/zone"
 	"github.com/yourname/went-back/services"
-	staffassignmentController "github.com/yourname/went-back/controllers/staff"
 	staffassignmentService "github.com/yourname/went-back/services"
 )
 
@@ -49,7 +50,7 @@ func main() {
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
 		c.Writer.Header().Set("Vary", "Origin")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization , accept, origin, X-Requested-With") 
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true") 
 		
@@ -151,8 +152,10 @@ func main() {
 		api.PUT("/seatzone/:id/seat/:seat_id",zone.UpdateSeatzone)
 
 		api.GET("/report-types", reportController.GetReportTypes)
-		api.POST("/reports/:user_id/user", reportController.CreateReport)
+		api.POST("/users/:user_id/reports", reportController.CreateReport)
 		api.GET("/reports/history/:user_id", controllers.GetReportHistory)
+		api.PUT("/refunds/:id/status", refund.UpdateRefundStatus)
+		api.POST("/reports/:report_id/reply", controllers.ReplyReport)
 		api.GET("/users/:user_id/bookings", refundController.GetUserBookings)
 		api.GET("/users/:user_id/refundable-bookings", refundController.GetRefundableBookings)
 		api.GET("/banks", refundController.GetBankOptions)
@@ -162,6 +165,31 @@ func main() {
 		api.DELETE("/showdate/concert/:concert_id/date/:date", concert.DeleteShowdateByConcertAndDate)
 
 		api.GET("/staff/:user_id/assignments", staffAssignCtrl.GetMyAssignments)
+		// {warehouse}
+		// api.GET("/concerts", products.GetConcerts)
+		api.GET("/categories", products.GetCategories)
+		api.GET("/sizes", products.GetSizes)
+		api.GET("/colors", products.GetColors)
+		api.POST("/products", products.CreateProduct)
+		api.GET("/products", products.FindProducts)
+		api.GET("/products/:id", products.FindProductDetail)
+		api.PUT("/products/:id", products.UpdateProduct)
+		api.DELETE("/products/:id", products.DeleteProductById)
+		api.DELETE("/variant/:id", products.DeleteVariantById)
+		api.GET("/stockmovements", products.GetStockMovements)
+		api.POST("/payment-orders/create", products.CreatePaymentOrder)
+		api.GET("/payment-orders/methods",products.GetAllPaymentMethods)
+		api.GET("/payment-orders/:id",products.GetPaymentOrderByID)
+		api.PUT("/payment-orders/:id", products.UpdatePaymentOrder)
+		api.PUT("/payment-orders/:id/expire",products.ExpirePaymentOrder)
+		api.POST("/cart/add", products.AddToCart)  
+		api.GET("/cart/:user_id", products.GetCartByUserID) 
+		api.PUT("/cart/item/:id", products.UpdateCartItem)  
+		api.DELETE("/cart/item/:id", products.RemoveCartItem) 
+		api.PATCH("/cart/items/:id/select",products.UpdateCartItemSelected)
+		api.POST("/upload/order-receipt",products.UploadReceiptImage)
+		api.POST("/upload/product",products.UploadProductImage)
+
 	}
 
 	// static uploads

@@ -322,3 +322,12 @@ func (es *EmailService) SendETicketEmail(toEmail string, tickets []ETicketRespon
 	// ส่งอีเมลพร้อม attachments
 	return es.sendEmailWithAttachment(toEmail, "Your E-Tickets", sb.String(), attachments)
 }
+
+func (es *EmailService) SendEmail(to string, subject string, body string) error {
+    auth := smtp.PlainAuth("", es.config.SMTPUsername, es.config.SMTPPassword, es.config.SMTPHost)
+    msg := "From: " + es.config.FromEmail + "\n" +
+        "To: " + to + "\n" +
+        "Subject: " + subject + "\n\n" +
+        body
+    return smtp.SendMail(es.config.SMTPHost+":"+es.config.SMTPPort, auth, es.config.FromEmail, []string{to}, []byte(msg))
+}

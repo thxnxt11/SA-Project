@@ -227,6 +227,20 @@ export const paymentAPI = {
 
 export const uploadAPI = {
   upload: (data: FormData) => axios.post(`${PUBLIC_API_URL}/upload`, data),
+  uploadReceipt: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return await axios.post(`${PUBLIC_API_URL}/upload/order-receipt`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+  uploadProductImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return await axios.post(`${PUBLIC_API_URL}/upload/product`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
 export const eticketApi = {
@@ -309,7 +323,7 @@ export const reportAPI = {
   ): Promise<any> => {
     // ใช้ axios ตรง ๆ แบบ uploadAPI เพื่อส่ง multipart ได้ถูกต้อง
     const res = await axios.post(
-      `${PUBLIC_API_URL}/reports/${user_id}/user`,
+      `${PUBLIC_API_URL}/users/${user_id}/reports`,
       formData,
       {
         headers: { "Content-Type": "multipart/form-data" },
@@ -323,6 +337,19 @@ export const reportAPI = {
   getHistory: async (user_id: number): Promise<Report[]> => {
     const res = await Get(`${PUBLIC_API_URL}/reports/history/${user_id}`);
     return res?.data as Report[];
+  },
+  replyReport: async (
+    report_id: number,
+    message: string,
+    user_id: number,
+    role_id: number
+  ): Promise<any> => {
+    const res = await Post(`${PUBLIC_API_URL}/reports/${report_id}/reply`, {
+      message,
+      user_id,
+      role_id,
+    });
+    return res?.data;
   },
 };
 
@@ -368,6 +395,13 @@ export const refundAPI = {
     const res = await Delete(`${PUBLIC_API_URL}/refunds/${refund_id}`);
     return res?.data;
   },
+  updateStatus: async (refund_id: number, refund_status_id: number ,requester_id: number): Promise<any> => {
+    const res = await Update(`${PUBLIC_API_URL}/refunds/${refund_id}/status`, {
+      refund_status_id,
+      requester_id,
+    });
+    return res?.data;
+  },
 };
 
 export const staffAssignmentAPI = {
@@ -386,4 +420,67 @@ export const staffAssignmentAPI = {
         assignment_status_id: statusId,
       }
     ),
+};
+
+// Fetch categories
+export const categoriesAPI = {
+  getAllCategories: () => Get(`${PUBLIC_API_URL}/categories`, false),
+};
+
+export const colorsAPI ={
+  getAllColors : () => Get(`${PUBLIC_API_URL}/colors`, false),}
+;
+
+export const sizesAPI = {
+  getAllSizes : () => Get(`${PUBLIC_API_URL}/sizes`, false)
+};
+
+export const actionAPI = {
+  getAllSizes : () => Get(`${PUBLIC_API_URL}/action`, false)
+};
+
+export const productsAPI = {
+  createProduct : (payload: any) => Post(`${PUBLIC_API_URL}/products`, payload),
+  getAllProducts : () => Get(`${PUBLIC_API_URL}/products`, false),
+  getByProductID : (ID: number) => Get(`${PUBLIC_API_URL}/products/${ID}`, false),
+  update: (id: number, payload: any) => {
+    return axios.put(`${PUBLIC_API_URL}/products/${id}`, payload);
+  },
+  deleteByID: (id: number) => Delete(`${PUBLIC_API_URL}/products/${id}`, false),
+};
+
+export const variantAPI = {
+  deleteByID: (id: number) => Delete(`${PUBLIC_API_URL}/variant/${id}`),
+}
+
+export const movementsAPI = {
+  getAllProducts : () => Get(`${PUBLIC_API_URL}/stockmovements`, false),
+  create: (data: any) => axios.post("/stock-movements", data),
+};
+
+export const cartAPI = {
+  addToCart: (payload: { user_id: number; variant_id: number; quantity: number }) => {
+    return axios.post(`${PUBLIC_API_URL}/cart/add`, payload);
+  },
+  getCartByUserID: (user_id: number) => {
+    return axios.get(`${PUBLIC_API_URL}/cart/${user_id}`);
+  },  
+  updateCartItem: (item_id: number, quantity: number) => {
+    return axios.put(`${PUBLIC_API_URL}/cart/item/${item_id}`, { quantity });
+  },
+  removeCartItem: (item_id: number) => {
+    return axios.delete(`${PUBLIC_API_URL}/cart/item/${item_id}`);
+  },
+  updateCartItemSelected: (id: number, selected: boolean) => {
+    return axios.patch(`${PUBLIC_API_URL}/cart/items/${id}/select`, { selected })
+  },
+};
+
+export const paymentOrderAPI = {
+  createPaymentOrder: (data: any) => axios.post(`${PUBLIC_API_URL}/payment-orders/create`, data),
+  getAllPaymentMethods: () => axios.get(`${PUBLIC_API_URL}/payment-orders/methods`),
+  getPaymentOrderById: (id: number) => axios.get(`${PUBLIC_API_URL}/payment-orders/${id}`),
+
+  updatePaymentOrder: (id: number, data: any) => axios.put(`${PUBLIC_API_URL}/payment-orders/${id}`, data),
+  expirePaymentOrder: (id: number) => axios.put(`${PUBLIC_API_URL}/payment-orders/${id}/expire`),
 };

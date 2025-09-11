@@ -53,7 +53,7 @@ func SetupDatabase() {
        &entity.Equipment{},
        &entity.EquipmentType{},
        &entity.Genders{},
-       &entity.Movement{},
+       &entity.StockMovement{},
        &entity.Payment{},
        &entity.PaymentMethod{},
        &entity.PaymentOrder{},
@@ -117,6 +117,20 @@ func SetupDatabase() {
    db.FirstOrCreate(Organizer, &entity.User{
        Email: "ENTERTAIN@gmail.com",
    })
+    Admin := &entity.User{
+        FirstName: "Admin",
+        LastName:  "Nongmos",
+        Email:     "mostnpt14@gmail.com",
+        Age:       21,
+        Password:  hashedPassword,
+        BirthDay:  BirthDay,
+        Phonenum:  "xxx-xxx-xxxx",
+        GenderID:  1,
+        RoleID:    3,
+    }
+    db.FirstOrCreate(Admin, &entity.User{
+        Email: "mostnpt14@gmail.com",
+    })
 
    //promotion type
    db.FirstOrCreate(&entity.PromotionType{}, entity.PromotionType{
@@ -212,4 +226,46 @@ func SetupDatabase() {
 	db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "KMA"})
 	db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "SCP"})
 
+   // --- Action ---
+    action := []string{"IN", "OUT", "UPDATE" , "SALE"}
+    for _, ac := range action {
+        db.FirstOrCreate(&entity.Action{}, entity.Action{Action: ac})
+    }
+
+    // --- Colors ---
+    colors := []string{"Red", "Black", "Blue"}
+    for _, c := range colors {
+        db.FirstOrCreate(&entity.Color{}, entity.Color{Color: c})
+    }
+
+    // --- Sizes ---
+    sizes := []string{"s", "m", "l", "xl", "xxl"}
+    for _, s := range sizes {
+        db.FirstOrCreate(&entity.Size{}, entity.Size{Size: s})
+    }
+
+    // --- Categories ---
+    categories := []string{"T-Shirt", "Cap", "Hoodie", "CD"}
+    for _, cat := range categories {
+        db.FirstOrCreate(&entity.Category{}, entity.Category{Category: cat})
+    }
+     // --- Example Product ---
+    db.FirstOrCreate(&entity.Product{}, entity.Product{
+        ProductName:    "Once T-Shirt",
+        CategoryID:     1,
+        ProductDetail:  "The must have item for once",
+        ProductPrice:   1299.00,
+        Minimum:        100,
+        Sales:          0,
+        Total:          20,
+        ConcertID:        1,
+    })
+
+    db.FirstOrCreate(&entity.Variant{}, entity.Variant{
+        ProductID:      1,
+        ColorID:        1,
+        SizeID:         2,
+        Quantity:       20,
+        Picture:        "/uploads/products/1757523971551195800_oneShirt1.jpg",
+    })
 }

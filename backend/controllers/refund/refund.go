@@ -310,3 +310,36 @@ func DeleteRefund(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Refund deleted successfully"})
 }
+func UpdateRefundStatus(c *gin.Context) {
+    refundID := c.Param("id")
+
+    var req struct {
+        RefundStatusID uint `json:"refund_status_id"`
+        RequesterID    uint `json:"requester_id"`
+    }
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    // เช็ค requester role
+    var requester entity.User
+    if err := connection.DB().First(&requester, req.RequesterID).Error; err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "ไม่พบผู้ใช้ที่ร้องขอ"})
+        return
+    }
+
+    if requester.RoleID != 3 {
+        c.JSON(http.StatusForbidden, gin.H{"error": "ไม่มีสิทธิ์ในการอัปเดตสถานะ"})
+        return
+    }
+
+    if err := connection.DB().Model(&entity.Refund{}).
+        Where("id = ?", refundID).
+        Update("refund_status_id", req.RefundStatusID).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "Refund status updated successfully"})
+}

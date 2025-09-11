@@ -4,12 +4,13 @@ import (
    "gorm.io/gorm"
 )
 
-type Movement struct {
-   gorm.Model
-   WarehouseID      uint8     	`json:"warehouse_id"`
-   Warehouse  	*Product    `gorm:"foreignKey: warehouse_id" json:"warehouse"`
-   Adjusted    	string    	`json:"adjusted"`
-   Amount       	uint8     	`json:"amount"`
-   StaffID		uint8 	`json:"staff_id"`
-   Staff  	*User 	`gorm:"foreignKey: staff_id" json:"staff"`
+type StockMovement struct {
+    gorm.Model
+    VariantID uint     `json:"variant_id"`
+    Variant   *Variant `gorm:"foreignKey:VariantID" json:"variant"`
+    ActionID  uint     `json:"action_id"`
+    Action    *Action  `gorm:"foreignKey:ActionID" json:"action"`
+    Amount    uint     `json:"amount"`
+    StaffID   uint     `json:"staff_id"`
+    Staff     *User    `gorm:"foreignKey:StaffID" json:"staff"`
 }
