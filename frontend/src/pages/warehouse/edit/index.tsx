@@ -22,6 +22,7 @@ import {
   DeleteOutlined,
   PlusOutlined,
   UploadOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import {
   productsAPI,
@@ -38,6 +39,7 @@ import { useAuth } from "../../../hook/authContext";
 import SidebarLayout from "../../../component/layout/SidebarLayout";
 
 
+const { Search } = Input;
 const { Title } = Typography;
 const { Option } = Select;
 
@@ -45,19 +47,26 @@ const EditWarehouse: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const [loading, setLoading] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
   const [form] = Form.useForm();
   const category = Form.useWatch("category_id", form);
-
+  
   const [products, setProducts] = useState<any[]>([]);
   const [concerts, setConcerts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [colors, setColors] = useState<any[]>([]);
   const [sizes, setSizes] = useState<any[]>([]);
   const { user } = useAuth(); 
-
+  
+  // function ProductTable( products:any ) {
+  //   const [searchText, setSearchText] = useState("");
+  
+  //   const filteredProducts = products.filter((p) =>
+  //     p.ProductName?.toLowerCase().includes(searchText.toLowerCase())
+  //   );
   const onGetInitialData = async () => {
     try {
       const [productsRes, concertsRes, categoriesRes, colorsRes, sizesRes] = await Promise.all([
@@ -97,6 +106,7 @@ const EditWarehouse: React.FC = () => {
   useEffect(() => {
     onGetInitialData();
   }, []);
+
 
   const handleUploadProductImage = async (file: File): Promise<string> => {
     try {
@@ -193,14 +203,14 @@ const EditWarehouse: React.FC = () => {
   try {
     const values = await form.validateFields();
 
-    const getBase64 = (file: File): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = error => reject(error);
-      });
-    };
+    // const getBase64 = (file: File): Promise<string> => {
+    //   return new Promise((resolve, reject) => {
+    //     const reader = new FileReader();
+    //     reader.readAsDataURL(file);
+    //     reader.onload = () => resolve(reader.result as string);
+    //     reader.onerror = error => reject(error);
+    //   });
+    // };
 
     const payloadVariants: any[] = [];
 
@@ -263,7 +273,8 @@ const EditWarehouse: React.FC = () => {
     };
 
     await productsAPI.update(editingProduct.ID, payload);
-    messageApi.success("อัปเดตสินค้าสำเร็จ");
+    // messageApi.success("อัปเดตสินค้าสำเร็จ");
+    setSuccessOpen(true);
     setOpen(false);
     onGetInitialData();
   } catch (err) {
@@ -271,60 +282,59 @@ const EditWarehouse: React.FC = () => {
   }
 };
 
+const filteredData = products.filter((item) =>
+  (item.product_name ?? "").toLowerCase().includes(search.toLowerCase())
+);
 
-  const filteredData = products.filter((item) =>
-    (item.product_name ?? "").toLowerCase().includes(search.toLowerCase())
-  );
-
-  const columns  = [
-    {
-      title: "Product Name",
-      dataIndex: "product_name",
-      key: "product_name",
-      width: 500,
-    },
-    {
-      title: "Category",
-      dataIndex:["category", "category"],
-      key: "category",
-    },
-    {
-      title: "Price",
-      dataIndex: "product_price",
-      key: "product_price",
-    },
-    {
-      title: "Total",
-      dataIndex: "total",
-      key: "total",
-    },
-    {
-      title: "Minimum Quantity",
-      dataIndex: "minimum",
-      key: "minimum",
-      width:200,
-    },
-    {
-      title: "Action",
-      key: "actions",
-      width:50,
-      render: (_: any, record: any) => (
-        <Space size="middle">
-          <Button
-            icon={<EditOutlined />}
-            style={{ backgroundColor: "#1677ff", color: "white" }}
-            onClick={() => handleEdit(record)}
-          />
-          <Popconfirm
-            title="คุณแน่ใจหรือไม่ที่จะลบ?"
-            onConfirm={() => handleDelete(record.ID)} 
-          >
-            <Button danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+const columns  = [
+  {
+    title: "Product Name",
+    dataIndex: "product_name",
+    key: "product_name",
+    width: 500,
+  },
+  {
+    title: "Category",
+    dataIndex:["category", "category"],
+    key: "category",
+  },
+  {
+    title: "Price",
+    dataIndex: "product_price",
+    key: "product_price",
+  },
+  {
+    title: "Total",
+    dataIndex: "total",
+    key: "total",
+  },
+  {
+    title: "Minimum Quantity",
+    dataIndex: "minimum",
+    key: "minimum",
+    width:200,
+  },
+  {
+    title: "Action",
+    key: "actions",
+    width:50,
+    render: (_: any, record: any) => (
+      <Space size="middle">
+        <Button
+          icon={<EditOutlined />}
+          style={{ backgroundColor: "#1677ff", color: "white" }}
+          onClick={() => handleEdit(record)}
+        />
+        <Popconfirm
+          title="คุณแน่ใจหรือไม่ที่จะลบ?"
+          onConfirm={() => handleDelete(record.ID)} 
+        >
+          <Button danger icon={<DeleteOutlined />} />
+        </Popconfirm>
+      </Space>
+    ),
+  },
+];
 
   return (
     <SidebarLayout>
@@ -344,6 +354,14 @@ const EditWarehouse: React.FC = () => {
           </Button>
         </Col>
       </Row>
+      <div style={{ width: 300, marginBottom: 16 ,margin:"0 auto"}} >
+        <Search
+          placeholder="ค้นหาชื่อสินค้า"
+          allowClear
+          onChange={(e) => setSearch(e.target.value)}
+          // style={{ width: 300, marginBottom: 16 ,margin:"0 auto"}}
+          />
+      </div>
 
       <Table
         columns={columns}
@@ -463,10 +481,7 @@ const EditWarehouse: React.FC = () => {
                         fields.length > 1 && (
                           <Popconfirm
                           title="คุณแน่ใจหรือไม่ที่จะลบ?"
-                          onConfirm={async () => {
-                            // if (variant?.IDs?.[0]) {
-                              // await handleDeleteVariant(variant.IDs[0]); // ลบจาก backend
-                              // }
+                          onConfirm={async () => {handleDeleteVariant(variantIndex); // ลบจาก backend
                               remove(name); // ลบจาก UI
                             }}
                             >
@@ -653,6 +668,38 @@ const EditWarehouse: React.FC = () => {
         </Form>
         {contextHolder}
         </Modal>
+
+        <Modal
+          open={successOpen}
+          centered
+          onOk={() => setSuccessOpen(false)}
+          okText="ตกลง"
+          closable={false}
+          footer={null} 
+        >
+          <div style={{ textAlign: "center", padding: "20px" }}>
+            <CheckCircleOutlined style={{ fontSize: "60px", color: "#52c41a" }} />
+            <h2 style={{ marginTop: "15px", fontWeight: "bold" }}>อัปเดตสำเร็จ!</h2>
+            <p style={{ color: "#666" }}>สินค้าของคุณถูกอัปเดตเรียบร้อยแล้ว 🎉</p>
+
+            <button
+              onClick={() => setSuccessOpen(false)}
+              style={{
+                marginTop: "20px",
+                background: "#52c41a",
+                border: "none",
+                color: "#fff",
+                padding: "8px 20px",
+                borderRadius: "8px",
+                fontWeight: "bold",
+                cursor: "pointer",
+              }}
+            >
+              ตกลง
+            </button>
+          </div>
+        </Modal>
+
         </div>
     </SidebarLayout>
   );

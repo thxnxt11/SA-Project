@@ -108,7 +108,6 @@ func UpdatePaymentOrder(c *gin.Context) {
 		StatusID    *uint   `json:"status_id"`
 		PromotionID *uint   `json:"promotion_id"`
 		ReceiptURL  *string `json:"receipt_url"`
-		// UserID		 uint    `json:"user_id"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {

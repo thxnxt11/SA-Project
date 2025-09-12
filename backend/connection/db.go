@@ -223,8 +223,11 @@ func SetupDatabase() {
 	db.FirstOrCreate(&entity.RefundStatus{}, entity.RefundStatus{Status_name: "ดำเนินการเสร็จสิ้น"})
 	db.FirstOrCreate(&entity.RefundStatus{}, entity.RefundStatus{Status_name: "ปฏิเสธคำขอ"})
 
-	db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "KMA"})
-	db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "SCP"})
+	db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "ธนาคารกรุงเทพ(ฺฺBBL)"})
+	db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "ธนาคารกรุงไทย(ฺฺKTB)"})
+   db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "ธนาคารกสิกรไทย(KBANK)"})
+   db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "ธนาคารไทยพาณิชย์(SCB)"})
+   db.FirstOrCreate(&entity.Bank{}, entity.Bank{Bank_Name: "ธนาคารกรุงศรีอยุธยา(BAY)"})
 
    // --- Action ---
     action := []string{"IN", "OUT", "UPDATE" , "SALE"}
