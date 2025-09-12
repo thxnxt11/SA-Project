@@ -1,23 +1,18 @@
 // src/pages/zones/AddZoneForm.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import { Form, Input, InputNumber, Select, Button, Modal } from "antd";
 import type { ZoneInterface } from "../../../interface/zone";
-import { useEffect } from "react";
 
 type Option = { value: number | string; label: string };
 
 interface AddZoneFormProps {
-
   showdateId: number | string;
-
-
   venueOptions: Option[];
   zoneTypeOptions: Option[];
-
   initialValues?: Partial<ZoneInterface>;
-
-
   onFinish: (values: any) => void;
+  /** ถ้าส่งมา จะ set ค่า venue อัตโนมัติและล็อกช่องไว้ */
+  fixedVenueId?: number;
 }
 
 const AddZoneForm: React.FC<AddZoneFormProps> = ({
@@ -26,33 +21,42 @@ const AddZoneForm: React.FC<AddZoneFormProps> = ({
   zoneTypeOptions,
   initialValues,
   onFinish,
+  fixedVenueId,
 }) => {
   const [form] = Form.useForm();
 
-const handleSubmit = (values: any) => {
+  const handleSubmit = (values: any) => {
     const payload = {
       ...values,
-      showdate_id: showdateId,        // inject showdateId
+      showdate_id: showdateId, // inject showdateId
+      // ถ้ามี fixedVenueId ให้ override (กันพลาด)
+      venue_id: fixedVenueId ?? values.venue_id,
       seat_sold: values?.seat_sold ?? 0,
       pending_hold: values?.pending_hold ?? 0,
     };
     onFinish(payload);
   };
 
-const zonetime = Form.useWatch("zonetype_id", form);// if zonetype = seat set capactiy = 0
+  // if zonetype = seat set default capacity & warning
+  const zonetype = Form.useWatch("zonetype_id", form);
   useEffect(() => {
-    if (zonetime === 2) {
+    if (zonetype === 2) {
       form.setFieldsValue({ capacity: 195 });
       Modal.warning({
-        title : "you select zone type = seat",
-        content : "if you select zone type as seat you can manage later using thrid button count from left",
-        okText : "ok"
-        })
-      
-      }
-    }, [zonetime, form]);
+        title: "You selected zone type = Seat",
+        content:
+          "If you select zone type as seat, you can manage the seat map later using the 3rd button from the left.",
+        okText: "OK",
+      });
+    }
+  }, [zonetype, form]);
 
-
+  // set venue ตาม fixedVenueId ทันทีที่เปิดฟอร์ม/ค่าเปลี่ยน
+  useEffect(() => {
+    if (fixedVenueId != null) {
+      form.setFieldsValue({ venue_id: fixedVenueId });
+    }
+  }, [fixedVenueId, form]);
 
   return (
     <Form
@@ -72,6 +76,7 @@ const zonetime = Form.useWatch("zonetype_id", form);// if zonetype = seat set ca
           placeholder="Select venue"
           showSearch
           optionFilterProp="label"
+          disabled={fixedVenueId != null} // ล็อกถ้ามี fixedVenueId
         />
       </Form.Item>
 
@@ -103,14 +108,17 @@ const zonetime = Form.useWatch("zonetype_id", form);// if zonetype = seat set ca
       >
         <InputNumber style={{ width: "100%" }} min={0} />
       </Form.Item>
-      
+
       <Form.Item
         label="Capacity"
         name="capacity"
-      
-        rules={[{ required: true, message: "capacity is required" },]}
+        rules={[{ required: true, message: "capacity is required" }]}
       >
-        <InputNumber style={{ width: "100%" }} min={0} disabled = {zonetime === 2} />
+        <InputNumber
+          style={{ width: "100%" }}
+          min={0}
+          disabled={zonetype === 2}
+        />
       </Form.Item>
 
       <Form.Item>

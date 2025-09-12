@@ -17,7 +17,7 @@ import type { ZoneInterface } from "../../interface/zone";
 import { venueoption, zoneApi } from "../../services/https";
 import { seatAPI } from "../../services/https";
 
-import AddZoneForm from "./add/seat";
+import AddZoneForm from "../seat/add/seat"; // <— ปรับมาใช้ไฟล์ AddZoneForm นี้
 import EditZoneForm from "./edit/seat";
 import SeatGrid, { type SeatAvailable } from "./editseat/seat";
 
@@ -57,6 +57,10 @@ type ShowDatePick = {
   ID?: number;
   show_date?: string;
   ShowDate?: string;
+  // เผื่อ API ส่ง venue_id มาด้วย หรือซ้อนใน venue
+  venue_id?: number;
+  venue?: { id?: number; ID?: number; venue_id?: number };
+  Venue?: { id?: number; ID?: number; venue_id?: number };
 };
 type Option = { value: number; label: string };
 
@@ -84,6 +88,11 @@ export default function ZoneBrowser() {
   const [initialSeatRows, setInitialSeatRows] = useState<SeatAvailable[]>([]);
   const [loadingSeats, setLoadingSeats] = useState(false);
   const [savingSeats, setSavingSeats] = useState(false);
+
+  // map showdate_id -> venue_id (ใช้เป็นค่าเริ่มต้น/ล็อกใน Add Zone)
+  const [showdateVenueMap, setShowdateVenueMap] = useState<
+    Record<number, number>
+  >({});
 
   useEffect(() => {
     const uStr = localStorage.getItem("user") ?? localStorage.getItem("User");
@@ -120,7 +129,6 @@ export default function ZoneBrowser() {
     try {
       setLoading(true);
       const rows = await zoneApi.getconbyuser(uid);
-      console.log("concert: ", rows);
       setConcerts(Array.isArray(rows) ? rows : []);
     } catch (e: any) {
       message.error(e?.message || "Load concerts failed");
@@ -132,8 +140,25 @@ export default function ZoneBrowser() {
   const fetchShowdates = async (cid: number) => {
     try {
       setLoading(true);
-      const rows = await zoneApi.getshowbycon(cid);
+      const rows: ShowDatePick[] = await zoneApi.getshowbycon(cid);
       setShowdates(Array.isArray(rows) ? rows : []);
+
+      // สร้าง mapping showdate_id -> venue_id
+      const map: Record<number, number> = {};
+      (rows || []).forEach((r: any) => {
+        const id = normalizeId(r);
+        const venueId =
+          r?.venue_id ??
+          r?.venueId ??
+          r?.venue?.id ??
+          r?.venue?.ID ??
+          r?.venue?.venue_id ??
+          r?.Venue?.id ??
+          r?.Venue?.ID ??
+          r?.Venue?.venue_id;
+        if (id != null && venueId != null) map[Number(id)] = Number(venueId);
+      });
+      setShowdateVenueMap(map);
     } catch (e: any) {
       message.error(e?.message || "Load showdates failed");
     } finally {
@@ -181,18 +206,26 @@ export default function ZoneBrowser() {
 
   const handleAddZone = async (values: any) => {
     try {
-      const created = await zoneApi.add(values);
+      const defaultVenueId =
+        showdateVenueMap[Number(showdateId!)] ?? values.venue_id;
+
+      // กันพลาด: บังคับ venue_id ให้ตาม showdate ถ้ามี map
+      const created = await zoneApi.add({
+        ...values,
+        showdate_id: showdateId,
+        venue_id: defaultVenueId,
+      });
+
       const newZoneId = created?.id ?? created?.ID;
 
       message.success("Zone created");
       setIsAddOpen(false);
 
-      // Only seed seats when seating type (here == 2)
+      // seed seats เฉพาะ zone type = 2 (seat)
       if (newZoneId && Number(values.zonetype_id) === 2) {
         try {
           await seatAPI.addbyid(newZoneId);
         } catch (e) {
-          // ignore conflicts etc.
           console.warn("Seeding seats failed:", e);
         }
       }
@@ -275,7 +308,6 @@ export default function ZoneBrowser() {
       okType: "danger",
       onOk: async () => {
         try {
-          // best-effort remove seats; safe for zones without seats
           try {
             await seatAPI.deletebyid(zoneId);
           } catch {}
@@ -311,7 +343,6 @@ export default function ZoneBrowser() {
     }
   };
 
-  // toggle one seat by seat_id, using normalized values
   const toggleSeat = (seat: SeatAvailable) => {
     setSeatRows((prev) =>
       prev.map((s) =>
@@ -328,10 +359,6 @@ export default function ZoneBrowser() {
     );
   };
 
-  /**
-   * Build a FULL zone payload from a zone row (explicit fields only).
-   * This prevents PUT from zeroing other columns on the server.
-   */
   const buildFullZonePayload = (z: any, capacityOverride?: number) => {
     const venueId = z?.venue_id ?? z?.venueId ?? z?.venue?.id;
     const zoneTypeId =
@@ -343,7 +370,7 @@ export default function ZoneBrowser() {
     const zonePrice = z?.zone_price ?? z?.zonePrice;
 
     return {
-      showdate_id: Number(z?.showdate_id ?? showdateId), // fallback to current showdate
+      showdate_id: Number(z?.showdate_id ?? showdateId),
       venue_id: Number(venueId ?? 0),
       zonetype_id: Number(zoneTypeId ?? 0),
       zone_name: String(z?.zone_name ?? "").trim(),
@@ -362,7 +389,6 @@ export default function ZoneBrowser() {
     try {
       setSavingSeats(true);
 
-      // find changed seats (match by seat_id, compare normalized status)
       const delta = seatRows.filter((s) => {
         const old = initialSeatRows.find((o) => o.seat_id === s.seat_id);
         return (
@@ -380,12 +406,10 @@ export default function ZoneBrowser() {
         );
       }
 
-      // recompute capacity = count of normalized available
       const availableCount = seatRows.filter(
         (s) => norm(s.seatavailable_status) === "available"
       ).length;
 
-      // update zone capacity with a full payload to avoid zeroing other fields
       const source =
         zones.find((z) => Number(normalizeId(z)) === Number(seatZoneId)) ??
         editingZone;
@@ -423,7 +447,7 @@ export default function ZoneBrowser() {
       message.error("Invalid zone");
       return;
     }
-    setEditingZone(zone); // keep the source row around for full payload
+    setEditingZone(zone);
     setSeatZoneId(id);
     setIsSeatOpen(true);
     await loadSeats(id);
@@ -486,24 +510,16 @@ export default function ZoneBrowser() {
             <FaEdit
               style={{ fontSize: 20, color: "#0048ffff", cursor: "pointer" }}
               onClick={() => openEdit(r)}
-            >
-              Edit
-            </FaEdit>
-
+            />
             <RiDeleteBin6Line
               style={{ fontSize: 20, color: "#ff0000ff", cursor: "pointer" }}
               onClick={() => handleDelete(Number(id))}
-            >
-              Delete
-            </RiDeleteBin6Line>
-
+            />
             {!isStanding && (
               <MdEventSeat
                 style={{ fontSize: 20, color: "#1abb78ff", cursor: "pointer" }}
                 onClick={() => openSeat(r)}
-              >
-                Seat
-              </MdEventSeat>
+              />
             )}
           </Space>
         );
@@ -571,6 +587,9 @@ export default function ZoneBrowser() {
           showdateId={showdateId!}
           venueOptions={venueOptions}
           zoneTypeOptions={zoneTypeOptions}
+          // set ค่า venue ให้ตาม showdate และล็อกไม่ให้แก้
+          initialValues={{ venue_id: showdateVenueMap[Number(showdateId!)] }}
+          fixedVenueId={showdateVenueMap[Number(showdateId!)]}
           onFinish={handleAddZone}
         />
       </Modal>
