@@ -9,10 +9,7 @@ type Venue struct{
 	
 	VenueTypeID uint `json:"venue_type_id"`
 	VenueType *VenueType `gorm:"foreignKey: venue_type_id" json:"venue_type"`
-	 Stages        []Stage     `gorm:"foreignKey:VenueID" json:"stages"` // เพิ่มเพื่อเก็บ Stage(s
-
-	// VenueStatusID uint `json:"venue_status_id"`
-	// VenueStatus *VenueStatus `gorm:"foreignKey: venue_status_id" json:"venue_status"`
+	Stages        []Stage     `gorm:"foreignKey:VenueID" json:"stages"` // เพิ่มเพื่อเก็บ Stage(s
 
 }
 

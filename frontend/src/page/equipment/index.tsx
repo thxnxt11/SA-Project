@@ -10,7 +10,9 @@ import {
   Tag,
   message,
   Spin,
+  Tooltip,
 } from "antd";
+import { EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import AdminsidebarLayout from "../../components/sidebarLayout";
 import AddEquipmentModal from "./addequipment";
 import EditEquipmentModal from "./editequipment";
@@ -23,7 +25,7 @@ const { Option } = Select;
 const Equipment: React.FC = () => {
   const [equipments, setEquipments] = useState<EquipmentInterface[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editingEquipment, setEditingEquipment] =useState<EquipmentInterface | null>(null);
+  const [editingEquipment, setEditingEquipment] = useState<EquipmentInterface | null>(null);
 
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"all" | "unused" | "available">("all");
@@ -38,9 +40,7 @@ const Equipment: React.FC = () => {
     setLoading(true);
     try {
       const res = await equipmentAPI.getAllEquipments();
-      const data = res.data || [];
-      setEquipments(data);
-      console.log("Equipments fetched:", data);
+      setEquipments(res.data || []);
     } catch (err) {
       message.error("โหลดข้อมูลอุปกรณ์ล้มเหลว");
       console.error(err);
@@ -55,16 +55,13 @@ const Equipment: React.FC = () => {
 
   // ---------------- Add / Update ----------------
   const handleAddEquipment = async (newEquipment: EquipmentInterface) => {
-    // await equipmentAPI.update(Number(newEquipment.ID),newEquipment);
     setEquipments([...equipments, newEquipment]);
     message.success("เพิ่มอุปกรณ์เรียบร้อย");
     setIsAddModalOpen(false);
   };
 
   const handleUpdateEquipment = (updated: EquipmentInterface) => {
-    setEquipments(
-      equipments.map((eq) => (eq.ID === updated.ID ? updated : eq))
-    );
+    setEquipments(equipments.map((eq) => (eq.ID === updated.ID ? updated : eq)));
     message.success("แก้ไขอุปกรณ์เรียบร้อย");
     setIsEditModalOpen(false);
   };
@@ -75,7 +72,6 @@ const Equipment: React.FC = () => {
       setLoading(true);
       const res = await equipmentAPI.delete(id);
       if (res?.status === 200 || res?.status === 204) {
-        // รีเฟรชข้อมูล
         await fetchEquipments();
         message.success("ลบอุปกรณ์เรียบร้อยแล้ว");
       } else {
@@ -94,9 +90,7 @@ const Equipment: React.FC = () => {
     new Set(
       equipments.flatMap(
         (eq) =>
-          eq.stage_equipments
-            ?.map((se) => se.stage?.venue?.venue_name)
-            .filter(Boolean) || []
+          eq.stage_equipments?.map((se) => se.stage?.venue?.venue_name).filter(Boolean) || []
       )
     )
   );
@@ -109,9 +103,7 @@ const Equipment: React.FC = () => {
             equipments.flatMap(
               (eq) =>
                 eq.stage_equipments
-                  ?.filter(
-                    (se) => se.stage?.venue?.venue_name === locationFilter
-                  )
+                  ?.filter((se) => se.stage?.venue?.venue_name === locationFilter)
                   .map((se) => se.stage?.stage_name)
                   .filter(Boolean) || []
             )
@@ -119,34 +111,22 @@ const Equipment: React.FC = () => {
         );
 
   const filteredEquipments = equipments.filter((eq) => {
-    const matchesSearch = eq.equipment_name
-      .toLowerCase()
-      .includes(search.toLowerCase());
-
+    const matchesSearch = eq.equipment_name.toLowerCase().includes(search.toLowerCase());
     const matchesFilterType =
       filterType === "unused"
         ? (eq.used_quantity || 0) === 0
         : filterType === "available"
         ? (eq.remaining_quantity || 0) > 0
         : true;
-
     const matchesLocation =
       locationFilter === "all"
         ? true
-        : eq.stage_equipments?.some(
-            (se) => se.stage?.venue?.venue_name === locationFilter
-          );
-
+        : eq.stage_equipments?.some((se) => se.stage?.venue?.venue_name === locationFilter);
     const matchesStage =
       stageFilter === "all"
         ? true
-        : eq.stage_equipments?.some(
-            (se) => se.stage?.stage_name === stageFilter
-          );
-
-    return (
-      matchesSearch && matchesFilterType && matchesLocation && matchesStage
-    );
+        : eq.stage_equipments?.some((se) => se.stage?.stage_name === stageFilter);
+    return matchesSearch && matchesFilterType && matchesLocation && matchesStage;
   });
 
   // ---------------- Columns ----------------
@@ -156,94 +136,77 @@ const Equipment: React.FC = () => {
       dataIndex: "equipment_name",
       key: "equipment_name",
       render: (text: string, record: EquipmentInterface) => (
-        <>
+        <div>
           <Text strong>{text}</Text>
           <br />
-          <Text type="secondary">
-            {record.equipment_type?.equipment_type || "-"}
-          </Text>
-        </>
+          <Text type="secondary">{record.equipment_type?.equipment_type || "-"}</Text>
+        </div>
       ),
     },
     {
-      title:
-        filterType === "available" || filterType === "unused"
-          ? ""
-          : "สถานที่ / เวที",
+      title: filterType === "available" || filterType === "unused" ? "" : "สถานที่ / เวที",
       key: "location",
-render: (_: any, record: EquipmentInterface) => {
-  if (filterType === "available" || filterType === "unused") return null;
+      render: (_: any, record: EquipmentInterface) => {
+        if (filterType === "available" || filterType === "unused") return null;
+        if (!record.stage_equipments || record.stage_equipments.length === 0) return null;
 
-  if (!record.stage_equipments || record.stage_equipments.length === 0) return null;
+        const validStageEquipments = record.stage_equipments.filter((se) => se.stage && se.stage.venue);
+        if (validStageEquipments.length === 0) return null;
 
-  // กรองเฉพาะ stage + venue ที่ยังมีอยู่
-  const validStageEquipments = record.stage_equipments.filter(
-    (se) => se.stage && se.stage.venue
-  );
- 
-  if (validStageEquipments.length === 0) return null;
+        const uniqueStageEquipments = Array.from(
+          new Set(
+            validStageEquipments.map(
+              (se) => `${se.stage.venue?.venue_name}|${se.stage.stage_name}|${se.stage_quantity}`
+            )
+          )
+        ).map((key) => {
+          const [venueName, stageName, quantity] = key.split("|");
+          return { venueName, stageName, quantity };
+        });
 
-  // สร้าง unique list ของแต่ละ (venue, stage)
-  const uniqueStageEquipments = Array.from(
-    new Set(
-      validStageEquipments.map(
-        (se) =>
-          `${se.stage.venue?.venue_name}|${se.stage.stage_name}|${se.stage_quantity}`
-      )
-    )
-  ).map((key) => {
-    const [venueName, stageName, quantity] = key.split("|");
-    return { venueName, stageName, quantity };
-  });
-
-  return (
-    <>
-      {uniqueStageEquipments.map((se, idx) => (
-        <div key={idx}>
-          <Text>{se.venueName}</Text> | <Text>{se.stageName}</Text> |{" "}
-          <Text>จำนวน: {se.quantity}</Text>
-        </div>
-      ))}
-    </>
-  );
-},
+        return uniqueStageEquipments.map((se, idx) => (
+          <div key={idx}>
+            <Text>{se.venueName}</Text> | <Text>{se.stageName}</Text> | <Text>จำนวน: {se.quantity}</Text>
+          </div>
+        ));
+      },
     },
     {
       title: "จำนวนทั้งหมด | เหลือ",
       key: "quantity",
       render: (_: any, record: EquipmentInterface) => (
-        <>
+        <div>
           <Text>ทั้งหมด: {record.total_quantity || 0}</Text> |{" "}
-          {/* <Text>ใช้งาน: {record.used_quantity || 0}</Text> |{" "} */}
           <Tag color={record.remaining_quantity === 0 ? "red" : "green"}>
             เหลือ: {record.remaining_quantity || 0}
           </Tag>
-        </>
+        </div>
       ),
     },
     {
       title: "จัดการ",
       key: "action",
       render: (_: any, record: EquipmentInterface) => (
-        <>
-          <Button
-            type="link"
-            onClick={() => {
-              setEditingEquipment(record);
-              console.log("record",record)
-              setIsEditModalOpen(true);
-            }}
-          >
-            Edit
-          </Button>
-          <Button
-            type="link"
-            danger
-            onClick={() => handleDeleteEquipment(Number(record.ID))}
-          >
-            Delete
-          </Button>
-        </>
+        <Space>
+          <Tooltip title="แก้ไขอุปกรณ์">
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => {
+                setEditingEquipment(record);
+                setIsEditModalOpen(true);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="ลบอุปกรณ์">
+            <Button
+              type="primary"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDeleteEquipment(Number(record.ID))}
+            />
+          </Tooltip>
+        </Space>
       ),
     },
   ];
@@ -251,19 +214,13 @@ render: (_: any, record: EquipmentInterface) => {
   return (
     <AdminsidebarLayout>
       <div style={{ padding: 20 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 20,
-          }}
-        >
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
             <Title level={3}>จัดการอุปกรณ์</Title>
             <Text type="secondary">จัดการอุปกรณ์เวทีและระบบต่างๆ</Text>
           </div>
-          <Button type="primary" onClick={() => setIsAddModalOpen(true)}>
-            + เพิ่มอุปกรณ์ใหม่
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsAddModalOpen(true)}>
+            เพิ่มอุปกรณ์ใหม่
           </Button>
         </div>
 
@@ -275,11 +232,7 @@ render: (_: any, record: EquipmentInterface) => {
             style={{ width: 250 }}
           />
 
-          <Select
-            value={filterType}
-            onChange={(value) => setFilterType(value)}
-            style={{ width: 220 }}
-          >
+          <Select value={filterType} onChange={(value) => setFilterType(value)} style={{ width: 220 }}>
             <Option value="all">แสดงทั้งหมด</Option>
             <Option value="unused">อุปกรณ์ที่ยังไม่ใช้ในเวทีไหน</Option>
             <Option value="available">อุปกรณ์ที่เหลือ</Option>
@@ -302,11 +255,7 @@ render: (_: any, record: EquipmentInterface) => {
           </Select>
 
           {locationFilter !== "all" && stages.length > 0 && (
-            <Select
-              value={stageFilter}
-              onChange={(value) => setStageFilter(value)}
-              style={{ width: 220 }}
-            >
+            <Select value={stageFilter} onChange={(value) => setStageFilter(value)} style={{ width: 220 }}>
               <Option value="all">ทุกเวที</Option>
               {stages.map((stage) => (
                 <Option key={stage} value={stage}>

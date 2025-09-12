@@ -175,7 +175,7 @@ const Venue: React.FC = () => {
                         <Card
                           type="inner"
                           size="small"
-                          key={stage.id}
+                          key={stage.ID}
                           style={{ marginTop: 8, borderRadius: 8 }}
                         >
                           <p>

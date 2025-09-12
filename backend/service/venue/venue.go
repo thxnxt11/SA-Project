@@ -186,7 +186,7 @@ func (s *VenueService) CreateVenueWithStagesAndEquipments(v *entity.Venue) error
 // ======================= Update Venue + Stage + Equipment =======================
 func (s *VenueService) UpdateVenueWithStages(id uint, v *entity.Venue) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		// ---------- อัปเดต Venue ----------
+		// อัปเดต Venue
 		if err := tx.Model(&entity.Venue{}).
 			Where("id = ?", id).
 			Updates(map[string]interface{}{
@@ -200,7 +200,7 @@ func (s *VenueService) UpdateVenueWithStages(id uint, v *entity.Venue) error {
 
 		seenStages := map[string]bool{}
 		var stageIDs []uint
-
+		equipmentUpdates := map[uint]bool{}
 		for i := range v.Stages {
 			stage := &v.Stages[i]
 			stage.VenueID = id
@@ -211,102 +211,165 @@ func (s *VenueService) UpdateVenueWithStages(id uint, v *entity.Venue) error {
 			}
 			seenStages[key] = true
 
-			// แยก Equipments ออกมาก่อน
+			// แยก Equipments
 			equipments := stage.Equipments
 			stage.Equipments = nil
 
-			// ---------- Create / Update Stage ----------
-			if stage.ID == 0 {
-				if err := tx.Create(stage).Error; err != nil {
-					return fmt.Errorf("failed to create stage: %w", err)
+			// ตรวจสอบว่า Stage มีอยู่ใน DB หรือไม่
+			var existingStage entity.Stage
+			stageExists := false
+			
+			// Debug: แสดงค่าที่กำลังค้นหา
+			fmt.Printf("Debug - Checking stage: ID=%d, Name=%s, TypeID=%d, VenueID=%d\n", 
+				stage.ID, stage.StageName, stage.StageTypeID, id)
+			
+			// ถ้ามี ID ให้หาด้วย ID ก่อน
+			if stage.ID != 0 {
+				err := tx.Where("id = ?", stage.ID).First(&existingStage).Error
+				if err == nil {
+					// ตรวจสอบว่า venue_id ตรงกันหรือไม่
+					if existingStage.VenueID == id {
+						stageExists = true
+						fmt.Printf("Debug - Found existing stage by ID: %d\n", existingStage.ID)
+					} else {
+						fmt.Printf("Debug - Stage ID exists but venue_id mismatch: expected=%d, got=%d\n", 
+							id, existingStage.VenueID)
+					}
+				} else if err == gorm.ErrRecordNotFound {
+					fmt.Printf("Debug - Stage ID %d not found\n", stage.ID)
+				} else {
+					return fmt.Errorf("failed to query existing stage by ID: %w", err)
 				}
-			} else {
-				if err := tx.Model(&entity.Stage{}).
-					Where("id = ?", stage.ID).
+			}
+			
+			// ถ้าไม่มี ID หรือไม่เจอด้วย ID ให้หาด้วย name และ type
+			if !stageExists {
+				err := tx.Where("venue_id = ? AND stage_name = ? AND stage_type_id = ?", 
+					id, stage.StageName, stage.StageTypeID).First(&existingStage).Error
+				if err == nil {
+					stageExists = true
+					stage.ID = existingStage.ID // กำหนด ID ที่เจอ
+					fmt.Printf("Debug - Found existing stage by name/type: ID=%d\n", existingStage.ID)
+				} else if err == gorm.ErrRecordNotFound {
+					fmt.Printf("Debug - Stage not found by name/type: %s-%d\n", stage.StageName, stage.StageTypeID)
+				} else {
+					return fmt.Errorf("failed to query existing stage by name and type: %w", err)
+				}
+			}
+
+			// สร้างใหม่หรืออัพเดต Stage
+			if stageExists {
+				// อัพเดต Stage ที่มีอยู่
+				if err := tx.Model(&existingStage).
 					Updates(map[string]interface{}{
 						"stage_name":    stage.StageName,
 						"stage_type_id": stage.StageTypeID,
 					}).Error; err != nil {
-					return fmt.Errorf("failed to update stage: %w", err)
+					return fmt.Errorf("failed to update existing stage: %w", err)
+				}
+				stage.ID = existingStage.ID
+			} else {
+				// สร้าง Stage ใหม่
+				if err := tx.Create(stage).Error; err != nil {
+					return fmt.Errorf("failed to create new stage: %w", err)
 				}
 			}
-			stageIDs = append(stageIDs, stage.ID)
 
-			// ---------- จัดการ StageEquipment ----------
+			stageIDs = append(stageIDs, stage.ID)
+			
+			// จัดการ StageEquipment
 			var equipmentIDs []uint
 			for _, se := range equipments {
 				equipmentIDs = append(equipmentIDs, se.EquipmentID)
 
 				var existingSE entity.StageEquipment
-				err := tx.Where("stage_id = ? AND equipment_id = ?", stage.ID, se.EquipmentID).
-					First(&existingSE).Error
+				err := tx.Where("stage_id = ? AND equipment_id = ?", stage.ID, se.EquipmentID).First(&existingSE).Error
 
 				if err == gorm.ErrRecordNotFound {
-					// ยังไม่มี → create
+					// สร้าง StageEquipment ใหม่
 					newSE := entity.StageEquipment{
 						StageID:       stage.ID,
 						EquipmentID:   se.EquipmentID,
 						StageQuantity: se.StageQuantity,
 					}
 					if err := tx.Create(&newSE).Error; err != nil {
-						return fmt.Errorf("failed to assign equipment %d: %w", se.EquipmentID, err)
+						return fmt.Errorf("failed to create stage equipment for stage %d, equipment %d: %w", 
+							stage.ID, se.EquipmentID, err)
 					}
 				} else if err == nil {
-					// มีอยู่แล้ว → update
+					// อัพเดต StageEquipment ที่มีอยู่
 					if err := tx.Model(&existingSE).
-						Where("id = ?", existingSE.ID).
 						Update("stage_quantity", se.StageQuantity).Error; err != nil {
 						return fmt.Errorf("failed to update stage equipment %d: %w", existingSE.ID, err)
 					}
 				} else {
 					return fmt.Errorf("failed to query stage equipment: %w", err)
 				}
+				equipmentUpdates[se.EquipmentID] = true
+			}
+			for equipmentID := range equipmentUpdates {
+			updatedEq, err := UpdateTotalUsedEquipment(tx, equipmentID,)
+			if err != nil {
+				return fmt.Errorf("failed to update total used quantity for equipment %d: %w", equipmentID, err)
 			}
 
-			// ---------- ลบ StageEquipment ที่ไม่อยู่ใน payload ----------
+			// ตรวจสอบว่า quantity ไม่เกิน total quantity
+			if updatedEq.EquipmentUsedQuantity > updatedEq.EquipmentTotalQuantity {
+				return fmt.Errorf("equipment %s: used quantity (%d) exceeds total quantity (%d)",
+					updatedEq.EquipmentName, updatedEq.EquipmentUsedQuantity, updatedEq.EquipmentTotalQuantity)
+			}
+
+			fmt.Printf("Equipment %s ใช้ไปแล้ว %d ชิ้น จากทั้งหมด %d ชิ้น\n",
+				updatedEq.EquipmentName, updatedEq.EquipmentUsedQuantity, updatedEq.EquipmentTotalQuantity)
+			}
+
+			// ลบ StageEquipment ที่ไม่อยู่ใน payload
 			if len(equipmentIDs) > 0 {
 				if err := tx.Where("stage_id = ? AND equipment_id NOT IN ?", stage.ID, equipmentIDs).
 					Delete(&entity.StageEquipment{}).Error; err != nil {
-					return fmt.Errorf("failed to delete removed stage equipments: %w", err)
+					return fmt.Errorf("failed to delete removed stage equipments for stage %d: %w", stage.ID, err)
 				}
 			} else {
-				if err := tx.Where("stage_id = ?", stage.ID).
-					Delete(&entity.StageEquipment{}).Error; err != nil {
-					return fmt.Errorf("failed to delete all stage equipments: %w", err)
+				// ถ้าไม่มี equipment ใน payload ให้ลบทั้งหมดของ stage นี้
+				if err := tx.Where("stage_id = ?", stage.ID).Delete(&entity.StageEquipment{}).Error; err != nil {
+					return fmt.Errorf("failed to delete all stage equipments for stage %d: %w", stage.ID, err)
 				}
 			}
 		}
 
-		// ---------- ลบ Stage ที่ไม่อยู่ใน payload ----------
+		// ลบ Stage ที่ไม่อยู่ใน payload
 		if len(stageIDs) > 0 {
-			if err := tx.Where("venue_id = ? AND id NOT IN ?", id, stageIDs).
-				Delete(&entity.Stage{}).Error; err != nil {
+			// ลบ StageEquipment ก่อน
+			if err := tx.Where("stage_id IN (SELECT id FROM stages WHERE venue_id = ? AND id NOT IN ?)", 
+				id, stageIDs).Delete(&entity.StageEquipment{}).Error; err != nil {
+				return fmt.Errorf("failed to delete stage equipments for removed stages: %w", err)
+			}
+			
+			// ลบ Stage
+			if err := tx.Where("venue_id = ? AND id NOT IN ?", id, stageIDs).Delete(&entity.Stage{}).Error; err != nil {
 				return fmt.Errorf("failed to delete removed stages: %w", err)
 			}
 		} else {
-			if err := tx.Where("venue_id = ?", id).
-				Delete(&entity.Stage{}).Error; err != nil {
+			// ถ้าไม่มี stage ใน payload ให้ลบทั้งหมด
+			// ลบ StageEquipment ก่อน
+			if err := tx.Where("stage_id IN (SELECT id FROM stages WHERE venue_id = ?)", 
+				id).Delete(&entity.StageEquipment{}).Error; err != nil {
+				return fmt.Errorf("failed to delete all stage equipments: %w", err)
+			}
+			
+			// ลบ Stage
+			if err := tx.Where("venue_id = ?", id).Delete(&entity.Stage{}).Error; err != nil {
 				return fmt.Errorf("failed to delete all stages: %w", err)
 			}
-		}
-
-		// ---------- Preload ข้อมูลล่าสุด ----------
-		if err := tx.Preload("VenueType").
-			Preload("Stages.StageType").
-			Preload("Stages.Equipments.Equipment.EquipmentType").
-			First(v, id).Error; err != nil {
-			return fmt.Errorf("failed to preload venue: %w", err)
 		}
 
 		return nil
 	})
 }
 
-
 // DeleteVenue: ลบ Venue และ Stage(s) พร้อมคืนจำนวนอุปกรณ์
 func (s *VenueService) DeleteVenue(id uint) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		// โหลด Stage และ Equipments ของ Venue
 		var stages []entity.Stage
 		if err := tx.Preload("Equipments").Where("venue_id = ?", id).Find(&stages).Error; err != nil {
 			return err
@@ -314,12 +377,17 @@ func (s *VenueService) DeleteVenue(id uint) error {
 
 		eqService := &EquipmentService{DB: tx}
 
-		// คืนจำนวนอุปกรณ์สำหรับทุก Stage
+		// คืนจำนวนอุปกรณ์
 		for _, stage := range stages {
 			for _, se := range stage.Equipments {
 				if err := eqService.RestoreFromStage(se.EquipmentID, se.StageQuantity); err != nil {
 					return fmt.Errorf("failed to restore equipment %d: %w", se.EquipmentID, err)
 				}
+			}
+
+			// ลบ StageEquipments ของ Stage นี้
+			if err := tx.Where("stage_id = ?", stage.ID).Delete(&entity.StageEquipment{}).Error; err != nil {
+				return fmt.Errorf("failed to delete stage equipments: %w", err)
 			}
 		}
 
@@ -354,6 +422,11 @@ func (s *VenueService) DeleteStage(id uint) error {
 			}
 		}
 
+		// ลบ StageEquipments ของ Stage นี้
+		if err := tx.Where("stage_id = ?", stage.ID).Delete(&entity.StageEquipment{}).Error; err != nil {
+			return fmt.Errorf("failed to delete stage equipments: %w", err)
+		}
+
 		// ลบ Stage
 		if err := tx.Delete(&entity.Stage{}, id).Error; err != nil {
 			return err
@@ -363,14 +436,24 @@ func (s *VenueService) DeleteStage(id uint) error {
 	})
 }
 
+// DeleteEquipment: ลบ StageEquipment เดียว พร้อมคืนจำนวนอุปกรณ์
 func (s *VenueService) DeleteEquipment(id uint) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		var stage_eq entity.StageEquipment
-		eqService := &EquipmentService{DB: tx}
-		if err := eqService.RestoreFromStage(stage_eq.EquipmentID, stage_eq.StageQuantity); err != nil {
-			return fmt.Errorf("failed to restore equipment %d: %w", stage_eq.EquipmentID, err)
+		var stageEq entity.StageEquipment
+
+		// โหลด StageEquipment
+		if err := tx.First(&stageEq, id).Error; err != nil {
+			return fmt.Errorf("stage equipment not found: %w", err)
 		}
 
+		eqService := &EquipmentService{DB: tx}
+
+		// คืนจำนวนอุปกรณ์
+		if err := eqService.RestoreFromStage(stageEq.EquipmentID, stageEq.StageQuantity); err != nil {
+			return fmt.Errorf("failed to restore equipment %d: %w", stageEq.EquipmentID, err)
+		}
+
+		// ลบ StageEquipment
 		if err := tx.Delete(&entity.StageEquipment{}, id).Error; err != nil {
 			return err
 		}
@@ -378,6 +461,8 @@ func (s *VenueService) DeleteEquipment(id uint) error {
 		return nil
 	})
 }
+
+
 
 // ---------------- Type Methods ----------------
 func (s *VenueService) GetVenueTypes() ([]entity.VenueType, error) {

@@ -61,7 +61,7 @@ const EditVenue: React.FC = () => {
         // map stage + equipments ให้ form
         const stages =
           venue.stages?.map((s: any) => ({
-            stage_id: s.ID,
+            id: s.ID,  // ✅ เปลี่ยนจาก ID เป็น id ให้ตรงกับ gorm.Model
             stage_name: s.stage_name,
             stage_type_id: s.stage_type_id,
             width: s.width,
@@ -69,15 +69,13 @@ const EditVenue: React.FC = () => {
             equipments: s.equipments?.map((e: any) => ({
               stage_equipment_id: e.ID,
               equipment_id: e.equipment.ID,
-              quantity: e.stage_quantity,
+              stage_quantity: e.stage_quantity, // ค่าใหม่ (สำหรับ form)
+              old_quantity: e.stage_quantity, // ✅ เก็บค่าเดิมไว้
             })),
-            // stage_equipment: s.stage_quantity?.map((se: any) => ({
-            //   equipment_id: se.equipment?.equipment,
-            //   quantity: se.StageQuantity, // ใช้ StageQuantity จาก StageEquipment
-            // })),
           })) || [];
 
         form.setFieldsValue({
+          venue_id: venue.ID,
           venue_name: venue.venue_name,
           location: venue.location,
           venue_capacity: venue.venue_capacity,
@@ -106,14 +104,15 @@ const EditVenue: React.FC = () => {
 
     allValues.stages?.forEach((stage: any) => {
       stage.equipments?.forEach((eq: any) => {
-        if (eq.equipment_id && eq.quantity) {
-          newStock[eq.equipment_id] -= eq.quantity;
+        if (eq.equipment_id && eq.stage_quantity) {  // ✅ เปลี่ยนจาก quantity เป็น stage_quantity
+          newStock[eq.equipment_id] -= eq.stage_quantity;
         }
       });
     });
 
     setEquipmentStock(newStock);
   };
+  
   const handleDeleteEquipment = async (id: number): Promise<void> => {
     try {
       await venueAPI.deleteStageEquipment(id);
@@ -123,6 +122,7 @@ const EditVenue: React.FC = () => {
       message.error("Failed to delete equipment. Please try again.");
     }
   };
+  
   const handleDeleteStage = async (id: number) => {
     try {
       await venueAPI.deleteStage(id);
@@ -132,14 +132,36 @@ const EditVenue: React.FC = () => {
       message.error("Failed to deleted stage. Please try again.");
     }
   };
+  
   const handleValuesChange = (_: any, allValues: any) => {
     updateStock(allValues);
   };
 
   const onFinish = async (values: VenueInterface) => {
+    const vId = values.ID || Number(values.venue_id); // ✅ ดึงจากค่าใน form หรือจาก value
+    
+    // ✅ ปรับ format ข้อมูลให้ตรงกับ backend
+    const payload = {
+      venue_name: values.venue_name,
+      location: values.location,
+      venue_capacity: values.venue_capacity,
+      venue_type_id: values.venue_type_id,
+      stages: values.stages?.map((stage: any) => ({
+        id: stage.id || 0,  // ส่ง id ให้ backend
+        stage_name: stage.stage_name,
+        stage_type_id: stage.stage_type_id,
+        width: stage.width,
+        length: stage.length,
+        equipments: stage.equipments?.map((eq: any) => ({
+          equipment_id: eq.equipment_id,
+          stage_quantity: eq.stage_quantity,
+        })) || []
+      })) || []
+    };
+    
     try {
-      console.log("Update payload:", values);
-      await venueAPI.update(venue.ID!, values);
+      console.log("Update payload:", vId, "data", payload);
+      await venueAPI.update(vId, payload);
       message.success("Venue updated successfully!");
       navigate("/venue");
     } catch (error) {
@@ -176,6 +198,10 @@ const EditVenue: React.FC = () => {
             <h2 style={{ fontWeight: "bold", fontSize: 18 }}>
               Venue Information
             </h2>
+            <Form.Item name="venue_id" hidden>
+              <Input type="hidden" />
+            </Form.Item>
+
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
@@ -247,10 +273,10 @@ const EditVenue: React.FC = () => {
                               const stageId = form.getFieldValue([
                                 "stages",
                                 name,
-                                "stage_id",
+                                "id",  // ✅ เปลี่ยนจาก stage_id เป็น id
                               ]);
                               if (stageId) {
-                                await handleDeleteStage(stageId); // ส่ง stageId จริง ๆ ไป
+                                await handleDeleteStage(stageId);
                               }
                               removeStage(name);
                             }}
@@ -260,6 +286,11 @@ const EditVenue: React.FC = () => {
                         }
                         style={{ marginBottom: 12 }}
                       >
+                        {/* ✅ เพิ่ม hidden field สำหรับ stage id */}
+                        <Form.Item {...restField} name={[name, "id"]} hidden>
+                          <Input type="hidden" />
+                        </Form.Item>
+                        
                         <Row gutter={16}>
                           <Col span={12}>
                             <Form.Item
@@ -335,6 +366,22 @@ const EditVenue: React.FC = () => {
 
                                   return (
                                     <Row gutter={16} key={eqKey} align="middle">
+                                      {/* ✅ เพิ่ม hidden fields */}
+                                      <Form.Item 
+                                        {...eqRestField}
+                                        name={[eqName, "stage_equipment_id"]} 
+                                        hidden
+                                      >
+                                        <Input type="hidden" />
+                                      </Form.Item>
+                                      <Form.Item 
+                                        {...eqRestField}
+                                        name={[eqName, "old_quantity"]} 
+                                        hidden
+                                      >
+                                        <Input type="hidden" />
+                                      </Form.Item>
+                                      
                                       <Col span={12}>
                                         <Form.Item
                                           {...eqRestField}
@@ -366,7 +413,7 @@ const EditVenue: React.FC = () => {
                                       <Col span={8}>
                                         <Form.Item
                                           {...eqRestField}
-                                          name={[eqName, "quantity"]}
+                                          name={[eqName, "stage_quantity"]}  // ✅ เปลี่ยนจาก quantity เป็น stage_quantity
                                           label="Quantity"
                                           rules={[
                                             {
@@ -382,18 +429,36 @@ const EditVenue: React.FC = () => {
                                                   eqName,
                                                   "equipment_id",
                                                 ]);
+
                                                 if (!eqId)
                                                   return Promise.resolve();
+                                                if (value == null)
+                                                  return Promise.resolve();
+
+                                                // ✅ ดึงค่าเดิมออกมา
+                                                const oldQuantity =
+                                                  getFieldValue([
+                                                    "stages",
+                                                    name,
+                                                    "equipments",
+                                                    eqName,
+                                                    "old_quantity",
+                                                  ]) || 0;
+
+                                                // ✅ เช็กเฉพาะส่วนที่เพิ่มขึ้นใหม่
+                                                const diff =
+                                                  value - oldQuantity;
                                                 if (
-                                                  value > equipmentStock[eqId]
+                                                  diff <= equipmentStock[eqId]  // ✅ เปลี่ยนจาก < เป็น <=
                                                 ) {
+                                                  return Promise.resolve();
+                                                } else {
                                                   return Promise.reject(
                                                     new Error(
-                                                      `Exceeds remaining stock: ${equipmentStock[eqId]}`
+                                                      `Exceeds remaining stock: (old=${oldQuantity})`
                                                     )
                                                   );
                                                 }
-                                                return Promise.resolve();
                                               },
                                             }),
                                           ]}
@@ -422,10 +487,10 @@ const EditVenue: React.FC = () => {
                                             if (stageeq_Id) {
                                               try {
                                                 await handleDeleteEquipment(
-                                                  stageeq_Id+
+                                                  stageeq_Id
                                                 );
                                                 // หลังจากลบใน backend สำเร็จแล้วค่อยลบใน form
-                                                removeEq(eqName); // แก้จาก removeEq(name) เป็น removeEq(eqName)
+                                                removeEq(eqName);
                                               } catch (error) {
                                                 console.error(
                                                   "Failed to delete equipment:",

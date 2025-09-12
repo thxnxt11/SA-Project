@@ -149,14 +149,15 @@ export const venueAPI = {
   getById: (id: number | string) => Get(`${ADMIN_API_URL}/venues/${id}`),
   getVenueTypes: () => Get(`${ADMIN_API_URL}/venuetypes`),
   create: (payload: VenueInterface) => Post(`${ADMIN_API_URL}/venues`, payload),
-  update: (id: number | string, payload: VenueInterface) => PUT(`${ADMIN_API_URL}/venues/${id}`, payload),
+  update: (id: number | string, payload: any) => PUT(`${ADMIN_API_URL}/venues/${id}`, payload),
   delete: (id: number | string) => Delete(`${ADMIN_API_URL}/venues/${id}`), // ลบ Venue + Stages ทั้งหมด
   deletestage:(id : number)=>Delete(`${ADMIN_API_URL}/stage/${id}`), // ลบ stage พร้อม คืน equipment
 
   // Stage (แยกสำหรับแก้ไข Stage เดี่ยว)
   deleteStage: (id: number ) => Delete(`${ADMIN_API_URL}/stages/${id}`), // ลบ Stage เดี่ยว
  
-  deleteStageEquipment: (id: number) => Delete(`/stages_equipments/${id}`,false), // delte equipment
+ deleteStageEquipment: (id: number) =>
+  Delete(`${ADMIN_API_URL}/stages_equipments/${id}`, false), // delte equipment
 
   getStageTypes: () => Get(`${ADMIN_API_URL}/stagetypes`),
 };

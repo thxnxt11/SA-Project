@@ -11,9 +11,6 @@ import (
 type StaffAssignmentController struct {
 	Service *service.StaffAssignmentService
 }
-
-
-
 // GET /staff/assignments
 func (ctrl *StaffAssignmentController) GetMyAssignments(c *gin.Context) {
 	uIdStr := c.Param("user_id")

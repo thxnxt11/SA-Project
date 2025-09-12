@@ -3,7 +3,7 @@ import type { StageTypeInterface } from "./stagetype";
 import type { VenueInterface } from "./venue";
 
 export interface StageInterface {
-  id: number;
+  ID: number;
   stage_name?: string;
   width: number;
   length: number;
