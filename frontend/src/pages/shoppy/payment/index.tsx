@@ -167,14 +167,10 @@ const PaymentOrderPage: React.FC = () => {
 
   setLoadingUpload(true);
     try {
-      //  อัปโหลดสลิป
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await uploadAPI.upload(formData);
+      const res = await uploadAPI.uploadReceipt(file);
       const receiptUrl = res.data.data.url;
       console.log(res.data.data.url);
-
-      //  อัปเดต PaymentOrder 
+      
       await paymentOrderAPI.updatePaymentOrder(paymentId, {
       method_id: selectedPaymentMethodId,
       status_id: 2,

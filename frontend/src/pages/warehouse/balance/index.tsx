@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Typography, Card, message } from "antd";
+import { Table, Typography, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import SidebarLayout from "../../../component/layout/SidebarLayout";
 import { productsAPI } from "../../../services/https";
@@ -11,6 +11,7 @@ type Row = {
   product_name: string;
   minimum: number;
   total: number;
+  sales: number;
 };
 
 const CheckWarehouse: React.FC = () => {
@@ -28,6 +29,7 @@ const CheckWarehouse: React.FC = () => {
           product_name: String(p.product_name ?? p.ProductName ?? ""),
           minimum: Number(p.minimum ?? p.Minimum ?? 0),
           total: Number(p.total ?? p.Total ?? 0),
+          sales: Number(p.sales ?? p.Sales ?? 0),
         }));
         rows.sort((a, b) => a.total - b.total);
 
@@ -63,19 +65,32 @@ const columns: ColumnsType<Row> = [
     dataIndex: "product_name",
     key: "product_name",
     align: "center",
-    width:500,
+    width:450,
   },
   {
     title: "Minimum Quantity",
     dataIndex: "minimum",
     key: "minimum",
     align: "center",
+    width:170,
+  },
+  {
+    title: "Sales", 
+    dataIndex: "sales",
+    key: "sales",
+    align: "center",
+    width:100,
+    sorter: (a: Row, b: Row) => a.sales - b.sales,
+    render: (sales: number) => (
+      <Text style={{ fontWeight: "bold", color: "#1890ff" }}>{sales}</Text>
+    ),
   },
   {
     title: "Total",
     dataIndex: "total",
     key: "total",
     align: "center",
+    width:100,
     sorter: (a: Row, b: Row) => a.total - b.total,
     render: (total: number, record: Row) => (
       <div

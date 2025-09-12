@@ -16,7 +16,6 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ open, order }) => {
 
   useEffect(() => {
     if (open) {
-      // กำหนดเวลาปัจจุบันตอนเปิด modal ครั้งเดียว
       setFixedTime(new Date());
     }
   }, [open]);
@@ -40,7 +39,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ open, order }) => {
   const totalAfterDiscount = subtotal - (order.discount || 0);
 
   const handleClose = () => {
-    // ปิด modal แล้ว navigate ไป cart ของ order.id
+  
     navigate(`/shopping/cart/${order.id}`);
   };
 
