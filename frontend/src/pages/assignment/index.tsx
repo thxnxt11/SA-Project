@@ -1,0 +1,503 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useEffect, useState } from "react";
+import {
+  Table,
+  Input,
+  Space,
+  Button,
+  Typography,
+  Select,
+  message,
+  Popconfirm,
+  Modal,
+  Result,
+  Tag,
+  Avatar,
+  Tooltip,
+} from "antd";
+import {
+  EditOutlined,
+  DeleteOutlined,
+  CalendarOutlined,
+  ClockCircleOutlined,
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+
+import SidebarLayout from "../../component/layout/SidebarLayout";
+import AddTaskAssignment from "./addassignment/index";
+import EditTaskAssignment from "./editassignment/index";
+import { assignmentAPI } from "../../services/https/index";
+import type { AssignmentInterface } from "../../interface/assignment";
+import type { ConcertInterface } from "../../interface/concert";
+import type { AssignmentStatusInterface } from "../../interface/assignment";
+import type { ShowDatesInterface } from "../../interface/showdate";
+
+const { Text } = Typography;
+const { Option } = Select;
+
+const TaskAssignment: React.FC = () => {
+  const [assignments, setAssignments] = useState<AssignmentInterface[]>([]);
+  const [statuses, setStatuses] = useState<AssignmentStatusInterface[]>([]);
+  const [concerts, setConcerts] = useState<ConcertInterface[]>([]);
+  const [, setShowDates] = useState<ShowDatesInterface[]>([]);
+  const [searchText, setSearchText] = useState("");
+  const [selectedConcert, setSelectedConcert] = useState<number | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
+
+  const [addVisible, setAddVisible] = useState(false);
+  const [editVisible, setEditVisible] = useState(false);
+  const [editAssignment, setEditAssignment] =
+    useState<AssignmentInterface | null>(null);
+
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
+  const [loadingStatuses, setLoadingStatuses] = useState(false);
+  const [loadingShowDates, setLoadingShowDates] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchAssignments();
+    fetchStatuses();
+    fetchShowDates();
+  }, []);
+
+  /** Fetch Assignments */
+  const fetchAssignments = async () => {
+    setLoadingAssignments(true);
+    try {
+      const res: any = await assignmentAPI.getAll();
+      const data = Array.isArray(res) ? res : res?.data ?? [];
+
+      const mapped: AssignmentInterface[] = data.map((item: any) => {
+        const seen = new Set<number>();
+        const uniqueStaffAssignments = (item.staff_assignments ?? []).filter(
+          (sa: any) => {
+            if (seen.has(sa.user_id)) return false;
+            seen.add(sa.user_id);
+            return true;
+          }
+        );
+
+        return {
+          ID: item.ID,
+          task: item.task ?? "",
+          description: item.description ?? "",
+          assignment_start: item.assignment_start ?? "",
+          assignment_end: item.assignment_end ?? "",
+          assignment_status_id: item.AssignmentStatusID ?? 0,
+          assignment_status: item.assignment_status ?? null,
+          show_date_id: item.ShowDateID ?? 0,
+          show_date: item.show_date ?? null,
+          staff_assignments: uniqueStaffAssignments,
+          staff_ids: item.staff_ids ?? [],
+        };
+      });
+
+      setAssignments(mapped);
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to load assignments");
+    } finally {
+      setLoadingAssignments(false);
+    }
+  };
+
+  /** Fetch Statuses */
+  const fetchStatuses = async () => {
+    setLoadingStatuses(true);
+    try {
+      const res: any = await assignmentAPI.getStatuses();
+      const data = Array.isArray(res) ? res : res?.data || [];
+      setStatuses(data);
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to load statuses");
+    } finally {
+      setLoadingStatuses(false);
+    }
+  };
+
+  /** Fetch ShowDates */
+  const fetchShowDates = async () => {
+    setLoadingShowDates(true);
+    try {
+      const res: any = await assignmentAPI.getShowDates();
+      const data: ShowDatesInterface[] = Array.isArray(res)
+        ? res
+        : res?.data || [];
+      setShowDates(data);
+
+      // Map concert dropdown unique
+      const concertMap = new Map<number, string>();
+      data.forEach((sd) => {
+        const concert = sd.concert;
+        if (concert && !concertMap.has(concert.ID)) {
+          concertMap.set(concert.ID, concert.concert_name);
+        }
+      });
+
+      const concertOptions: ConcertInterface[] = Array.from(
+        concertMap,
+        ([ID, concert_name]) => ({
+          ID,
+          concert_name,
+          concert_poster_url: "",
+          chart_image: "",
+        })
+      );
+      setConcerts(concertOptions);
+    } catch (err) {
+      console.error(err);
+      setShowDates([]);
+      setConcerts([]);
+    } finally {
+      setLoadingShowDates(false);
+    }
+  };
+
+  /** Get Tag color by staff assignment status */
+  const getStaffStatusTag = (statusID?: number) => {
+    switch (statusID) {
+      case 1:
+        return { color: "default", text: "Not Started" };
+      case 2:
+        return { color: "blue", text: "In Progress" };
+      case 3:
+        return { color: "green", text: "Completed" };
+      default:
+        return { color: "default", text: "-" };
+    }
+  };
+
+  /** Edit handler */
+  const handleEdit = (record: AssignmentInterface) => {
+    setEditAssignment(record);
+    setEditVisible(true);
+  };
+
+  /** Delete handler */
+  const handleDelete = async (id: number) => {
+    try {
+      await assignmentAPI.delete(id);
+      fetchAssignments();
+      setSuccessMessage("Task assignment has been successfully deleted!");
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to delete.");
+      console.log("delete", id);
+    }
+  };
+  /** Table Columns */
+  const columns = [
+    {
+      title: "Task",
+      key: "task",
+      render: (record: AssignmentInterface) => (
+        <Space direction="vertical" size="small">
+          <Text strong>{record.task}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.description}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: "Concert & Show Date",
+      key: "concertShowDate",
+      render: (record: AssignmentInterface) => {
+        const concertName = record.show_date?.concert?.concert_name || "-";
+        const venueName = record.show_date?.venue?.venue_name || "-";
+
+        const showDateStr = record.show_date?.show_date;
+        const showDateFormatted = showDateStr
+          ? dayjs(showDateStr).format("DD/MM/YYYY")
+          : "-";
+
+        const showTimeFormatted = showDateStr
+          ? dayjs(showDateStr).format("HH:mm")
+          : "-";
+
+        return (
+          <Space direction="vertical" size={2}>
+            {/* Concert Name */}
+            <Text strong style={{ fontSize: 14, color: "#111" }}>
+              {concertName}
+            </Text>
+
+            {/* Venue */}
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Venue: {venueName}
+            </Text>
+
+            {/* Show Date */}
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Date: {showDateFormatted}
+            </Text>
+
+            {/* Show Time */}
+            {showTimeFormatted !== "00:00" && (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Time: {showTimeFormatted}
+              </Text>
+            )}
+          </Space>
+        );
+      },
+    },
+
+    {
+      title: "Assigned Staff",
+      key: "assignedStaff",
+      render: (_: any, record: AssignmentInterface) => (
+        <Space wrap>
+          {record.staff_assignments?.length
+            ? record.staff_assignments.map((s, idx) => {
+                const { color, text } = getStaffStatusTag(
+                  s.assignment_status?.ID
+                );
+                const user = s.user;
+                if (!user) return null;
+
+                const name = `${user.first_name} ${user.last_name}`;
+                const initials = user.first_name[0]  + user?.last_name[0];
+                const tooltipContent = `${name} - ${
+                  user.position?.position || "-"
+                } - ${user.department?.department || "-"}`;
+
+                return (
+                  <Space key={idx} size="small" align="center">
+                    {/* Avatar แสดงตัวอักษรย่อ */}
+                    <Tooltip title={tooltipContent}>
+                      <Avatar
+                        size="small"
+                        style={{ backgroundColor: "#1890ff" }}
+                      >
+                        {initials.toUpperCase()}
+                      </Avatar>
+                    </Tooltip>
+
+                    {/* ชื่อเต็ม */}
+                    <span style={{ fontSize: 12 }}>{name}</span>
+
+                    {/* Tag แสดงสถานะ */}
+                    <Tag color={color} style={{ fontSize: 12 }}>
+                      {text}
+                    </Tag>
+                  </Space>
+                );
+              })
+            : "-"}
+        </Space>
+      ),
+    },
+
+    {
+      title: "Start / End Date & Time",
+      key: "datetime",
+      render: (record: AssignmentInterface) => {
+        const startDate = record.assignment_start
+          ? dayjs(record.assignment_start).format("DD/MM/YYYY")
+          : "-";
+        const startTime = record.assignment_start
+          ? dayjs(record.assignment_start).format("HH:mm")
+          : "-";
+
+        const endDate = record.assignment_end
+          ? dayjs(record.assignment_end).format("DD/MM/YYYY")
+          : "-";
+        const endTime = record.assignment_end
+          ? dayjs(record.assignment_end).format("HH:mm")
+          : "-";
+
+        return (
+          <Space direction="vertical" size="small">
+            <Space>
+              <CalendarOutlined />
+              <Text style={{ fontSize: 12 }}>
+                <strong>Start Date:</strong> {startDate}
+              </Text>
+            </Space>
+            <Space>
+              <ClockCircleOutlined />
+              <Text style={{ fontSize: 12 }}>
+                <strong>Start Time:</strong> {startTime}
+              </Text>
+            </Space>
+            <Space>
+              <CalendarOutlined />
+              <Text style={{ fontSize: 12 }}>
+                <strong>End Date:</strong> {endDate}
+              </Text>
+            </Space>
+            <Space>
+              <ClockCircleOutlined />
+              <Text style={{ fontSize: 12 }}>
+                <strong>End Time:</strong> {endTime}
+              </Text>
+            </Space>
+          </Space>
+        );
+      },
+    },
+
+    {
+      title: "Status",
+      key: "status",
+      render: (record: AssignmentInterface) => (
+        <Tag color={record.assignment_status?.ID === 3 ? "green" : "blue"}>
+          {record.assignment_status?.assignment_status || "-"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_: any, record: AssignmentInterface) => (
+        <Space>
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          />
+          <Popconfirm
+            title="Are you sure to delete this assignment?"
+            onConfirm={() => handleDelete(record.ID!)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button type="text" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  /** Filtered Assignments */
+  const filteredAssignments = assignments.filter((a) => {
+    const matchTask = a.task?.toLowerCase().includes(searchText.toLowerCase());
+    const matchConcert =
+      !selectedConcert || a.show_date?.concert?.ID === selectedConcert;
+    const matchStatus =
+      !selectedStatus || a.assignment_status?.ID === selectedStatus;
+    return matchTask && matchConcert && matchStatus;
+  });
+
+  return (
+    <SidebarLayout>
+      <div style={{ padding: 20 }}>
+        <div style={{ marginBottom: 20 }}>
+          <h1 style={{ fontWeight: "bold", marginBottom: 4 }}>
+            Task Assignment
+          </h1>
+          <Text type="secondary">Manage and assign tasks to the team.</Text>
+        </div>
+
+        <Space
+          direction="horizontal"
+          size="middle"
+          wrap
+          style={{ marginBottom: 20 }}
+        >
+          <Input
+            placeholder="Search assignments"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 250, borderRadius: 8 }}
+          />
+          <Select
+            placeholder="Filter by Concert"
+            allowClear
+            style={{ width: 280, borderRadius: 8 }}
+            value={selectedConcert || undefined}
+            onChange={(val) => setSelectedConcert(val || null)}
+            loading={loadingShowDates}
+          >
+            {concerts.map((c) => (
+              <Option key={c.ID} value={c.ID}>
+                {c.concert_name}
+              </Option>
+            ))}
+          </Select>
+          <Select
+            placeholder="Filter by Status"
+            allowClear
+            style={{ width: 220, borderRadius: 8 }}
+            value={selectedStatus || undefined}
+            onChange={(val) => setSelectedStatus(val || null)}
+            loading={loadingStatuses}
+          >
+            {statuses.map((s) => (
+              <Option key={s.ID} value={s.ID}>
+                {s.assignment_status}
+              </Option>
+            ))}
+          </Select>
+          <Button type="primary" onClick={() => setAddVisible(true)}>
+            + Assign New Task
+          </Button>
+        </Space>
+
+        <Table
+          loading={loadingAssignments}
+          columns={columns}
+          dataSource={filteredAssignments}
+          rowKey="ID"
+          bordered
+          pagination={{ pageSize: 10 }}
+          locale={{ emptyText: "No assignments found." }}
+        />
+
+        <AddTaskAssignment
+          visible={addVisible}
+          onCancel={() => setAddVisible(false)}
+          onSave={() => {
+            fetchAssignments();
+            setAddVisible(false);
+            setSuccessMessage("Task assignment has been successfully added!");
+          }}
+        />
+
+        {editAssignment && (
+          <EditTaskAssignment
+            visible={editVisible}
+            onCancel={() => {
+              setEditVisible(false);
+              setEditAssignment(null);
+            }}
+            onSave={() => {
+              fetchAssignments();
+              setEditVisible(false);
+              setEditAssignment(null);
+              setSuccessMessage(
+                "Task assignment has been successfully updated!"
+              );
+            }}
+            assignmentId={editAssignment?.ID}
+          />
+        )}
+
+        <Modal
+          open={!!successMessage}
+          footer={null}
+          onCancel={() => setSuccessMessage(null)}
+        >
+          <Result
+            status="success"
+            title="Success!"
+            subTitle={successMessage || ""}
+            extra={[
+              <Button
+                key="ok"
+                type="primary"
+                onClick={() => setSuccessMessage(null)}
+              >
+                OK
+              </Button>,
+            ]}
+          />
+        </Modal>
+      </div>
+    </SidebarLayout>
+  );
+};
+
+export default TaskAssignment;

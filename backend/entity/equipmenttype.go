@@ -5,4 +5,3 @@ type EquipmentType struct{
 	gorm.Model
 	EquipmentType string `json:"equipment_type"`
 }
-

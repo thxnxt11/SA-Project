@@ -13,12 +13,13 @@ import (
 	"github.com/yourname/went-back/controllers/promotion"
 	refund "github.com/yourname/went-back/controllers/refund"
 	controllers "github.com/yourname/went-back/controllers/report"
-	staffassignmentController "github.com/yourname/went-back/controllers/staff"
+	staffController "github.com/yourname/went-back/controllers/staff"
 	"github.com/yourname/went-back/controllers/user"
+	eqcontroller "github.com/yourname/went-back/controllers/venue"
 	products "github.com/yourname/went-back/controllers/warehouse-shop"
 	"github.com/yourname/went-back/controllers/zone"
 	"github.com/yourname/went-back/services"
-	staffassignmentService "github.com/yourname/went-back/services"
+	showDateController "github.com/yourname/went-back/controllers/showdate"
 )
 
 func main() {
@@ -95,8 +96,26 @@ func main() {
 
 	promotionCtl := promotion.NewPromotionController()
 
-	staffAssignService := &staffassignmentService.StaffAssignmentService{DB: connection.DB()}
-	staffAssignCtrl := &staffassignmentController.StaffAssignmentController{Service: staffAssignService}
+	staffAssignService := &services.StaffAssignmentService{DB: connection.DB()}
+	staffAssignCtrl := &staffController.StaffAssignmentController{Service: staffAssignService}
+	
+	userService := &services.UserService{DB: connection.DB()}
+	staffCtrl := &staffController.UserController{Service: userService}
+	assignmentSvc := &services.AssignmentService{DB: connection.DB()}
+
+	assignCtrl := &staffController.AssignmentController{Service: assignmentSvc}
+
+	assignmentStatusService := &services.AssignmentStatusService{DB: connection.DB()}
+	assignmentStatusController := &staffController.AssignmentStatusController{Service: assignmentStatusService}
+
+	venueService := &services.VenueService{DB: connection.DB()}
+	venueController := &eqcontroller.VenueController{VenueService: venueService}
+
+	equipService := &services.EquipmentService{DB: connection.DB()}
+	equipCtrl := &eqcontroller.EquipmentController{Service: equipService}
+
+	showDateService := &services.ShowDateService{DB: connection.DB()}
+	showDateController := &showDateController.ShowDateController{Service: showDateService}
 
 	eTicketCtl := booking.NewEticketController()
 	reportController := &controllers.ReportController{}
@@ -192,6 +211,49 @@ func main() {
 		api.POST("/staff/:user_id/assignments/:assignment_id/accept",staffAssignCtrl.AcceptAssignment)
 		api.POST("/staff/:user_id/assignments/:assignment_id/inject",staffAssignCtrl.InjectAssignment)
 		api.POST("/staff/:user_id/assignments/:assignment_id/complete",staffAssignCtrl.CompleteAssignment)
+		api.GET("/dashboard",concert.GetAllPayments)
+
+		api.POST("/users", staffCtrl.CreateUser)
+		api.GET("/users", staffCtrl.GetUsers)
+		api.GET("/users/:user_id/staff", staffCtrl.GetUserByID)
+		api.PUT("/users/:user_id/staff", staffCtrl.UpdateUser)
+		api.DELETE("/users/:user_id/staff", staffCtrl.DeleteUser)
+
+		// api.GET("/genders", staffCtrl.GetGenders)
+		api.GET("/roles", staffCtrl.GetRoles)
+		api.GET("/departments", staffCtrl.GetDepartments)
+		api.GET("/positions", staffCtrl.GetPositions)
+		
+		api.GET("/showdates", showDateController.GetShowDates)
+		api.GET("/assignments", assignCtrl.GetAssignments)
+		api.GET("/assignments/:id", assignCtrl.GetAssignmentByID)
+		api.POST("/assignments", assignCtrl.CreateAssignment)
+		api.PUT("/assignments/:id", assignCtrl.UpdateAssignment)
+		api.DELETE("/assignments/:id", assignCtrl.DeleteAssignment)
+
+		api.GET("/assignment_statuses", assignmentStatusController.GetAllStatuses)
+
+		api.GET("/venues", venueController.GetAllVenues)
+		api.GET("/venues/:id", venueController.GetVenue)
+		api.POST("/venues", venueController.CreateVenue)
+		api.PUT("/venues/:id", venueController.UpdateVenue)
+
+		api.DELETE("/venues/:id", venueController.DeleteVenue)
+		api.DELETE("/stages/:id",venueController.DeleteStage)
+		api.DELETE("/stages_equipments/:id",venueController.DeleteEquipment)
+
+		api.GET("/venuetypes", venueController.GetVenueTypes)
+		api.GET("/stagetypes", venueController.GetStageTypes)
+		api.GET("/equipmenttypes", equipCtrl.GetEquipmentTypes)
+
+		api.GET("/equipments", equipCtrl.GetAllEquipment)        // ดึงอุปกรณ์ทั้งหมด
+		api.GET("/equipments/:id", equipCtrl.GetEquipmentByID)   // ดึงอุปกรณ์ตาม ID
+		api.POST("/equipments", equipCtrl.Create)       // เพิ่มอุปกรณ์ใหม่
+		api.PUT("/equipments/:id", equipCtrl.Update)    // แก้ไขอุปกรณ์
+		api.DELETE("/equipments/:id", equipCtrl.Delete) // ลบอุปกรณ์
+
+		api.POST("/equipments/:id/assign", equipCtrl.AssignToStage)     // Assign อุปกรณ์ให้ Stage
+		api.GET("/equipments/available", equipCtrl.GetAvailableByStage) // ดึงอุปกรณ์ที่ยังใช้งานได้
 	}
 
 	// static uploads

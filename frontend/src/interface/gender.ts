@@ -1,4 +1,4 @@
-export interface GenderINterface {
-    gender_id?: number;
+export interface GenderInterface {
+    ID?: number;
     gender?: string;
 }

@@ -3,7 +3,7 @@ import type { AxiosResponse, AxiosError } from "axios";
 import type { PromotionInterface } from "../../interface/promotion";
 import type { ConcertInterface } from "../../interface/concert";
 import type { ShowDatesInterface } from "../../interface/showdate";
-import type { VenueOptions } from "../../interface/venue";
+import type { VenueInterface, VenueOptions } from "../../interface/venue";
 import type { ZoneInterface } from "../../interface/zone";
 import type { bookingInterface } from "../../interface/booking";
 import type { ReportType } from "../../interface/report";
@@ -14,6 +14,12 @@ import type {
   RefundRequest,
   RefundResponse,
 } from "../../interface/refund";
+import type { AssignmentInterface } from "../../interface/assignment";
+import type {
+  CreateUserInterface,
+  UpdateUserPayload,
+} from "../../interface/user";
+import type { EquipmentInterface } from "../../interface/equipment";
 
 const ORGANIZER_API_URL = "http://localhost:8000/organizer";
 const PUBLIC_API_URL = "http://localhost:8000/api";
@@ -202,7 +208,7 @@ export const ShowDateAPI = {
     const r = await Delete(`${PUBLIC_API_URL}/showdate/${id}`);
     return r?.data;
   },
-  deleteByDate: async (concert_id: number, showdate: string) =>{
+  deleteByDate: async (concert_id: number, showdate: string) => {
     const r = await Delete(
       `${PUBLIC_API_URL}/showdate/concert/${concert_id}/date/${showdate}`
     );
@@ -230,9 +236,13 @@ export const uploadAPI = {
   uploadReceipt: async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    return await axios.post(`${PUBLIC_API_URL}/upload/order-receipt`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    return await axios.post(
+      `${PUBLIC_API_URL}/upload/order-receipt`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
   },
   uploadProductImage: async (file: File) => {
     const formData = new FormData();
@@ -395,7 +405,11 @@ export const refundAPI = {
     const res = await Delete(`${PUBLIC_API_URL}/refunds/${refund_id}`);
     return res?.data;
   },
-  updateStatus: async (refund_id: number, refund_status_id: number ,requester_id: number): Promise<any> => {
+  updateStatus: async (
+    refund_id: number,
+    refund_status_id: number,
+    requester_id: number
+  ): Promise<any> => {
     const res = await Update(`${PUBLIC_API_URL}/refunds/${refund_id}/status`, {
       refund_status_id,
       requester_id,
@@ -450,22 +464,23 @@ export const categoriesAPI = {
   getAllCategories: () => Get(`${PUBLIC_API_URL}/categories`, false),
 };
 
-export const colorsAPI ={
-  getAllColors : () => Get(`${PUBLIC_API_URL}/colors`, false),}
-;
+export const colorsAPI = {
+  getAllColors: () => Get(`${PUBLIC_API_URL}/colors`, false),
+};
 
 export const sizesAPI = {
-  getAllSizes : () => Get(`${PUBLIC_API_URL}/sizes`, false)
+  getAllSizes: () => Get(`${PUBLIC_API_URL}/sizes`, false),
 };
 
 export const actionAPI = {
-  getAllSizes : () => Get(`${PUBLIC_API_URL}/action`, false)
+  getAllSizes: () => Get(`${PUBLIC_API_URL}/action`, false),
 };
 
 export const productsAPI = {
-  createProduct : (payload: any) => Post(`${PUBLIC_API_URL}/products`, payload),
-  getAllProducts : () => Get(`${PUBLIC_API_URL}/products`, false),
-  getByProductID : (ID: number) => Get(`${PUBLIC_API_URL}/products/${ID}`, false),
+  createProduct: (payload: any) => Post(`${PUBLIC_API_URL}/products`, payload),
+  getAllProducts: () => Get(`${PUBLIC_API_URL}/products`, false),
+  getByProductID: (ID: number) =>
+    Get(`${PUBLIC_API_URL}/products/${ID}`, false),
   update: (id: number, payload: any) => {
     return axios.put(`${PUBLIC_API_URL}/products/${id}`, payload);
   },
@@ -474,20 +489,24 @@ export const productsAPI = {
 
 export const variantAPI = {
   deleteByID: (id: number) => Delete(`${PUBLIC_API_URL}/variant/${id}`),
-}
+};
 
 export const movementsAPI = {
-  getAllProducts : () => Get(`${PUBLIC_API_URL}/stockmovements`, false),
+  getAllProducts: () => Get(`${PUBLIC_API_URL}/stockmovements`, false),
   create: (data: any) => axios.post("/stock-movements", data),
 };
 
 export const cartAPI = {
-  addToCart: (payload: { user_id: number; variant_id: number; quantity: number }) => {
+  addToCart: (payload: {
+    user_id: number;
+    variant_id: number;
+    quantity: number;
+  }) => {
     return axios.post(`${PUBLIC_API_URL}/cart/add`, payload);
   },
   getCartByUserID: (user_id: number) => {
     return axios.get(`${PUBLIC_API_URL}/cart/${user_id}`);
-  },  
+  },
   updateCartItem: (item_id: number, quantity: number) => {
     return axios.put(`${PUBLIC_API_URL}/cart/item/${item_id}`, { quantity });
   },
@@ -495,15 +514,125 @@ export const cartAPI = {
     return axios.delete(`${PUBLIC_API_URL}/cart/item/${item_id}`);
   },
   updateCartItemSelected: (id: number, selected: boolean) => {
-    return axios.patch(`${PUBLIC_API_URL}/cart/items/${id}/select`, { selected })
+    return axios.patch(`${PUBLIC_API_URL}/cart/items/${id}/select`, {
+      selected,
+    });
   },
 };
 
 export const paymentOrderAPI = {
-  createPaymentOrder: (data: any) => axios.post(`${PUBLIC_API_URL}/payment-orders/create`, data),
-  getAllPaymentMethods: () => axios.get(`${PUBLIC_API_URL}/payment-orders/methods`),
-  getPaymentOrderById: (id: number) => axios.get(`${PUBLIC_API_URL}/payment-orders/${id}`),
+  createPaymentOrder: (data: any) =>
+    axios.post(`${PUBLIC_API_URL}/payment-orders/create`, data),
+  getAllPaymentMethods: () =>
+    axios.get(`${PUBLIC_API_URL}/payment-orders/methods`),
+  getPaymentOrderById: (id: number) =>
+    axios.get(`${PUBLIC_API_URL}/payment-orders/${id}`),
 
-  updatePaymentOrder: (id: number, data: any) => axios.put(`${PUBLIC_API_URL}/payment-orders/${id}`, data),
-  expirePaymentOrder: (id: number) => axios.put(`${PUBLIC_API_URL}/payment-orders/${id}/expire`),
+  updatePaymentOrder: (id: number, data: any) =>
+    axios.put(`${PUBLIC_API_URL}/payment-orders/${id}`, data),
+  expirePaymentOrder: (id: number) =>
+    axios.put(`${PUBLIC_API_URL}/payment-orders/${id}/expire`),
+};
+
+export const payApi = {
+  getallpayment: async () => {
+    const r = await Get(`${PUBLIC_API_URL}/dashboard`);
+    return r?.data;
+  },
+};
+
+export const userAPI = {
+  getAllStaff: (query: string = "") => Get(`${PUBLIC_API_URL}/users${query}`),
+  getStaffById: (id: number | string) =>
+    Get(`${PUBLIC_API_URL}/users/${id}/staff`),
+  createUser: (payload: CreateUserInterface) =>
+    Post(`${PUBLIC_API_URL}/users`, payload),
+  updateUser: (id: number | string, payload: UpdateUserPayload) =>
+    Update(`${PUBLIC_API_URL}/users/${id}/staff`, payload),
+  deleteUser: (id: number | string) =>
+    Delete(`${PUBLIC_API_URL}/users/${id}/staff`),
+
+  // Get dropdown data for creating/updating user
+  getDropdowns: (): Promise<{
+    genders: { ID: number; gender: string }[];
+    roles: { ID: number; role: string }[];
+    departments: { ID: number; department: string }[];
+    positions: { ID: number; position: string }[];
+  }> =>
+    Promise.all([
+      Get(`${PUBLIC_API_URL}/genders`),
+      Get(`${PUBLIC_API_URL}/roles`),
+      Get(`${PUBLIC_API_URL}/departments`),
+      Get(`${PUBLIC_API_URL}/positions`),
+    ]).then(([gendersRes, rolesRes, departmentsRes, positionsRes]) => ({
+      genders: gendersRes.data,
+      roles: rolesRes.data.filter((r: any) => r.ID === 3 || r.ID === 4),
+      departments: departmentsRes.data,
+      positions: positionsRes.data,
+    })),
+};
+
+export const assignmentAPI = {
+  // Assignment
+  getAll: () => Get(`${PUBLIC_API_URL}/assignments`),
+  getById: (id: number) => Get(`${PUBLIC_API_URL}/assignments/${id}`),
+  create: (payload: AssignmentInterface) =>
+    Post(`${PUBLIC_API_URL}/assignments`, {
+      ...payload,
+    }),
+  update: (id: number | undefined, payload: AssignmentInterface) =>
+    Update(`${PUBLIC_API_URL}/assignments/${id}`, {
+      ...payload,
+    }),
+  delete: (id: number) => Delete(`${PUBLIC_API_URL}/assignments/${id}`),
+
+  // dropdown / relation data
+  getStatuses: () => Get(`${PUBLIC_API_URL}/assignment_statuses`),
+  getAllStaff: () => Get(`${PUBLIC_API_URL}/users`),
+  getShowDates: () => Get(`${PUBLIC_API_URL}/showdates`),
+  getConcerts: () => Get(`${PUBLIC_API_URL}/concerts`),
+};
+
+// ---------- Venue + Stage API ----------
+export const venueAPI = {
+  // Venue
+  getAll: () => Get(`${PUBLIC_API_URL}/venues`),
+  getById: (id: number | string) => Get(`${PUBLIC_API_URL}/venues/${id}`),
+  getVenueTypes: () => Get(`${PUBLIC_API_URL}/venuetypes`),
+  create: (payload: VenueInterface) =>
+    Post(`${PUBLIC_API_URL}/venues`, payload),
+  update: (id: number | string, payload: any) =>
+    Update(`${PUBLIC_API_URL}/venues/${id}`, payload),
+  delete: (id: number | string) => Delete(`${PUBLIC_API_URL}/venues/${id}`), // ลบ Venue + Stages ทั้งหมด
+  deletestage: (id: number) => Delete(`${PUBLIC_API_URL}/stage/${id}`), // ลบ stage พร้อม คืน equipment
+
+  // Stage (แยกสำหรับแก้ไข Stage เดี่ยว)
+  deleteStage: (id: number) => Delete(`${PUBLIC_API_URL}/stages/${id}`), // ลบ Stage เดี่ยว
+
+  deleteStageEquipment: (id: number) =>
+    Delete(`${PUBLIC_API_URL}/stages_equipments/${id}`, false), // delte equipment
+
+  getStageTypes: () => Get(`${PUBLIC_API_URL}/stagetypes`),
+};
+
+export const equipmentAPI = {
+  // ----- CRUD อุปกรณ์ -----
+  getAllEquipments: () => Get(`${PUBLIC_API_URL}/equipments`),
+  getEquipmentTypes: () => Get(`${PUBLIC_API_URL}/equipmenttypes`),
+  getById: (id: number | string) => Get(`${PUBLIC_API_URL}/equipments/${id}`),
+  create: (payload: EquipmentInterface) =>
+    Post(`${PUBLIC_API_URL}/equipments`, payload),
+  update: (id: number | string, payload: EquipmentInterface) =>
+    Update(`${PUBLIC_API_URL}/equipments/${id}`, payload),
+  delete: (id: number | string) => Delete(`${PUBLIC_API_URL}/equipments/${id}`),
+
+  // ----- Stock / Stage Assignment -----
+  assignToStage: (
+    id: number | string,
+    payload: { stage_id: number; quantity: number }
+  ) => Post(`${PUBLIC_API_URL}/equipments/${id}/assign`, payload),
+
+  // ----- อุปกรณ์ที่ยังใช้งานได้ / available -----
+  getAvailableByStage: (stage_id: number | string) =>
+    Get(`${PUBLIC_API_URL}/equipments/available?stage_id=${stage_id}`),
 };

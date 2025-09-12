@@ -16,6 +16,7 @@ import PublicRoute from "./routes/publicRoutes";
 import ForgetPassword from "./pages/user/forgotpass";
 import ResetPassword from "./pages/user/resetpass";
 import AdminRoutes from "./routes/AdminRoutes";
+import AccessDenied from "./pages/access/accessdenied";
 
 const App: React.FC = () => {
   const serverReady = useServerReady("http://localhost:8000/healthz");
@@ -43,8 +44,8 @@ const App: React.FC = () => {
               </PublicRoute>
             }
           />
-          <Route path="/warehouse/*" element={<AdminRoutes />} />
-          <Route path="/forbidden" element={<div>403 Not access right</div>} />
+          <Route path="/admin/*" element={<AdminRoutes />} />
+          <Route path="/forbidden" element={<AccessDenied />} />
           <Route path="/organizer/*" element={<OrganizerRoutes />} />
           <Route path="/*" element={<MemberRoutes />} />
         </Routes>

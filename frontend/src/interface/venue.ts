@@ -1,14 +1,4 @@
-export interface StageInterface {
-  id: number;
-  stage_name?: string;
-  width: number;
-  length: number;
-  stage_type_id: number;
-//   stage_type?: StageTypeInterface;
-  venue_id: number;
-  venue?: VenueInterface; // optional circular reference
-//   equipments?: StageEquipmentInterface[];
-}
+import type { StageInterface } from "./stage";
 
 export interface VenueInterface {
   ID: number;

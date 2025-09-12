@@ -8,123 +8,67 @@ import (
 	"github.com/yourname/went-back/services"
 )
 
-type StaffAssignmentController struct {
-	Service *services.StaffAssignmentService
+type AssignmentController struct {
+	Service *services.AssignmentService
 }
 
-
-
-// GET /staff/assignments
-func (ctrl *StaffAssignmentController) GetMyAssignments(c *gin.Context) {
-	uIdStr := c.Param("user_id")
-	userID, err := strconv.ParseUint(uIdStr, 10, 32)
-	assignments, err := ctrl.Service.GetMyAssignments(uint(userID))
+func (ctrl *AssignmentController) GetAssignments(c *gin.Context) {
+	assignments, err := ctrl.Service.GetAllAssignments()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch assignments"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": assignments})
+	c.JSON(http.StatusOK, assignments)
 }
 
-// POST /staff/assignments/:id/accept
-func (ctrl *StaffAssignmentController) AcceptAssignment(c *gin.Context) {
-	assignIdStr := c.Param("assignment_id")
-	assignID, err := strconv.ParseUint(assignIdStr, 10, 32)
+func (ctrl *AssignmentController) GetAssignmentByID(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	assignment, err := ctrl.Service.GetAssignmentByID(uint(id))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid assignment_id"})
-		return // เพิ่ม return เพื่อหยุดการทำงาน
-	}
-
-	uIdStr := c.Param("user_id")
-	userID, err := strconv.ParseUint(uIdStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
-		return // เพิ่ม return เพื่อหยุดการทำงาน
-	}
-
-	if err := ctrl.Service.AcceptAssignment(uint(assignID), uint(userID)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to accept assignment"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Assignment not found"})
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Assignment accepted"})
+	c.JSON(http.StatusOK, assignment)
 }
 
-func (ctrl *StaffAssignmentController) InjectAssignment(c *gin.Context){
-	assignIdStr := c.Param("assignment_id")
-	assignID, err := strconv.ParseUint(assignIdStr, 10, 32)
+func (ctrl *AssignmentController) CreateAssignment(c *gin.Context) {
+	var input services.AssignmentInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	assignment, err := ctrl.Service.CreateAssignment(input)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid assignment_id"})
-		return // เพิ่ม return เพื่อหยุดการทำงาน
-	}
-
-	uIdStr := c.Param("user_id")
-	userID, err := strconv.ParseUint(uIdStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
-		return // เพิ่ม return เพื่อหยุดการทำงาน
-	}
-
-	if err := ctrl.Service.InjectAssignment(uint(assignID), uint(userID)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel assignment"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Assignment injected"})
-}
-// PUT /staff/staff_assignments/:id/status
-func (ctrl *StaffAssignmentController) UpdateMyStatus(c *gin.Context) {
-	staffAssignIdStr := c.Param("staff-assignment_id")
-	staffAssignID ,err := strconv.ParseUint(staffAssignIdStr,10,32)
-	if err != nil{
-		c.JSON(http.StatusBadRequest,gin.H{"error": "Invalid staff-assignment_id"})
-		return
-	}
-	uIdStr := c.Param("user_id")
-	userID,err := strconv.ParseUint(uIdStr,10,32)
-	if err != nil{
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	var body struct {
-		StatusID uint `json:"status_id"` // 1-4
-	}
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-
-	if err := ctrl.Service.UpdateMyStatus(uint(staffAssignID), uint(userID), body.StatusID); err != nil {
-		if err == services.ErrPermissionDenied {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Not allowed"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update status"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Status updated"})
+	c.JSON(http.StatusCreated, assignment)
 }
 
-func (ctrl *StaffAssignmentController) CompleteAssignment(c *gin.Context) {
-	assignIdStr := c.Param("assignment_id")
-	assignID, err := strconv.ParseUint(assignIdStr, 10, 32)
+func (ctrl *AssignmentController) UpdateAssignment(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	var input services.AssignmentInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	assignment, err := ctrl.Service.UpdateAssignment(uint(id), input)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid assignment_id"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	uIdStr := c.Param("user_id")
-	userID, err := strconv.ParseUint(uIdStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+	c.JSON(http.StatusOK, assignment)
+}
+
+func (ctrl *AssignmentController) DeleteAssignment(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	if err := ctrl.Service.DeleteAssignment(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	if err := ctrl.Service.CompleteAssignment(uint(assignID), uint(userID)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete assignment"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Assignment completed"})
+	c.JSON(http.StatusOK, gin.H{"message": "Assignment deleted"})
 }

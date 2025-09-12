@@ -87,7 +87,7 @@ export default function OrganizerRoutes() {
         path="calendarvenue"
         element={
           <RequireAuth>
-            <RequireRole allow={["organizer"]}>
+            <RequireRole allow={["organizer","admin"]}>
               <EventCalendar />
             </RequireRole>
           </RequireAuth>

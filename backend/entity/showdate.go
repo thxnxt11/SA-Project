@@ -15,4 +15,5 @@ type ShowDate struct {
 	ShowDate time.Time `json:"show_date"`
 
 	Zones     []Zone `gorm:"foreignKey:ShowDateID"`
+	Assignments []Assignment `gorm:"foreignKey:ShowDateID"`
 }

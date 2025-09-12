@@ -52,7 +52,7 @@ const Navbar: React.FC = () => {
         to: "/organizer/dashboard",
         roles: ["organizer"],
       },
-      { label: "Admin", to: "/warehouse/dashboardwarehouse", roles: ["admin"] },
+      { label: "Admin", to: "/admin/dashboardwarehouse", roles: ["admin"] },
     ],
     []
   );

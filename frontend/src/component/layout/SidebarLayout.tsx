@@ -90,31 +90,31 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       },
 
       {
-        key: "/warehouse/dashboardwarehouse",
+        key: "/admin/dashboardwarehouse",
         icon: <MdOutlineSpaceDashboard style={{ fontSize: 20 }} />,
         label: <span title="Dashboard">Warehouse Dashboard</span>,
-        onClick: () => navigate("/warehouse/dashboardwarehouse"),
+        onClick: () => navigate("/admin/dashboardwarehouse"),
         roles: ["admin"],
       },
       {
-        key: "/warehouse/create",
+        key: "/admin/create",
         icon: <PlusSquareOutlined style={{ fontSize: "20px" }} />,
         label: <span title="Add products">เพื่มข้อมูลสินค้า</span>,
-        onClick: () => navigate("/warehouse/create"),
+        onClick: () => navigate("/admin/create"),
         roles: ["admin"],
       },
       {
-        key: "/warehouse/edit",
+        key: "/admin/edit",
         icon: <EditOutlined style={{ fontSize: "20px" }} />,
         label: <span title="Edit product info">แก้ไขข้อมูลสินค้า</span>,
-        onClick: () => navigate("/warehouse/edit"),
+        onClick: () => navigate("/admin/edit"),
         roles: ["admin"],
       },
       {
-        key: "/warehouse/balance",
+        key: "/admin/balance",
         icon: <FallOutlined style={{ fontSize: "20px" }} />,
         label: <span title="Check balance">เช็คข้อมูลสินค้าคงเหลือ</span>,
-        onClick: () => navigate("/warehouse/balance"),
+        onClick: () => navigate("/admin/balance"),
         roles: ["admin"],
       },
       {
@@ -132,10 +132,24 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         roles: ["admin"],
       },
       {
+        key: "/admin/equipment",
+        icon: <MdAssignment style={{ fontSize: "20px" }} />,
+        label: <span title="จัดการอุปกรณ์">จัดการอุปกรณ์</span>,
+        onClick: () => navigate("/admin/equipment"),
+        roles: ["admin"],
+      },
+      {
         key: "/admin/staff",
         icon: <BsPersonLinesFill style={{ fontSize: "20px" }} />,
         label: <span title="จัดการทีมงาน">จัดการทีมงาน</span>,
         onClick: () => navigate("/admin/staff "),
+        roles: ["admin"],
+      },
+      {
+        key: "/admin/assignment",
+        icon: <MdAssignment style={{ fontSize: "20px" }} />,
+        label: <span title="มอบหมายงาน">มอบหมายงาน</span>,
+        onClick: () => navigate("/admin/assignment"),
         roles: ["admin"],
       },
       {
@@ -150,7 +164,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         icon: <MdAssignment style={{ fontSize: "20px" }} />,
         label: <span title="มอบหมายงาน">มอบหมายงาน</span>,
         onClick: () => navigate("/assignment"),
-        roles: ["admin", "staff"],
+        roles: ["staff"],
       },
     ],
     [navigate]

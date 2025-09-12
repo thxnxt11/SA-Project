@@ -76,9 +76,7 @@ func SetupDatabase() {
       &entity.User{},
       &entity.Variant{},
       &entity.Venue{},
-      &entity.VenueStatus{},
       &entity.VenueType{},
-      &entity.WorkSchedule{},
       &entity.Zone{},
       &entity.ZoneType{}, 
    )
@@ -274,4 +272,27 @@ func SetupDatabase() {
         Quantity:       20,
         Picture:        "/uploads/products/1757523971551195800_oneShirt1.jpg",
     })
+    // ===== Departments =====
+	db.FirstOrCreate(&entity.Department{}, &entity.Department{Department: "Marketing"})      // โปรโมท, PR, สื่อสาร
+	db.FirstOrCreate(&entity.Department{}, &entity.Department{Department: "Technical"}) 
+
+   db.FirstOrCreate(&entity.Position{}, &entity.Position{Position: "Leader"})
+	db.FirstOrCreate(&entity.Position{}, &entity.Position{Position: "Manager"})
+	db.FirstOrCreate(&entity.Position{}, &entity.Position{Position: "Staff"})
+
+   // ===== Assignment Statuses =====
+	db.FirstOrCreate(&entity.AssignmentStatus{}, &entity.AssignmentStatus{AssignmentStatus: "Pending"})
+	db.FirstOrCreate(&entity.AssignmentStatus{}, &entity.AssignmentStatus{AssignmentStatus: "In Progress"})
+	db.FirstOrCreate(&entity.AssignmentStatus{}, &entity.AssignmentStatus{AssignmentStatus: "Completed"})
+	db.FirstOrCreate(&entity.AssignmentStatus{}, &entity.AssignmentStatus{AssignmentStatus: "Cancelled"})
+
+   // ===== Equipment Types =====
+	db.FirstOrCreate(&entity.EquipmentType{}, &entity.EquipmentType{EquipmentType: "Audio"})
+	db.FirstOrCreate(&entity.EquipmentType{}, &entity.EquipmentType{EquipmentType: "Lighting"})
+
+   db.FirstOrCreate(&entity.StageType{}, &entity.StageType{StageType: "Arena"})
+   db.FirstOrCreate(&entity.StageType{}, &entity.StageType{StageType: "Theater"})
+
+   db.FirstOrCreate(&entity.VenueType{}, &entity.VenueType{Venuetype: "Stadium"})
+   db.FirstOrCreate(&entity.VenueType{}, &entity.VenueType{Venuetype: "Concert Hall"})
 }
