@@ -253,25 +253,6 @@ func SetupDatabase() {
     for _, cat := range categories {
         db.FirstOrCreate(&entity.Category{}, entity.Category{Category: cat})
     }
-     // --- Example Product ---
-    db.FirstOrCreate(&entity.Product{}, entity.Product{
-        ProductName:    "Once T-Shirt",
-        CategoryID:     1,
-        ProductDetail:  "The must have item for once",
-        ProductPrice:   1299.00,
-        Minimum:        100,
-        Sales:          0,
-        Total:          20,
-        ConcertID:        1,
-    })
-
-    db.FirstOrCreate(&entity.Variant{}, entity.Variant{
-        ProductID:      1,
-        ColorID:        1,
-        SizeID:         2,
-        Quantity:       20,
-        Picture:        "/uploads/products/1757523971551195800_oneShirt1.jpg",
-    })
     // ===== Departments =====
 	db.FirstOrCreate(&entity.Department{}, &entity.Department{Department: "Marketing"})      // โปรโมท, PR, สื่อสาร
 	db.FirstOrCreate(&entity.Department{}, &entity.Department{Department: "Technical"}) 
@@ -295,4 +276,10 @@ func SetupDatabase() {
 
    db.FirstOrCreate(&entity.VenueType{}, &entity.VenueType{Venuetype: "Stadium"})
    db.FirstOrCreate(&entity.VenueType{}, &entity.VenueType{Venuetype: "Concert Hall"})
+
+
+   db.FirstOrCreate(&entity.Role{}, &entity.Role{Role: "organizer"})
+   db.FirstOrCreate(&entity.Role{}, &entity.Role{Role: "member"})
+   db.FirstOrCreate(&entity.Role{}, &entity.Role{Role: "admin"})
+   db.FirstOrCreate(&entity.Role{}, &entity.Role{Role: "staff"})
 }

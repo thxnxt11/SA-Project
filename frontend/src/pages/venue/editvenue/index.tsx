@@ -76,7 +76,7 @@ const EditVenue: React.FC = () => {
           })) || [];
 
         form.setFieldsValue({
-          venue_id: venue.ID,
+          ID: venue.ID,
           venue_name: venue.venue_name,
           location: venue.location,
           venue_capacity: venue.venue_capacity,
@@ -199,7 +199,7 @@ const EditVenue: React.FC = () => {
             <h2 style={{ fontWeight: "bold", fontSize: 18 }}>
               Venue Information
             </h2>
-            <Form.Item name="venue_id" hidden>
+            <Form.Item name="ID" hidden>
               <Input type="hidden" />
             </Form.Item>
 

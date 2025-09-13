@@ -16,6 +16,7 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 import { concertAPI, ShowDateAPI } from "../../../services/https";
+import { useAuth } from "../../../hook/authContext";
 
 const API = "http://localhost:8000";
 
@@ -41,7 +42,7 @@ export default function ConcertManagement() {
   const [addConcert, setaddConcert] = useState<ConcertInterface | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-
+  const {user} = useAuth()
   const fetchConcerts = async () => {
     try {
       setLoading(true);
@@ -176,9 +177,9 @@ export default function ConcertManagement() {
 
   const handleAddconcert = async (values: any) => {
     // user_id
-    const uStr = localStorage.getItem("user") ?? localStorage.getItem("User");
-    const user = uStr ? JSON.parse(uStr) : null;
-    const uid = user.user_id;
+    // const uStr = localStorage.getItem("user") ?? localStorage.getItem("User");
+
+    const uid = user?.id;
     console.log("user_id =  ", uid);
     const user_id = uid ? Number(uid) : undefined;
     if (!user_id) {

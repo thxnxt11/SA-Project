@@ -171,7 +171,7 @@ const Venue: React.FC = () => {
                     <TeamOutlined /> ความจุ: {venue.venue_capacity || "-"} คน
                   </p>
                   <p>
-                    <FaBuilding /> ประเภท: {venue.venue_type?.venue_name || "-"}
+                    <FaBuilding /> ประเภท: {venue.venue_type?.venue_type || "-"}
                   </p>
                   <p>
                     <CalendarOutlined /> จำนวนเวที: {venue.stages?.length || 0}

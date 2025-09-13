@@ -9,7 +9,7 @@ export interface UserInterface {
   birthday?: string; // "YYYY-MM-DD"
   address?: string;
   gender_id?: number;
-  phone_number?: string;
+  phonenum?: string;
   role_id?: number;
   department_id?: number;
   position_id?: number;

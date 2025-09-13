@@ -16,8 +16,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import { userAPI } from "../../../services/https/index";
 import type { GenderInterface } from "../../../interface/gender";
-import type { CreateUserInterface, DepartmentInterface, PositionInterface, RoleInterface } from "../../../interface/user";
-
+import type {
+  CreateUserInterface,
+  DepartmentInterface,
+  PositionInterface,
+  RoleInterface,
+} from "../../../interface/user";
 
 const { Option } = Select;
 
@@ -55,16 +59,16 @@ const AddStaff: React.FC = () => {
     console.log("Form values:", values);
     try {
       const payload: CreateUserInterface = {
-        first_name: values.firstName, 
-        last_name: values.lastName, 
-        birthday: values.birthday.format("YYYY-MM-DD"), 
-        gender_id: Number(values.gender_id), 
-        email: values.email, 
-        phone_number: values.phone_number || "", 
-        role_id: Number(values.role_id), 
-        department_id: Number(values.department_id), 
+        first_name: values.firstName,
+        last_name: values.lastName,
+        birthday: values.birthday.format("YYYY-MM-DD"),
+        gender_id: Number(values.gender_id),
+        email: values.email,
+        phone_number: values.phone_number || "",
+        role_id: Number(values.role_id),
+        department_id: Number(values.department_id),
         position_id: Number(values.position_id),
-        address: values.address, 
+        address: values.address,
       };
 
       console.log("Payload to send:", payload);
@@ -140,9 +144,9 @@ const AddStaff: React.FC = () => {
                   name="gender_id"
                   rules={[{ required: true }]}
                 >
-                  <Select placeholder="Select gender">
+                  <Select placeholder="Select gender" >
                     {genders.map((g: GenderInterface) => (
-                      <Option key={g.ID} value={g.ID}>
+                      <Option key={g.id} value={g.id}>
                         {g.gender}
                       </Option>
                     ))}
@@ -222,7 +226,10 @@ const AddStaff: React.FC = () => {
                 </Button>
               </Col>
               <Col>
-                <Button htmlType="button" onClick={() => navigate("/admin/staff")}>
+                <Button
+                  htmlType="button"
+                  onClick={() => navigate("/admin/staff")}
+                >
                   Cancel
                 </Button>
               </Col>

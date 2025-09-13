@@ -603,7 +603,7 @@ export const venueAPI = {
   getVenueTypes: () => Get(`${PUBLIC_API_URL}/venuetypes`),
   create: (payload: VenueInterface) =>
     Post(`${PUBLIC_API_URL}/venues`, payload),
-  update: (id: number | string, payload: any) =>
+  update: (id: number , payload: any) =>
     Update(`${PUBLIC_API_URL}/venues/${id}`, payload),
   delete: (id: number | string) => Delete(`${PUBLIC_API_URL}/venues/${id}`), // ลบ Venue + Stages ทั้งหมด
   deletestage: (id: number) => Delete(`${PUBLIC_API_URL}/stage/${id}`), // ลบ stage พร้อม คืน equipment

@@ -12,5 +12,5 @@ export interface VenueInterface {
 
 export type VenueOptions = {
   id: number;
-  venue_name: string;
+  venue_type: string;
 };
