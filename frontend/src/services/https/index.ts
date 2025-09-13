@@ -190,6 +190,8 @@ export const seatAPI = {
     const r = await Post(`${PUBLIC_API_URL}/seatzone/${id}`, {});
     return r?.data;
   },
+
+  creatSeat: (data: any) => Post(`${PUBLIC_API_URL}/seats/generate`,data),
 };
 
 export const ShowDateAPI = {
@@ -396,8 +398,8 @@ export const refundAPI = {
 
   // ประวัติการ Refund ของผู้ใช้
   getHistory: async (user_id: number): Promise<Refund[]> => {
-    const res = await Get(`${PUBLIC_API_URL}/refunds/history/${user_id}`);
-    return res?.data as Refund[];
+    const res: any = await Get(`${PUBLIC_API_URL}/refunds/history/${user_id}`);
+    return (res?.data ?? []) as Refund[];
   },
 
   // ลบคำขอ Refund

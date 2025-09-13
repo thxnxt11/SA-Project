@@ -328,15 +328,57 @@ func UpdateRefundStatus(c *gin.Context) {
         c.JSON(http.StatusBadRequest, gin.H{"error": "ไม่พบผู้ใช้ที่ร้องขอ"})
         return
     }
-
     if requester.RoleID != 3 {
         c.JSON(http.StatusForbidden, gin.H{"error": "ไม่มีสิทธิ์ในการอัปเดตสถานะ"})
         return
     }
 
-    if err := connection.DB().Model(&entity.Refund{}).
+    // เริ่มทรานแซกชัน
+    tx := connection.DB().Begin()
+    if tx.Error != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": tx.Error.Error()})
+        return
+    }
+
+    // ตรวจว่ามี refund นี้จริง และดึง booking_id
+    var refund entity.Refund
+    if err := tx.First(&refund, refundID).Error; err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusBadRequest, gin.H{"error": "ไม่พบข้อมูลการขอคืนเงิน"})
+        return
+    }
+
+    // อัปเดตสถานะ refund
+    if err := tx.Model(&entity.Refund{}).
         Where("id = ?", refundID).
         Update("refund_status_id", req.RefundStatusID).Error; err != nil {
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    // ถ้าสถานะใหม่เป็น 3 -> อัปเดต booking และ payment ที่เกี่ยวข้องให้เป็น refunded (5)
+    if req.RefundStatusID == 3 {
+        // อัปเดต booking_status_id = 5
+        if err := tx.Model(&entity.Booking{}).
+            Where("id = ?", refund.BookingID).
+            Update("booking_status_id", 5).Error; err != nil {
+            tx.Rollback()
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+            return
+        }
+
+        // อัปเดต payment_status_id = 5 (ตาม booking_id)
+        if err := tx.Model(&entity.Payment{}).
+            Where("booking_id = ?", refund.BookingID).
+            Update("payment_status_id", 5).Error; err != nil {
+            tx.Rollback()
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+            return
+        }
+    }
+
+    if err := tx.Commit().Error; err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }

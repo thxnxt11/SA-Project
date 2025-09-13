@@ -11,6 +11,7 @@ import type { Refund } from "../../interface/refund";
 export const RefundHis: React.FC = () => {
   const { user } = useAuth();
   const [data, setData] = useState<Refund[]>([]);
+  const [updatedItems, setUpdatedItems] = useState<Set<number>>(new Set()); // เก็บ ID ของรายการที่ถูกอัปเดตแล้ว
 
   useEffect(() => {
     if (user?.id) {
@@ -64,6 +65,9 @@ export const RefundHis: React.FC = () => {
           item.id === refund_id ? { ...item, refund_status_id } : item
         )
       );
+
+      // เพิ่ม ID ลงใน Set ของรายการที่ถูกอัปเดตแล้ว
+      setUpdatedItems((prev) => new Set(prev).add(refund_id));
     } catch (err) {
       console.error("Error updating status:", err);
       message.error("ไม่สามารถอัปเดตสถานะได้");
@@ -75,6 +79,12 @@ export const RefundHis: React.FC = () => {
       await refundAPI.delete(id);
       message.success("ลบข้อมูลสำเร็จ");
       setData((prev) => prev.filter((item) => item.id !== id));
+      // ลบ ID ออกจาก Set เมื่อลบรายการ
+      setUpdatedItems((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
     } catch (err) {
       console.error(err);
       message.error("ไม่สามารถลบข้อมูลได้");
@@ -101,17 +111,16 @@ export const RefundHis: React.FC = () => {
       title: "Status",
       key: "status",
       render: (_, record) => {
+        const isUpdated = updatedItems.has(record.id); // ตรวจสอบว่าถูกอัปเดตแล้วหรือไม่
+
         if (user?.role_id === 3) {
           return (
             <Select
               value={record.status}
               style={{ width: 180 }}
+              disabled={isUpdated} // ปิดการใช้งานถ้าถูกอัปเดตแล้ว
               onChange={(val) =>
-                handleUpdateStatus(
-                  record.id,
-                  Number(val),
-                  Number(user.id)
-                )
+                handleUpdateStatus(record.id, Number(val), Number(user.id))
               }
               options={statusOptions.map((o) => ({
                 value: o.value,

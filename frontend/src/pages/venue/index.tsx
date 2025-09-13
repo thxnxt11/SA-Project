@@ -27,8 +27,7 @@ import { RiDeleteBin6Line } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
 import { venueAPI } from "../../services/https/index";
 import type { VenueInterface } from "../../interface/venue";
-
-
+import AddSeatModal from "../venue/addseat"
 const { Text } = Typography;
 
 const Venue: React.FC = () => {
@@ -36,6 +35,10 @@ const Venue: React.FC = () => {
   const [venues, setVenues] = useState<VenueInterface[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [seatModalOpen, setSeatModalOpen] = useState(false);
+  const [selectedVenueId, setSelectedVenueId] = useState<number | undefined>(
+    undefined
+  );
 
   // modal state
   const [deleteStatus, setDeleteStatus] = useState<"success" | "error" | null>(
@@ -221,10 +224,19 @@ const Venue: React.FC = () => {
                       type="primary"
                       icon={<FaRegEdit />}
                       onClick={() =>
-                        navigate("/editvenue", { state: { venue } })
+                        navigate("/admin/editvenue", { state: { venue } })
                       }
                     >
                       Edit
+                    </Button>
+                    <Button
+                      type="primary"
+                      onClick={() => {
+                        setSelectedVenueId(venue.ID);
+                        setSeatModalOpen(true);
+                      }}
+                    >
+                      + Add Seat
                     </Button>
 
                     <Popconfirm
@@ -283,8 +295,17 @@ const Venue: React.FC = () => {
           ) : null}
         </Modal>
       </div>
+      <AddSeatModal
+        open={seatModalOpen}
+        venueId={selectedVenueId}
+        onClose={() => setSeatModalOpen(false)}
+        onSuccess={() => {
+          // รีเฟรชรายการหลังสร้างเสร็จ
+          fetchVenues();
+        }}
+      />
     </SidebarLayout>
   );
 };
 
-export default Venue; 
+export default Venue;
